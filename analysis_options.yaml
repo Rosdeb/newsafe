@@ -1,0 +1,54 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "build/**"
+    - "lib/generated_plugin_registrant.dart"
+
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+
+linter:
+  rules:
+    # --- Core best practices ---
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_locals: true
+    prefer_final_fields: true
+    unnecessary_final: false
+
+    # --- Code readability ---
+    always_declare_return_types: true
+    require_trailing_commas: true
+    sort_constructors_first: true
+    always_put_control_body_on_new_line: true
+    avoid_redundant_argument_values: true
+
+    # --- Error prevention ---
+    avoid_empty_else: true
+    avoid_init_to_null: true
+    avoid_returning_null: true
+    use_key_in_widget_constructors: true
+    no_duplicate_case_values: true
+    avoid_bool_literals_in_conditional_expressions: true
+
+    # --- Style consistency ---
+    prefer_single_quotes: false
+    curly_braces_in_flow_control_structures: true
+    avoid_multiple_declarations_per_line: true
+    avoid_unused_constructor_parameters: true
+
+    # --- Performance ---
+    avoid_unnecessary_containers: true
+    prefer_const_constructors_in_immutables: true
+    avoid_unnecessary_setters: true
+
+    # --- Null safety discipline ---
+    avoid_type_to_string: true
+    avoid_dynamic_calls: true
+    avoid_catches_without_on_clauses: true
+    avoid_catching_errors: true

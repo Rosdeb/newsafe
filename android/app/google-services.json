@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "203964485006",
+    "project_id": "saferader-7de07",
+    "storage_bucket": "saferader-7de07.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203964485006:android:0f97cbe20ae5e907bd68df",
+        "android_client_info": {
+          "package_name": "com.example.saferader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa5KNgrYRfMW7H53H3KK6Njyi2mIAAsPI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203964485006:android:890c7cdc0738b966bd68df",
+        "android_client_info": {
+          "package_name": "com.tonydoor.saferader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa5KNgrYRfMW7H53H3KK6Njyi2mIAAsPI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

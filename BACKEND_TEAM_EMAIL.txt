@@ -1,0 +1,30 @@
+Subject: Socket.IO Ping Timeout - Configuration Fix Needed
+
+Hi Backend Team,
+
+We're experiencing frequent socket disconnections with "ping timeout" errors in our Flutter app. The server's pingTimeout setting (currently default 20s) is too short for mobile network conditions.
+
+SOLUTION:
+Please increase the Socket.IO server's pingTimeout from 20s to 60s:
+
+Node.js:
+const io = new Server(httpServer, {
+  pingTimeout: 60000,  // Increase to 60s
+  pingInterval: 25000,
+  transports: ['websocket']
+});
+
+Python:
+sio = socketio.Server(
+    ping_timeout=60,   # Increase to 60s
+    ping_interval=25,
+    transports=['websocket']
+)
+
+This is a standard fix for mobile Socket.IO clients. The 20s default is too aggressive for mobile networks with latency variations and app backgrounding.
+
+Priority: High
+Fix Time: ~5-10 minutes (config change only)
+
+Please deploy and let us know when it's live. Thanks!
+

@@ -1,0 +1,651 @@
+import 'dart:async';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:saferader/utils/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../GiverHOme/GiverHomeController_/GiverHomeController.dart';
+import '../SeakerHome/seakerHomeController.dart';
+import '../SocketService/socket_service.dart';
+
+class SeakerLocationsController extends GetxController {
+  RxBool liveLocation = false.obs;
+  Rx<Position?> currentPosition = Rx<Position?>(null);
+  RxBool isSharingLocation = false.obs;
+  Position? _lastSentPosition;
+  StreamSubscription<Position>? _positionStreamSubscription;
+  RxString currentHelpRequestId = ''.obs;
+  RxBool isSocketConnected = false.obs;
+  bool _hasReceivedFirstLocation = false;
+  DateTime? _lastSuccessfulUpdate;
+  int _consecutiveFailures = 0;
+  static const int _maxConsecutiveFailures = 5;
+  final double _distanceThreshold = 10.0;
+  final int _timeThreshold = 5000;
+  final int _geolocatorDistanceFilter = 10;
+  Timer? _locationTimer;
+  // 🔥 NEW: Track stream state
+  bool _isStreamActive = false;
+
+  String get latString => currentPosition.value?.latitude.toString() ?? "";
+  String get lngString => currentPosition.value?.longitude.toString() ?? "";
+  SocketService? _cachedSocketService;
+  DateTime? _socketCacheTime;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _setupConnectionStateMonitoring();
+  }
+
+  @override
+  void onClose() {
+    _locationTimer?.cancel();
+    _forceStopLocationStream(); // 🔥 FIXED
+    stopLocationSharing();
+    super.onClose();
+  }
+
+  // 🔥 NEW: Force stop location stream
+  Future<void> _forceStopLocationStream() async {
+    Logger.log("🛑 [STREAM] Force stopping location stream...", type: "warning");
+
+    _isStreamActive = false;
+    liveLocation.value = false;
+
+    if (_positionStreamSubscription != null) {
+      await _positionStreamSubscription!.cancel();
+      _positionStreamSubscription = null;
+      Logger.log("✅ [STREAM] Subscription cancelled", type: "success");
+    }
+
+    // 🔥 Android fix: Cancel any background streams
+    try {
+      await Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          distanceFilter: 0,
+        ),
+      ).listen((_) {}).cancel();
+    } catch (e) {
+      // Expected to fail if no stream exists
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    Logger.log("✅ [STREAM] All streams stopped", type: "success");
+  }
+
+  SocketService? getActiveSocket() {
+    final now = DateTime.now();
+
+    // 🔥 FIXED: Reduce cache time from 5s to 2s for faster updates
+    if (_socketCacheTime != null &&
+        now.difference(_socketCacheTime!).inSeconds < 2 &&
+        _cachedSocketService != null &&
+        _cachedSocketService!.isConnected.value) {
+      return _cachedSocketService;
+    }
+
+    SocketService? socketService;
+
+    // Check Giver first
+    if (Get.isRegistered<GiverHomeController>()) {
+      final giverController = Get.find<GiverHomeController>();
+      if (giverController.socketService != null &&
+          giverController.socketService!.isConnected.value) {
+        socketService = giverController.socketService;
+        Logger.log("✅ [SOCKET] Using Giver socket", type: "debug");
+      }
+    }
+
+    // Then check Seeker
+    if (socketService == null && Get.isRegistered<SeakerHomeController>()) {
+      final seekerController = Get.find<SeakerHomeController>();
+      if (seekerController.socketService != null &&
+          seekerController.socketService!.isConnected.value) {
+        socketService = seekerController.socketService;
+        Logger.log("✅ [SOCKET] Using Seeker socket", type: "debug");
+      }
+    }
+
+    // Finally check general socket
+    if (socketService == null && Get.isRegistered<SocketService>()) {
+      final generalSocket = Get.find<SocketService>();
+      if (generalSocket.isConnected.value) {
+        socketService = generalSocket;
+        Logger.log("✅ [SOCKET] Using General socket", type: "debug");
+      }
+    }
+
+    if (socketService != null) {
+      _cachedSocketService = socketService;
+      _socketCacheTime = now;
+    } else {
+      Logger.log("⚠️ [SOCKET] No active socket found", type: "warning");
+    }
+
+    return socketService;
+  }
+
+  void setHelpRequestId(String helpRequestId) {
+    if (helpRequestId.isNotEmpty) {
+      currentHelpRequestId.value = helpRequestId;
+      _cachedSocketService = null;
+      _socketCacheTime = null;
+      Logger.log("✅ [LOCATION SHARE] Help request ID set: $helpRequestId", type: "success");
+    } else {
+      Logger.log("⚠️ [LOCATION SHARE] Attempted to set empty help request ID", type: "warning");
+    }
+  }
+
+  void clearHelpRequestId() {
+    final oldId = currentHelpRequestId.value;
+    currentHelpRequestId.value = '';
+    _cachedSocketService = null;
+    _socketCacheTime = null;
+    Logger.log("📍 [LOCATION SHARE] Help request ID cleared (was: $oldId)", type: "info");
+  }
+
+  void forceSocketRefresh() {
+    _cachedSocketService = null;
+    _socketCacheTime = null;
+    Logger.log("🔄 [LOCATION SHARE] Socket cache forcibly refreshed", type: "info");
+  }
+
+  void _setupConnectionStateMonitoring() {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!isSharingLocation.value) {
+        return; // Don't cancel timer, keep monitoring
+      }
+
+      final socketService = getActiveSocket();
+      final wasConnected = isSocketConnected.value;
+      final isConnected = socketService != null && socketService.isConnected.value;
+
+      isSocketConnected.value = isConnected;
+
+      if (wasConnected != isConnected) {
+        if (isConnected) {
+          Logger.log("✅ [CONNECTION] Socket connection restored", type: "success");
+          if (currentPosition.value != null) {
+            _shareLocation(currentPosition.value!);
+          }
+        } else {
+          Logger.log("⚠️ [CONNECTION] Socket connection lost", type: "warning");
+        }
+      }
+
+      if (!isConnected && isSharingLocation.value) {
+        Logger.log("⚠️ [CONNECTION] Location sharing active but socket disconnected", type: "warning");
+      }
+    });
+  }
+
+  RxString addressText = "".obs;
+  RxString lastUpdated = "".obs;
+
+  Future<void> updateLocation(Position pos) async {
+    currentPosition.value = pos;
+
+    try {
+      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        addressText.value = "${p.street}, ${p.locality}, ${p.country}";
+      } else {
+        addressText.value = "Address unavailable";
+      }
+    } catch (_) {
+      addressText.value = "Unable to get address";
+    }
+
+    lastUpdated.value =
+    "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}";
+  }
+
+  Future<bool> handlePermission() async {
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      Logger.log("📍 Location services disabled", type: "warning");
+      return false;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        Logger.log("📍 Location permission denied", type: "warning");
+        return false;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      Logger.log("📍 Location permission permanently denied", type: "error");
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<void> getUserLocationOnce() async {
+    final hasPermission = await handlePermission();
+    if (!hasPermission) return;
+
+    try {
+      Position pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      currentPosition.value = pos;
+      Logger.log("📍 One-time location: Lat ${pos.latitude}, Lng ${pos.longitude}", type: "info");
+      _autoShareLocation(pos);
+
+    } catch (e) {
+      Logger.log("❌ Error getting location: $e", type: "error");
+    }
+  }
+
+  // 🔥 FIXED: Completely rewritten startLiveLocation
+  Future<void> startLiveLocation() async {
+    Logger.log("🚀 [STREAM] Starting live location...", type: "info");
+
+    final hasPermission = await handlePermission();
+    if (!hasPermission) {
+      Logger.log("❌ [STREAM] No location permission", type: "error");
+      return;
+    }
+
+    // 🔥 STEP 1: Complete cleanup first
+    if (_isStreamActive || _positionStreamSubscription != null) {
+      Logger.log("⚠️ [STREAM] Existing stream detected, stopping it first...", type: "warning");
+      await _forceStopLocationStream();
+    }
+
+    // 🔥 STEP 2: Reset all flags
+    _hasReceivedFirstLocation = false;
+    _isStreamActive = false;
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // 🔥 STEP 3: Start fresh stream
+    try {
+      Logger.log("📡 [STREAM] Creating new position stream...", type: "info");
+
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10, // meters
+          // timeLimit: Duration(seconds: 30), // 👈 COMMENT OUT THIS LINE TO FIX TIMEOUT ISSUE
+        ),
+      ).listen(
+            (Position position) {
+          // 🔥 Accept first position OR high accuracy positions
+          if (!_hasReceivedFirstLocation || position.accuracy <= 50) {
+            if (!_hasReceivedFirstLocation) {
+              _hasReceivedFirstLocation = true;
+              Logger.log("🎯 [STREAM] First location received!", type: "success");
+            }
+
+            currentPosition.value = position;
+            Logger.log(
+                "📍 Live location: (${position.latitude}, ${position.longitude}) - Accuracy: ${position.accuracy}m",
+                type: "debug"
+            );
+            _autoShareLocation(position);
+          } else {
+            Logger.log(
+                "⏭️ [STREAM] Skipped low-accuracy: ${position.accuracy}m",
+                type: "debug"
+            );
+          }
+        },
+        onError: (error) {
+          Logger.log("❌ [STREAM] Error: $error", type: "error");
+          _isStreamActive = false;
+        },
+        onDone: () {
+          Logger.log("📍 [STREAM] Stream ended", type: "warning");
+          _isStreamActive = false;
+          liveLocation.value = false;
+        },
+        cancelOnError: false,
+      );
+
+      _isStreamActive = true;
+      liveLocation.value = true;
+      _startTimeBasedUpdates();
+
+      Logger.log("✅ [STREAM] Live location streaming started successfully", type: "success");
+
+    } catch (e, stackTrace) {
+      Logger.log("❌ [STREAM] Failed to start: $e", type: "error");
+      Logger.log("Stack: $stackTrace", type: "error");
+      _isStreamActive = false;
+      liveLocation.value = false;
+    }
+  }
+
+  void resetFirstLocationFlag() {
+    _hasReceivedFirstLocation = false;
+    Logger.log("📍 First location flag reset", type: "info");
+  }
+
+  void _startTimeBasedUpdates() {
+    _locationTimer?.cancel();
+    _locationTimer = Timer.periodic(Duration(milliseconds: _timeThreshold), (timer) {
+      if (isSharingLocation.value && currentPosition.value != null && _isStreamActive) {
+        _shareLocation(currentPosition.value!);
+        Logger.log("⏰ [TIMER] Time-based update sent", type: "debug");
+      }
+    });
+  }
+
+  String? _getHelpRequestId() {
+    if (currentHelpRequestId.value.isNotEmpty) {
+      return currentHelpRequestId.value;
+    }
+
+    if (Get.isRegistered<GiverHomeController>()) {
+      final giverController = Get.find<GiverHomeController>();
+      final acceptedRequest = giverController.acceptedHelpRequest.value;
+      if (acceptedRequest != null) {
+        final id = acceptedRequest['_id']?.toString();
+        if (id != null && id.isNotEmpty) {
+          currentHelpRequestId.value = id;
+          return id;
+        }
+      }
+    }
+
+    if (Get.isRegistered<SeakerHomeController>()) {
+      final seekerController = Get.find<SeakerHomeController>();
+      if (seekerController.hasActiveHelpRequest &&
+          seekerController.currentHelpRequestId.value.isNotEmpty) {
+        final id = seekerController.currentHelpRequestId.value;
+        currentHelpRequestId.value = id;
+        return id;
+      }
+    }
+
+    return null;
+  }
+
+  void _shareLocation(Position position) {
+    try {
+      final helpRequestId = _getHelpRequestId();
+
+      if (helpRequestId == null || helpRequestId.isEmpty) {
+        Logger.log("❌ [SHARE] No help request ID", type: "warning");
+        _consecutiveFailures++;
+        return;
+      }
+
+      final socketService = getActiveSocket();
+
+      if (socketService == null) {
+        Logger.log("❌ [SHARE] No socket service", type: "error");
+        _consecutiveFailures++;
+        isSocketConnected.value = false;
+        return;
+      }
+
+      if (!socketService.isConnected.value) {
+        Logger.log("❌ [SHARE] Socket disconnected", type: "error");
+        _consecutiveFailures++;
+        isSocketConnected.value = false;
+        return;
+      }
+
+      isSocketConnected.value = true;
+
+      Logger.log("📤 [SHARE] Sending to room: $helpRequestId", type: "info");
+      Logger.log("   Coordinates: (${position.latitude}, ${position.longitude})", type: "debug");
+
+      socketService.sendLocationUpdate(
+        position.latitude,
+        position.longitude,
+        helpRequestId: helpRequestId,
+      );
+
+      _lastSuccessfulUpdate = DateTime.now();
+      _consecutiveFailures = 0;
+      _lastSentPosition = position;
+
+      Logger.log("✅ [SHARE] Location sent successfully", type: "success");
+
+    } catch (e, stackTrace) {
+      _consecutiveFailures++;
+      Logger.log("❌ [SHARE] Error: $e", type: "error");
+
+      if (_consecutiveFailures >= _maxConsecutiveFailures) {
+        Logger.log(
+            "⚠️ [SHARE] $_consecutiveFailures consecutive failures!",
+            type: "warning"
+        );
+      }
+    }
+  }
+
+  void forceLocationSharingStart() {
+    if (currentHelpRequestId.value.isEmpty) {
+      Logger.log("❌ [LOCATION] Cannot force start: No help request ID", type: "error");
+      return;
+    }
+
+    if (currentPosition.value == null) {
+      Logger.log("❌ [LOCATION] Cannot force start: No position", type: "error");
+      return;
+    }
+
+    Logger.log("📍 [LOCATION] Force starting location sharing", type: "info");
+    startLocationSharing();
+    shareCurrentLocation();
+  }
+
+  void startLocationSharing() {
+    isSharingLocation.value = true;
+    _lastSentPosition = null;
+    _consecutiveFailures = 0;
+
+    final helpRequestId = _getHelpRequestId();
+    if (helpRequestId == null || helpRequestId.isEmpty) {
+      Logger.log("⚠️ [LOCATION SHARE] Starting without help request ID", type: "warning");
+    } else {
+      Logger.log("✅ [LOCATION SHARE] Started for request: $helpRequestId", type: "success");
+    }
+
+    if (currentPosition.value != null) {
+      _shareLocation(currentPosition.value!);
+    }
+  }
+
+  Map<String, dynamic> getLocationSharingStatus() {
+    final timeSinceLastUpdate = _lastSuccessfulUpdate != null
+        ? DateTime.now().difference(_lastSuccessfulUpdate!).inSeconds
+        : null;
+
+    return {
+      'isSharing': isSharingLocation.value,
+      'helpRequestId': currentHelpRequestId.value,
+      'isSocketConnected': isSocketConnected.value,
+      'isStreamActive': _isStreamActive,
+      'lastSuccessfulUpdate': _lastSuccessfulUpdate?.toIso8601String(),
+      'secondsSinceLastUpdate': timeSinceLastUpdate,
+      'consecutiveFailures': _consecutiveFailures,
+      'hasCurrentPosition': currentPosition.value != null,
+      'isHealthy': _consecutiveFailures < _maxConsecutiveFailures &&
+          (timeSinceLastUpdate == null || timeSinceLastUpdate < 60),
+    };
+  }
+
+  bool get isLocationSharingHealthy {
+    if (!isSharingLocation.value) return false;
+    if (currentHelpRequestId.value.isEmpty) return false;
+    if (!isSocketConnected.value) return false;
+    if (_consecutiveFailures >= _maxConsecutiveFailures) return false;
+
+    if (_lastSuccessfulUpdate != null) {
+      final timeSinceLastUpdate = DateTime.now().difference(_lastSuccessfulUpdate!);
+      if (timeSinceLastUpdate.inSeconds > 60) return false;
+    }
+
+    return true;
+  }
+
+  // 🔥 FIXED: Complete cleanup in stopLocationSharing
+  void stopLocationSharing() {
+    Logger.log("🛑 [STOP] Stopping location sharing...", type: "info");
+
+    isSharingLocation.value = false;
+    _lastSentPosition = null;
+    _locationTimer?.cancel();
+    _consecutiveFailures = 0;
+    _lastSuccessfulUpdate = null;
+    _hasReceivedFirstLocation = false;
+
+    _forceStopLocationStream();
+
+    Logger.log("✅ [STOP] Location sharing stopped", type: "success");
+  }
+
+  void _autoShareLocation(Position newPosition) {
+    if (!isSharingLocation.value) return;
+
+    if (_shouldSendUpdate(newPosition)) {
+      _shareLocation(newPosition);
+    }
+  }
+
+  bool _shouldSendUpdate(Position newPosition) {
+    if (_lastSentPosition == null) {
+      return true;
+    }
+
+    final distance = Geolocator.distanceBetween(
+      _lastSentPosition!.latitude,
+      _lastSentPosition!.longitude,
+      newPosition.latitude,
+      newPosition.longitude,
+    );
+
+    return distance >= _distanceThreshold;
+  }
+
+  void shareCurrentLocation() {
+    if (currentPosition.value != null) {
+      _shareLocation(currentPosition.value!);
+    } else {
+      Logger.log("📍 No current position available", type: "warning");
+    }
+  }
+
+  String get sharingStatus {
+    if (!isSharingLocation.value) return "Not Sharing";
+
+    String role = "unknown";
+
+    if (Get.isRegistered<SeakerHomeController>()) {
+      final userController = Get.find<SeakerHomeController>().userController;
+      role = userController.userRole.value;
+
+      switch (role) {
+        case "seeker":
+          return "Sharing with Helper";
+        case "giver":
+          return "Sharing with Seeker";
+        case "both":
+          final isHelper = Get.find<SeakerHomeController>().helperStatus.value;
+          return isHelper ? "Sharing with Seeker" : "Sharing with Helper";
+      }
+    }
+
+    return "Sharing Location";
+  }
+
+  Future<void> checkAndEnableAutoSharing() async {
+    try {
+      final hasPermission = await handlePermission();
+
+      if (hasPermission && !liveLocation.value) {
+        await startLiveLocation();
+        startLocationSharing();
+        Logger.log("📍 Auto location sharing enabled", type: "success");
+      }
+    } catch (e) {
+      Logger.log("❌ Error enabling auto sharing: $e", type: "error");
+    }
+  }
+
+  Future<void> saveAutoSharingPreference(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_location_sharing', enabled);
+  }
+
+  Future<bool> getAutoSharingPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('auto_location_sharing') ?? false;
+  }
+
+  void toggleLocationSharing(bool enable) async {
+    if (enable) {
+      startLocationSharing();
+    } else {
+      stopLocationSharing();
+    }
+    await saveAutoSharingPreference(enable);
+  }
+
+  Future<void> initializeAutoSharing() async {
+    final autoShareEnabled = await getAutoSharingPreference();
+    if (autoShareEnabled) {
+      await checkAndEnableAutoSharing();
+    }
+  }
+
+  bool shouldShareLocation() {
+    bool hasActiveRequest = false;
+    if (Get.isRegistered<SeakerHomeController>()) {
+      hasActiveRequest = Get.find<SeakerHomeController>().hasActiveHelpRequest;
+    }
+
+    if (!hasActiveRequest && Get.isRegistered<GiverHomeController>()) {
+      hasActiveRequest = Get.find<GiverHomeController>().emergencyMode.value == 2;
+    }
+
+    return hasActiveRequest && isSharingLocation.value;
+  }
+
+  void logLocationSharingDebugInfo() {
+    Logger.log("=== LOCATION SHARING DEBUG INFO ===", type: "info");
+    Logger.log("📊 Basic State:", type: "info");
+    Logger.log("  - isSharingLocation: ${isSharingLocation.value}", type: "info");
+    Logger.log("  - liveLocation: ${liveLocation.value}", type: "info");
+    Logger.log("  - isStreamActive: $_isStreamActive", type: "info");
+    Logger.log("  - currentHelpRequestId: ${currentHelpRequestId.value}", type: "info");
+    Logger.log("  - isSocketConnected: ${isSocketConnected.value}", type: "info");
+
+    Logger.log("📍 Location State:", type: "info");
+    Logger.log("  - hasCurrentPosition: ${currentPosition.value != null}", type: "info");
+    if (currentPosition.value != null) {
+      Logger.log("  - Current Position: (${currentPosition.value!.latitude}, ${currentPosition.value!.longitude})", type: "info");
+    }
+    Logger.log("  - lastSentPosition: ${_lastSentPosition != null}", type: "info");
+
+    Logger.log("📡 Socket State:", type: "info");
+    final socketService = getActiveSocket();
+    Logger.log("  - SocketService found: ${socketService != null}", type: "info");
+    if (socketService != null) {
+      Logger.log("  - Socket connected: ${socketService.isConnected.value}", type: "info");
+    }
+
+    Logger.log("📈 Health Metrics:", type: "info");
+    final status = getLocationSharingStatus();
+    status.forEach((key, value) {
+      Logger.log("  - $key: $value", type: "info");
+    });
+    Logger.log("  - isHealthy: $isLocationSharingHealthy", type: "info");
+
+    Logger.log("=== END DEBUG INFO ===", type: "info");
+  }
+}
