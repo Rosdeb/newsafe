@@ -261,6 +261,7 @@ class ProfileEditController extends GetxController {
         Logger.log("❌ No auth token available", type: "error");
         return {
           'success': false,
+          'statusCode': 401,
           'message': 'No authentication token available',
         };
       }

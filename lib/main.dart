@@ -22,7 +22,7 @@ void main()async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  TokenService().init();
+  await TokenService().init();
   await NotificationService.initialize();
   final appDir = await getApplicationDocumentsDirectory();
   Hive.init(appDir.path);

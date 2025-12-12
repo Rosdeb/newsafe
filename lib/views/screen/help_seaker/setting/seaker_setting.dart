@@ -65,8 +65,7 @@ class SeakerSetting extends StatelessWidget {
                       physics: const BouncingScrollPhysics(),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
-                        return Obx(() {
-                          return IosTapEffect(
+                        return IosTapEffect(
                             onTap: () {
                               controller.selectedIndex.value = index;
                               switch (index) {
@@ -193,7 +192,6 @@ class SeakerSetting extends StatelessWidget {
                               ),
                             ),
                           );
-                        });
                       },
                     ),
                   ),

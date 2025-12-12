@@ -484,26 +484,10 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
 
   Widget _buildHelperCard(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
-    // 🔥 Get seeker's current location from SeakerLocationsController
     final locationController = Get.find<SeakerLocationsController>();
-    final seekerPosition = locationController.currentPosition.value;
-
-    // 🔥 Get helper's (giver's) real-time location from SeakerHomeController
-    final helperLat = controller.helperLatitude;
-    final helperLng = controller.helperLongitude;
-    final LatLng? helperLatLng = (helperLat != null && helperLng != null)
-        ? LatLng(helperLat, helperLng)
-        : null;
-
-    // 🔥 Create seeker marker (my location)
-    final LatLng? seekerLatLng = (seekerPosition != null)
-        ? LatLng(seekerPosition.latitude, seekerPosition.longitude)
-        : null;
 
     return IosTapEffect(
       onTap: () {
-        // Navigate to full map
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -598,113 +582,152 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
               ),
               const SizedBox(height: 14),
 
-              // 🔥 REAL MAP PREVIEW (Replace dummy map with this)
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    width: 2,
-                    color: AppColors.colorYellow,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Stack(
-                  children: [
-                    if (seekerLatLng != null && helperLatLng != null)
-                      SizedBox(
-                        height: 150,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                              target: LatLng(
-                                (seekerLatLng.latitude + helperLatLng.latitude) / 2,
-                                (seekerLatLng.longitude + helperLatLng.longitude) / 2,
-                              ),
-                              zoom: 12,
-                            ),
-                            markers: {
-                              Marker(
-                                markerId: const MarkerId("seeker"),
-                                position: seekerLatLng,
-                                infoWindow: const InfoWindow(title: "You (Seeker)"),
-                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                              ),
-                              Marker(
-                                markerId: const MarkerId("helper"),
-                                position: helperLatLng,
-                                infoWindow: InfoWindow(title: controller.helperName),
-                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                              ),
-                            },
-                            onTap: (_) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => UniversalMapViewEnhanced(),
-                                ),
-                              );
-                            },
-                            zoomControlsEnabled: false,
-                            myLocationButtonEnabled: false,
-                            liteModeEnabled: true,
-                            compassEnabled: false,
-                            mapToolbarEnabled: false,
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        height: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
+              // 🔥 REACTIVE MAP with Obx wrapper
+              Obx(() {
+                // Get seeker's current location (reactive)
+                final seekerPosition = locationController.currentPosition.value;
+                final LatLng? seekerLatLng = (seekerPosition != null)
+                    ? LatLng(seekerPosition.latitude, seekerPosition.longitude)
+                    : null;
 
-                    // View Map Button
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: IosTapEffect(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UniversalMapViewEnhanced(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          height: 32,
-                          width: 83,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFDE047).withOpacity(0.80),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              bottomRight: Radius.circular(8),
+                // Get helper's location (reactive)
+                final helperLat = controller.helperLatitude;
+                final helperLng = controller.helperLongitude;
+                final LatLng? helperLatLng = (helperLat != null && helperLng != null)
+                    ? LatLng(helperLat, helperLng)
+                    : null;
+
+                // Debug print to check values
+                print("🗺️ Seeker: $seekerLatLng");
+                print("🗺️ Helper: $helperLatLng");
+
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      width: 2,
+                      color: AppColors.colorYellow,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Show map if both positions are available
+                      if (seekerLatLng != null && helperLatLng != null)
+                        SizedBox(
+                          height: 150,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: LatLng(
+                                  (seekerLatLng.latitude + helperLatLng.latitude) / 2,
+                                  (seekerLatLng.longitude + helperLatLng.longitude) / 2,
+                                ),
+                                zoom: 13,
+                              ),
+                              markers: {
+                                Marker(
+                                  markerId: const MarkerId("seeker"),
+                                  position: seekerLatLng,
+                                  infoWindow: const InfoWindow(title: "You (Seeker)"),
+                                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    BitmapDescriptor.hueRed,
+                                  ),
+                                ),
+                                Marker(
+                                  markerId: const MarkerId("helper"),
+                                  position: helperLatLng,
+                                  infoWindow: InfoWindow(title: controller.helperName),
+                                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    BitmapDescriptor.hueGreen,
+                                  ),
+                                ),
+                              },
+                              onTap: (_) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => UniversalMapViewEnhanced(),
+                                  ),
+                                );
+                              },
+                              zoomControlsEnabled: false,
+                              myLocationButtonEnabled: false,
+                              liteModeEnabled: false, // Changed to false for better rendering
+                              compassEnabled: false,
+                              mapToolbarEnabled: false,
+                              myLocationEnabled: false,
                             ),
                           ),
-                          child: const Center(
-                            child: AppText(
-                              "View map",
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.color2Box,
+                        )
+                      else
+                      // Show loading state
+                        Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 8),
+                                AppText(
+                                  seekerLatLng == null
+                                      ? "Getting your location..."
+                                      : "Waiting for helper location...",
+                                  fontSize: 12,
+                                  color: AppColors.color2Box,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // View Map Button
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: IosTapEffect(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UniversalMapViewEnhanced(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            height: 32,
+                            width: 83,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFDE047).withOpacity(0.80),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: const Center(
+                              child: AppText(
+                                "View map",
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.color2Box,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                );
+              }),
 
               const SizedBox(height: 14),
 
-              // Address Info (unchanged)
+              // Address Info
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -5,6 +5,7 @@
 // 4. Location sharing status display
 
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -13,7 +14,8 @@ import 'package:get/get.dart';
 import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:geolocator/geolocator.dart';
-
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../../controller/SeakerHome/seakerHomeController.dart';
 
@@ -24,7 +26,7 @@ class UniversalMapViewEnhanced extends StatefulWidget {
   _UniversalMapViewEnhancedState createState() => _UniversalMapViewEnhancedState();
 }
 
-class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> {
+class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> with WidgetsBindingObserver {
 
   GoogleMapController? mapController;
   final locationsController = Get.find<SeakerLocationsController>();
@@ -56,6 +58,8 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> {
   void initState() {
     super.initState();
     _initializeApp();
+
+    WidgetsBinding.instance.addObserver(this);
   }
 
   void _initializeApp() {
@@ -141,6 +145,61 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> {
           locationsController.startLiveLocation();
         }
       }
+    }
+  }
+
+
+  void _openExternalMapsNavigation() async {
+    final myLoc = _myLocation.value;
+    final otherLoc = _otherPersonLocation.value;
+
+    if (myLoc == null || otherLoc == null) {
+      Get.snackbar("Navigation", "Location data not available", snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    try {
+      if (Platform.isIOS) {
+        await _openAppleMaps(
+          myLoc.latitude,
+          myLoc.longitude,
+          otherLoc.latitude,
+          otherLoc.longitude,
+        );
+      } else if (Platform.isAndroid) {
+        await _openGoogleMapsNavigation(
+          myLoc.latitude,
+          myLoc.longitude,
+          otherLoc.latitude,
+          otherLoc.longitude,
+        );
+      }
+    } catch (e) {
+      Get.snackbar("Navigation Error", e.toString(), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> _openGoogleMapsNavigation(double startLat, double startLng, double endLat, double endLng) async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$endLat,$endLng&travelmode=driving',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch Google Maps';
+    }
+  }
+
+  Future<void> _openAppleMaps(double startLat, double startLng, double endLat, double endLng) async {
+    final url = Uri.parse(
+      'http://maps.apple.com/?saddr=$startLat,$startLng&daddr=$endLat,$endLng&dirflg=d',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch Apple Maps';
     }
   }
 
@@ -814,6 +873,90 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> {
     }
   }
 
+  // Future<bool> _waitForSocketConnection(RxBool isConnected, String controllerName) async {
+  //   if (isConnected.value) {
+  //     Logger.log("✅ $controllerName socket already connected.", type: "info");
+  //     return true;
+  //   }
+  //
+  //   Logger.log("⏳ Waiting for $controllerName socket to connect...", type: "info");
+  //   final completer = Completer<bool>();
+  //   StreamSubscription? subscription;
+  //   Timer? timeoutTimer;
+  //
+  //   void disposeAndComplete(bool result) {
+  //     subscription?.cancel();
+  //     timeoutTimer?.cancel();
+  //     if (!completer.isCompleted) {
+  //       completer.complete(result);
+  //     }
+  //   }
+  //
+  //   subscription = isConnected.listen((connected) {
+  //     if (connected) {
+  //       Logger.log("✅ $controllerName socket connected!", type: "success");
+  //       disposeAndComplete(true);
+  //     }
+  //   });
+  //
+  //   timeoutTimer = Timer(const Duration(seconds: 5), () {
+  //     if (!isConnected.value) {
+  //       Logger.log("❌ $controllerName socket connection timed out.", type: "error");
+  //       disposeAndComplete(false);
+  //     }
+  //   });
+  //
+  //   return completer.future;
+  // }
+  //
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   super.didChangeAppLifecycleState(state);
+  //
+  //   if (state == AppLifecycleState.resumed) {
+  //     Logger.log("📱 App resumed – attempting socket reconnection...", type: "info");
+  //
+  //     _updateCurrentMode(); // Ensure mode is up to date early
+  //
+  //     // Initiate connection attempts for relevant controllers
+  //     if (_currentMode == 'seeker' && _seekerController?.socketService != null) {
+  //       final socket = _seekerController!.socketService!;
+  //       if (!socket.isConnected.value) {
+  //         Logger.log("🔁 Reconnecting seeker socket...", type: "info");
+  //         socket.connect(); // Initiate connection
+  //       }
+  //     } else if (_currentMode == 'giver' && _giverController?.socketService != null) {
+  //       final socket = _giverController!.socketService!;
+  //       if (!socket.isConnected.value) {
+  //         Logger.log("🔁 Reconnecting giver socket...", type: "info");
+  //         socket.connect(); // Initiate connection
+  //       }
+  //     }
+  //
+  //     // Now, wait for the relevant socket to connect before proceeding
+  //     Future.microtask(() async {
+  //       if (!mounted) return;
+  //
+  //       bool socketConnected = false;
+  //       if (_currentMode == 'seeker' && _seekerController?.socketService != null) {
+  //         socketConnected = await _waitForSocketConnection(
+  //             _seekerController!.socketService!.isConnected, 'Seeker');
+  //       } else if (_currentMode == 'giver' && _giverController?.socketService != null) {
+  //         socketConnected = await _waitForSocketConnection(
+  //             _giverController!.socketService!.isConnected, 'Giver');
+  //       }
+  //
+  //       if (!mounted) return; // Check mounted again after await
+  //
+  //       if (socketConnected && _hasActiveRequest()) {
+  //         Logger.log("✅ Socket ready – restarting location sharing", type: "success");
+  //         _startLocationSharingIfNeeded();
+  //       } else {
+  //         Logger.log("⚠️ Socket not ready for location sharing or no active request.", type: "warning");
+  //       }
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -950,6 +1093,12 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> {
                               ],
                             ),
                           ),
+                          IconButton(
+                            onPressed: _openExternalMapsNavigation,
+                            icon: const Icon(Icons.directions, color: Colors.blue),
+                            tooltip: "Navigate",
+                          ),
+
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -1022,6 +1171,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> {
     _otherPersonLocation.dispose();
     _myLocation.dispose();
     mapController?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 }
