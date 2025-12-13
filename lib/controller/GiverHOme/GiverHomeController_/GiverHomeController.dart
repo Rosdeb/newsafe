@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
 import '../../../utils/app_constant.dart';
 import '../../../utils/token_service.dart';
@@ -651,22 +652,10 @@ class GiverHomeController extends GetxController {
 
   Future<void> updateAvailability(bool isAvailable) async {
     try {
-      final String availabilityUrl =
-          '${AppConstants.BASE_URL}/api/users/me/availability';
-      final String locationUrl =
-          '${AppConstants.BASE_URL}/api/users/me/location';
-
-      final token = await TokenService().getToken();
-
       Logger.log("📤 Updating availability → $isAvailable", type: "info");
 
-      final availabilityResponse = await http.put(
-        Uri.parse(availabilityUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-        body: jsonEncode({'isAvailable': isAvailable}),
+      final availabilityResponse = await ApiService.put('/api/users/me/availability',
+        body: {'isAvailable': isAvailable}
       ).timeout(const Duration(seconds: 10));
 
       if (availabilityResponse.statusCode != 200) {
@@ -696,16 +685,11 @@ class GiverHomeController extends GetxController {
 
       if (currentPos != null) {
         // Update location on server
-        final locationResponse = await http.put(
-          Uri.parse(locationUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token'
-          },
-          body: jsonEncode({
+        final locationResponse = await ApiService.put('/api/users/me/location',
+          body: {
             'latitude': currentPos.latitude,
             'longitude': currentPos.longitude,
-          }),
+          }
         ).timeout(const Duration(seconds: 10));
 
         if (locationResponse.statusCode == 200) {

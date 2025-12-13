@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
 import '../../../Models/HelpRequestResponse.dart';
@@ -776,7 +777,6 @@ class SeakerHomeController extends GetxController {
       return;
     }
 
-    final String url = '${AppConstants.BASE_URL}/api/help-requests';
     final networkController = Get.find<NetworkController>();
 
     if (!networkController.isOnline.value) {
@@ -787,24 +787,13 @@ class SeakerHomeController extends GetxController {
     isSearching.value = true;
     emergencyMode.value = 1;
 
-    final token = await TokenService().getToken();
-
-    final body = {
-      'latitude': latitude,
-      'longitude': longitude,
-    };
-
     try {
       Logger.log("📤 Sending help request", type: "info");
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-        body: jsonEncode(body),
-      ).timeout(
+      final response = await ApiService.post('/api/help-requests', body: {
+        'latitude': latitude,
+        'longitude': longitude,
+      }).timeout(
         const Duration(seconds: 30),
         onTimeout: () {
           throw TimeoutException(
@@ -1013,26 +1002,9 @@ class SeakerHomeController extends GetxController {
 
   Future<Map<String, dynamic>> _attemptCancelRequest() async {
     try {
-      final String url = '${AppConstants.BASE_URL}/api/help-requests/${currentHelpRequestId.value}/cancel';
-      final token = await TokenService().getToken();
-
-      if (token == null || token.isEmpty) {
-        Logger.log("❌ No authentication token available for cancel request", type: "error");
-        return {
-          'success': false,
-          'message': 'No authentication token available',
-        };
-      }
-
       Logger.log("📤 Cancelling help request: ${currentHelpRequestId.value}", type: "info");
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-      ).timeout(
+      final response = await ApiService.post('/api/help-requests/${currentHelpRequestId.value}/cancel').timeout(
         const Duration(seconds: 30),
         onTimeout: () {
           throw TimeoutException(

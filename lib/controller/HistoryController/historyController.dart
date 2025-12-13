@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:saferader/Models/ActivityHistory/activityHistory.dart';
+import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
 import '../../utils/app_constant.dart';
@@ -43,9 +44,7 @@ class Historycontroller extends GetxController {
 
     isLoading.value = true;
     try {
-      final token = await TokenService().getToken();
-      final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
-      final response = await http.get(Uri.parse('${AppConstants.BASE_URL}/api/users/me/activity-logs?page=$page&pagesize=$pageSize'), headers: headers);
+      final response = await ApiService.get('/api/users/me/activity-logs?page=$page&pagesize=$pageSize');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -57,11 +56,6 @@ class Historycontroller extends GetxController {
         final list = data['data'] as List? ?? [];
         historyList.addAll(list.map((item) => HistoryModel.fromJson(item)));
         Logger.log("Fetch successful: ${historyList.length} items", type: "info");
-      } else if (response.statusCode == 401) {
-        final bool refreshSuccess = await AuthService.refreshToken();
-        if (refreshSuccess) {
-          await getHistoryActivity(context, page: page);
-        }
       } else {
         Logger.log("Fetch failed: ${response.body}", type: "error");
       }

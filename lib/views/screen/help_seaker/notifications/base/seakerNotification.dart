@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../../../Models/notification.dart';
 import '../../../../../controller/notifications/notifications_controller.dart';
 import '../../../../../utils/app_color.dart';
 import '../../../../base/AppText/appText.dart';

@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
@@ -227,22 +228,6 @@ class ProfileEditController extends GetxController {
       final result = await _attemptProfileUpdate(profileImage);
       if (result['success']) {
         await _handleSuccessfulUpdate(context, result['data']);
-      } else if (result['statusCode'] == 401) {
-        Logger.log("🔄 Token expired (401), refreshing token...", type: "info");
-        final bool refreshSuccess = await AuthService.refreshToken();
-
-        if (refreshSuccess) {
-          Logger.log("✅ Token refreshed successfully, retrying request...", type: "info");
-          final retryResult = await _attemptProfileUpdate(profileImage);
-          if (retryResult['success']) {
-            await _handleSuccessfulUpdate(context, retryResult['data']);
-          } else {
-            final message = retryResult['message'] ?? 'Failed to update profile after token refresh';
-            Logger.log("❌ Retry failed: $message", type: "error");
-          }
-        } else {
-          Logger.log("❌ Token refresh failed, redirecting to login...", type: "error");
-        }
       } else {
         final message = result['message'] ?? 'Unknown error occurred';
         Logger.log("⚠️ Profile update failed: $message", type: "warning");
@@ -256,27 +241,13 @@ class ProfileEditController extends GetxController {
 
   Future<Map<String, dynamic>> _attemptProfileUpdate(File? profileImage) async {
     try {
-      final token = await TokenService().getToken();
-      if (token == null || token.isEmpty) {
-        Logger.log("❌ No auth token available", type: "error");
-        return {
-          'success': false,
-          'statusCode': 401,
-          'message': 'No authentication token available',
-        };
-      }
-
       final uri = Uri.parse("${AppConstants.BASE_URL}/api/users/me");
       final request = http.MultipartRequest('PUT', uri);
-
-      request.headers['Authorization'] = 'Bearer $token';
-
 
       final fullName = '${nameController.text.trim()} ${lastnameController.text.trim()}'.trim();
       if (fullName.isNotEmpty) request.fields['name'] = fullName;
       request.fields['phone'] = phoneController.text.trim();
       request.fields['gender'] = selectedGender.value;
-
 
       if (dateOfBirth.value.isNotEmpty && dateOfBirth.value != 'Not provided') {
         final parts = dateOfBirth.value.split('/');
@@ -292,8 +263,8 @@ class ProfileEditController extends GetxController {
         request.files.add(file);
       }
 
-      // Send request
-      final streamedResp = await request.send();
+      // Use ApiService multipart which handles token refresh automatically
+      final streamedResp = await ApiService.multipart('/api/users/me', request);
       final respString = await streamedResp.stream.bytesToString();
 
       // Parse response
@@ -323,7 +294,7 @@ class ProfileEditController extends GetxController {
     }
   }
 
-  /// Helper method to handle successful profile update
+
   Future<void> _handleSuccessfulUpdate(BuildContext context, Map<String, dynamic> user) async {
     Logger.log("✅ Profile updated successfully!", type: "info");
 
@@ -347,90 +318,6 @@ class ProfileEditController extends GetxController {
       Navigator.pop(context);
     }
   }
-
-
-  // Future<void> updateProfileHttp(BuildContext context,{
-  //   File? profileImage,
-  // }) async {
-  //   save.value = true;
-  //   try {
-  //     final token = TokenService().getToken();
-  //     if (token == null || token.isEmpty) {
-  //       Logger.log("❌ No auth token available", type: "error");
-  //       return;
-  //     }
-  //
-  //     final uri = Uri.parse("${AppConstants.BASE_URL}/api/users/me");
-  //     final request = http.MultipartRequest('PUT', uri);
-  //
-  //     request.headers['Authorization'] = 'Bearer $token';
-  //     final fullName = '${nameController.text.trim()} ${lastnameController.text.trim()}'.trim();
-  //     if (fullName.isNotEmpty) request.fields['name'] = fullName;
-  //     request.fields['phone'] = phoneController.text.trim();
-  //     request.fields['gender'] = selectedGender.value;
-  //
-  //     if (dateOfBirth.value.isNotEmpty && dateOfBirth.value != 'Not provided') {
-  //       final parts = dateOfBirth.value.split('/');
-  //       if (parts.length == 3) {
-  //         final isoDate = "${parts[2]}-${parts[1]}-${parts[0]}";
-  //         request.fields['dateOfBirth'] = isoDate;
-  //       }
-  //     }
-  //
-  //     if (profileImage != null && await profileImage.exists()) {
-  //       final file = await http.MultipartFile.fromPath('profileImage', profileImage.path);
-  //       request.files.add(file);
-  //     }
-  //
-  //
-  //     final streamedResp = await request.send();
-  //     final respString = await streamedResp.stream.bytesToString();
-  //
-  //
-  //     Map<String, dynamic> parsed;
-  //     try {
-  //       parsed = json.decode(respString) as Map<String, dynamic>;
-  //     }on Exception catch (e) {
-  //       Logger.log("Failed to parse response JSON: $e — raw: $respString", type: "error");
-  //       throw Exception("Invalid server response");
-  //     }
-  //
-  //     if (streamedResp.statusCode == 200) {
-  //       Logger.log("✅ Profile updated successfully!${parsed}", type: "info");
-  //
-  //       final user = parsed['data'] ?? parsed;
-  //       print("image ${user['profileImage']}");
-  //
-  //       final userBox = await Hive.openBox('userProfileBox');
-  //       await userBox.put('name', user['name'] ?? '');
-  //       await userBox.put('email', user['email'] ?? '');
-  //       await userBox.put('_id', user['_id'] ?? user['id'] ?? '');
-  //       await userBox.put('role', user['role'] ?? '');
-  //       await userBox.put('phone', user['phone'] ?? '');
-  //       await userBox.put('dateOfBirth', user['dateOfBirth'] ?? '');
-  //       // store under 'profileImage' key to be explicit
-  //       await userBox.put('profileImage', user['profileImage'] ?? user['image'] ?? '');
-  //       await userBox.put('gender', user['gender'] ?? '');
-  //
-  //       Logger.log("✅ Hive data updated successfully: ${user}", type: "info");
-  //       if(context.mounted){
-  //         Navigator.pop(context);
-  //       }
-  //       await loadUserData();
-  //     }else if(streamedResp.statusCode==401){
-  //       final bool success = await AuthService.refreshToken();
-  //     } else {
-  //       final message = parsed['message'] ?? parsed['error'] ?? 'Unknown error';
-  //       Logger.log("⚠️ Failed to update profile. Status: ${streamedResp.statusCode}. Message: $message", type: "warning");
-  //     }
-  //   }on Exception catch (e, st) {
-  //     Logger.log("Error updating profile: $e\n$st", type: "error");
-  //   } finally {
-  //     save.value = false;
-  //   }
-  // }
-
-
 
 
 

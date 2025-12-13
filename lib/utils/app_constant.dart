@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConstants{
 
   static String APP_NAME="Saferadar";
-  static String BASE_URL ="https://itself-initially-wrapping-beer.trycloudflare.com";
+  static String BASE_URL ="https://self-rows-threaded-distributions.trycloudflare.com";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
 
   // share preference Key

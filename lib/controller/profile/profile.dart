@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/app_constant.dart';
@@ -119,7 +120,6 @@ class ProfileController extends GetxController {
   }
 
   Future<void> preferableSetting(int distanceValue) async {
-    final String url = '${AppConstants.BASE_URL}/api/users/me/preferences';
     final networkController = Get.find<NetworkController>();
 
     if (!networkController.isOnline.value) {
@@ -130,26 +130,14 @@ class ProfileController extends GetxController {
     isDistance.value = true;
 
     try {
-      final token = await TokenService().getToken();
-
-      if (token == null || token.isEmpty) {
-        Logger.log("❌ No token found", type: "error");
-        return;
-      }
-
       final body = {
         'maxDistanceKm': distanceValue,
       };
 
       Logger.log("📤 Updating Preference: $body", type: "info");
 
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
+      final response = await ApiService.put('/api/users/me/preferences',
+        body: body
       ).timeout(const Duration(seconds: 10));
 
       Logger.log("📥 Status: ${response.statusCode}", type: "info");

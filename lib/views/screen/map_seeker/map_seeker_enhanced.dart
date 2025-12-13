@@ -159,6 +159,11 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> wit
     }
 
     try {
+      // Store the current state before navigating away
+      Logger.log("📱 Preparing to navigate to external maps", type: "info");
+      Logger.log("📍 My location: (${myLoc.latitude}, ${myLoc.longitude})", type: "info");
+      Logger.log("📍 Other person location: (${otherLoc.latitude}, ${otherLoc.longitude})", type: "info");
+
       if (Platform.isIOS) {
         await _openAppleMaps(
           myLoc.latitude,
@@ -174,18 +179,26 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> wit
           otherLoc.longitude,
         );
       }
-    } catch (e) {
+    }on Exception catch (e) {
       Get.snackbar("Navigation Error", e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
   Future<void> _openGoogleMapsNavigation(double startLat, double startLng, double endLat, double endLng) async {
+    // Using the Google Maps URL scheme that automatically starts navigation
     final url = Uri.parse(
+      'google.navigation:q=$endLat,$endLng&from=$startLat,$startLng',
+    );
+
+    // Fallback URL for web version
+    final webUrl = Uri.parse(
       'https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$endLat,$endLng&travelmode=driving',
     );
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
+    } else if (await canLaunchUrl(webUrl)) {
+      await launchUrl(webUrl);
     } else {
       throw 'Could not launch Google Maps';
     }
@@ -1163,6 +1176,96 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> wit
         tooltip: "Center on route",
       ),
     );
+  }
+
+  Future<bool> _waitForSocketConnection(RxBool isConnected, String controllerName) async {
+    if (isConnected.value) {
+      Logger.log("✅ $controllerName socket already connected.", type: "info");
+      return true;
+    }
+
+    Logger.log("⏳ Waiting for $controllerName socket to connect...", type: "info");
+    final completer = Completer<bool>();
+    StreamSubscription? subscription;
+    Timer? timeoutTimer;
+
+    void disposeAndComplete(bool result) {
+      subscription?.cancel();
+      timeoutTimer?.cancel();
+      if (!completer.isCompleted) {
+        completer.complete(result);
+      }
+    }
+
+    subscription = isConnected.listen((connected) {
+      if (connected) {
+        Logger.log("✅ $controllerName socket connected!", type: "success");
+        disposeAndComplete(true);
+      }
+    });
+
+    timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (!isConnected.value) {
+        Logger.log("❌ $controllerName socket connection timed out.", type: "error");
+        disposeAndComplete(false);
+      }
+    });
+
+    return completer.future;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      Logger.log("📱 App resumed – attempting socket reconnection...", type: "info");
+
+      _updateCurrentMode(); // Ensure mode is up to date early
+
+      // Initiate connection attempts for relevant controllers
+      if (_currentMode == 'seeker' && _seekerController?.socketService != null) {
+        final socket = _seekerController!.socketService!;
+        if (!socket.isConnected.value) {
+          Logger.log("🔁 Reconnecting seeker socket...", type: "info");
+          socket.socket.connect(); // Initiate connection
+        }
+      } else if (_currentMode == 'giver' && _giverController?.socketService != null) {
+        final socket = _giverController!.socketService!;
+        if (!socket.isConnected.value) {
+          Logger.log("🔁 Reconnecting giver socket...", type: "info");
+          socket.socket.connect(); // Initiate connection
+        }
+      }
+
+      // Now, wait for the relevant socket to connect before proceeding
+      Future.microtask(() async {
+        if (!mounted) return;
+
+        bool socketConnected = false;
+        if (_currentMode == 'seeker' && _seekerController?.socketService != null) {
+          socketConnected = await _waitForSocketConnection(
+              _seekerController!.socketService!.isConnected, 'Seeker');
+        } else if (_currentMode == 'giver' && _giverController?.socketService != null) {
+          socketConnected = await _waitForSocketConnection(
+              _giverController!.socketService!.isConnected, 'Giver');
+        }
+
+        if (!mounted) return; // Check mounted again after await
+
+        if (socketConnected && _hasActiveRequest()) {
+          Logger.log("✅ Socket ready – restarting location sharing", type: "success");
+          _startLocationSharingIfNeeded();
+
+          // Refresh other person's location after resuming
+          _updateOtherPersonLocation();
+        } else {
+          Logger.log("⚠️ Socket not ready for location sharing or no active request.", type: "warning");
+        }
+      });
+    } else if (state == AppLifecycleState.paused) {
+      Logger.log("📱 App paused – location sharing will continue in background", type: "info");
+    }
   }
 
   @override

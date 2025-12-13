@@ -4,6 +4,7 @@ import 'package:saferader/controller/UserController/userController.dart';
 import 'package:saferader/controller/notifications/notifications_controller.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/base/seakerNotification.dart';
+import '../../../../Models/notification.dart';
 import '../../../base/EmptyBox/emptybox.dart';
 import '../../../../utils/app_color.dart';
 import '../../../../views/base/AppText/appText.dart';
@@ -48,10 +49,9 @@ class SeakerNotifications extends StatelessWidget {
                     ),
                   ),
 
-                  // Actions: Mark all as read & Clear all
+
                   Row(
                     children: [
-                      // Unread count badge
                       Obx(() {
                         final unreadCount = notificationsController.unreadCount;
                         if (unreadCount > 0) {
@@ -96,13 +96,11 @@ class SeakerNotifications extends StatelessWidget {
 
 
                 if (notificationsController.notifications.isEmpty) {
-                  return const Expanded(
-                    child: EmptyHistoryBox(
+                  return const EmptyHistoryBox(
                       title: "No notification yet",
                       subtitle: "Your notification will appear here",
                       iconPath: "assets/icon/notifications.svg",
                       height: 200,
-                    ),
                   );
                 }
 
@@ -132,12 +130,6 @@ class SeakerNotifications extends StatelessWidget {
                           direction: DismissDirection.endToStart,
                           onDismissed: (direction) {
                             notificationsController.deleteNotification(notification.id);
-                            Get.snackbar(
-                              'Deleted',
-                              'Notification deleted',
-                              snackPosition: SnackPosition.BOTTOM,
-                              duration: const Duration(seconds: 2),
-                            );
                           },
                           child: GestureDetector(
                             onTap: () {

@@ -1,24 +1,27 @@
 import 'dart:async';
-
+import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:saferader/utils/logger.dart';
+import '../../Models/notification.dart';
 import '../../Service/Firebase/notifications.dart';
+import '../../utils/api_service.dart';
+import '../networkService/networkService.dart';
 
 class NotificationsController extends GetxController {
-
   final RxBool isNotificationsEnabled = true.obs;
   final RxBool isSoundEnabled = true.obs;
   final RxBool isVibrationEnabled = true.obs;
   final RxBool isLoading = true.obs;
   var currentNow = DateTime.now().obs;
   Timer? _timerUpdater;
-
   final RxList<NotificationItemModel> notifications = <NotificationItemModel>[].obs;
 
   @override
   void onInit() {
     super.onInit();
     loadPreferences();
-    loadNotifications();
+    fetchNotifications();
     startRealTimeUpdater();
   }
 
@@ -27,15 +30,12 @@ class NotificationsController extends GetxController {
     try {
       isLoading.value = true;
 
-      final notifEnabled = await NotificationService.getNotificationPreference();
-      final soundEnabled = await NotificationService.getSoundPreference();
-      final vibrationEnabled = await NotificationService.getVibrationPreference();
-
-      isNotificationsEnabled.value = notifEnabled;
-      isSoundEnabled.value = soundEnabled;
-      isVibrationEnabled.value = vibrationEnabled;
+      isNotificationsEnabled.value =
+      await NotificationService.getNotificationPreference();
+      isSoundEnabled.value = await NotificationService.getSoundPreference();
+      isVibrationEnabled.value = await NotificationService.getVibrationPreference();
     }on Exception catch (e) {
-      print('Error loading preferences: $e');
+      Logger.log('Error loading preferences: $e', type: 'error');
     } finally {
       isLoading.value = false;
     }
@@ -46,7 +46,7 @@ class NotificationsController extends GetxController {
       await NotificationService.toggleNotifications(value);
       isNotificationsEnabled.value = value;
     }on Exception catch (e) {
-      print('Error toggling notifications: $e');
+      Logger.log('Error toggling notifications: $e', type: 'error');
     }
   }
 
@@ -55,7 +55,7 @@ class NotificationsController extends GetxController {
       await NotificationService.toggleSound(value);
       isSoundEnabled.value = value;
     }on Exception catch (e) {
-      print('Error toggling sound: $e');
+      Logger.log('Error toggling sound: $e', type: 'error');
     }
   }
 
@@ -64,49 +64,77 @@ class NotificationsController extends GetxController {
       await NotificationService.toggleVibration(value);
       isVibrationEnabled.value = value;
     }on Exception catch (e) {
-      print('Error toggling vibration: $e');
+      Logger.log('Error toggling vibration: $e', type: 'error');
     }
   }
 
-  Future<void> loadNotifications() async {
-    notifications.value = [
-      NotificationItemModel(
-        id: '1',
-        title: 'Help Request Accepted',
-        body: 'John Doe is on the way to help you',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-        isRead: false,
-        type: 'help_accepted',
-        distance: '1.5',
-        userImage: '',
-      ),
-      NotificationItemModel(
-        id: '2',
-        title: 'Help Request Declined',
-        body: 'Jane Smith declined your request',
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        isRead: false,
-        type: 'help_declined',
-        distance: '2.3',
-        userImage: '',
-      ),
-    ];
-  }
+  Future<void> fetchNotifications({BuildContext? context}) async {
+    final networkController = Get.find<NetworkController>();
+    if (!networkController.isOnline.value) {
+      if (context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No internet connection')),
+        );
+      }
+      return;
+    }
 
+    isLoading.value = true;
 
-  void markAsRead(String notificationId) {
-    final index = notifications.indexWhere((n) => n.id == notificationId);
-    if (index != -1) {
-      notifications[index].isRead = true;
-      notifications.refresh();
+    try {
+      final response = await ApiService.get('/api/notifications');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final list = data['notifications'] as List? ?? [];
+
+        notifications.value =
+            list.map((e) => NotificationItemModel.fromJson(e)).toList();
+
+        Logger.log("Fetched ${notifications.length} notifications", type: "info");
+      } else {
+        Logger.log("Failed to fetch notifications: ${response.body}", type: "error");
+      }
+    }on Exception catch (e, st) {
+      Logger.log("Unexpected error fetching notifications: $e\n$st", type: "error");
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  void markAllAsRead() {
-    for (var notification in notifications) {
-      notification.isRead = true;
+  Future<void> markAsRead(String notificationId) async {
+    try {
+      final response = await ApiService.put('/api/notifications/$notificationId/mark-read');
+
+      if (response.statusCode == 200) {
+        final index = notifications.indexWhere((n) => n.id == notificationId);
+        if (index != -1) {
+          notifications[index].isRead = true;
+          notifications.refresh();
+        }
+      } else {
+        Logger.log('Failed to mark notification as read: ${response.body}', type: 'error');
+      }
+    }on Exception catch (e) {
+      Logger.log('Error marking notification as read: $e', type: 'error');
     }
-    notifications.refresh();
+  }
+
+  Future<void> markAllAsRead() async {
+    try {
+      final response = await ApiService.put('/api/notifications/mark-all-read');
+
+      if (response.statusCode == 200) {
+        for (var notification in notifications) {
+          notification.isRead = true;
+        }
+        notifications.refresh();
+      } else {
+        Logger.log('Failed to mark all notifications as read: ${response.body}', type: 'error');
+      }
+    }on Exception catch (e) {
+      Logger.log('Error marking all notifications as read: $e', type: 'error');
+    }
   }
 
   void deleteNotification(String notificationId) {
@@ -117,8 +145,8 @@ class NotificationsController extends GetxController {
     notifications.clear();
   }
 
-  void startRealTimeUpdater(){
-    _timerUpdater = Timer.periodic(const Duration(minutes: 1),(timer){
+  void startRealTimeUpdater() {
+    _timerUpdater = Timer.periodic(const Duration(minutes: 1), (timer) {
       currentNow.value = DateTime.now();
     });
   }
@@ -130,29 +158,4 @@ class NotificationsController extends GetxController {
   }
 
   int get unreadCount => notifications.where((n) => !n.isRead).length;
-}
-
-
-class NotificationItemModel {
-  final String id;
-  final String title;
-  final String body;
-  final DateTime timestamp;
-  bool isRead;
-  final String? type;
-  final String? distance;
-  final String? userImage;
-  final String? userName;
-
-  NotificationItemModel({
-    required this.id,
-    required this.title,
-    required this.body,
-    required this.timestamp,
-    this.isRead = false,
-    this.type,
-    this.distance,
-    this.userImage,
-    this.userName,
-  });
 }
