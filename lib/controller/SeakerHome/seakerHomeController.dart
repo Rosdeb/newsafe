@@ -760,22 +760,64 @@ class SeakerHomeController extends GetxController {
   }
 
   Future<void> helpRequest(BuildContext context, double latitude, double longitude) async {
+    // Initialize socket service if null
     if (socketService == null) {
       Logger.log("❌ Socket service is null, initializing...", type: "warning");
       await initSocket();
     }
 
-    int waitAttempts = 0;
-    while (socketService?.isConnected.value != true && waitAttempts < 10) {
-      Logger.log("⏳ Waiting for socket connection...", type: "info");
-      await Future.delayed(const Duration(milliseconds: 500));
-      waitAttempts++;
-    }
-
-    if (socketService?.isConnected.value != true) {
-      Logger.log("❌ Socket still not connected after waiting", type: "error");
+    // Ensure the socket service is initialized
+    if (socketService == null) {
+      Logger.log("❌ Unable to initialize socket service", type: "error");
       return;
     }
+
+    // Wait for socket to connect with enhanced retry logic
+    int waitAttempts = 0;
+    const maxAttempts = 20; // Increased attempts to give more time
+    const delayMs = 500;
+
+    // First check if already connected
+    if (socketService!.isConnected.value) {
+      Logger.log("✅ Socket already connected", type: "success");
+    } else {
+      Logger.log("⏳ Waiting for socket connection (max $maxAttempts attempts)...", type: "info");
+
+      while (socketService!.isConnected.value != true && waitAttempts < maxAttempts) {
+        Logger.log("⏳ Socket connection attempt ${waitAttempts + 1}/$maxAttempts...", type: "info");
+
+        // Check again in case connection happened while waiting
+        if (socketService!.isConnected.value) {
+          Logger.log("✅ Socket connected on attempt ${waitAttempts + 1}", type: "success");
+          break;
+        }
+
+        await Future.delayed(const Duration(milliseconds: delayMs));
+        waitAttempts++;
+      }
+    }
+
+    if (socketService!.isConnected.value != true) {
+      Logger.log("❌ Socket still not connected after $maxAttempts attempts", type: "error");
+
+      // Try one more time to initialize
+      await initSocket();
+
+      // Wait a bit more after reinitialization
+      waitAttempts = 0;
+      while (socketService!.isConnected.value != true && waitAttempts < 10) {
+        Logger.log("⏳ Final retry connection attempt ${waitAttempts + 1}/10...", type: "info");
+        await Future.delayed(const Duration(milliseconds: delayMs));
+        waitAttempts++;
+      }
+
+      if (socketService!.isConnected.value != true) {
+        Logger.log("❌ Socket still not connected after all attempts", type: "error");
+        return;
+      }
+    }
+
+    Logger.log("✅ Continuing with help request, socket is connected", type: "success");
 
     final networkController = Get.find<NetworkController>();
 

@@ -17,7 +17,9 @@ class SeakernotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomBox(child:  Row(
+    return CustomBox(
+      backgroundColor: notification.isRead ? Colors.transparent : const Color(0xFFC52D2D) ,
+      child:  Row(
       children: [
         if (!notification.isRead)
           Container(

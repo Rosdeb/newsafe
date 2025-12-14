@@ -7,7 +7,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:saferader/controller/SeakerLocation/seakerLocationsController.dart';
 import 'package:saferader/controller/bottom_nav/bottomNavController.dart';
+import 'package:saferader/controller/notifications/notifications_controller.dart';
 import 'package:saferader/utils/app_color.dart';
+import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
@@ -29,6 +31,7 @@ class SeakerHome extends StatefulWidget {
 class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateMixin {
 
   late final SeakerHomeController controller;
+  final NotificationsController notificationsController = Get.find<NotificationsController>();
   late final UserController userController;
   late final ProfileController controller1;
   late final SeakerLocationsController locationController;
@@ -784,7 +787,6 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
   }
 
   CustomBox homeHeader() {
-
     return CustomBox(
       backgroundColor: AppColors.iconBg.withOpacity(0.01),
       child: Row(
@@ -861,6 +863,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
             ),
           ),
           const SizedBox(width: 10),
+
           IosTapEffect(
             onTap: () {
               navController.notification();
@@ -871,26 +874,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      height: 16,
-                      width: 16,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.red,
-                      ),
-                      child: const Center(
-                        child: AppText(
-                          "1",
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.colorWhite,
-                        ),
-                      ),
-                    ),
-                  ),
+
                   Positioned(
                     top: 4,
                     child: SvgPicture.asset(
@@ -899,11 +883,49 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                       width: 30,
                     ),
                   ),
+
+                  Positioned(
+                    right: -2,
+                    top: 0,
+                    child:Obx(() {
+                          final unreadCount = notificationsController.unreadCount;
+
+                          if (unreadCount <= 0) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 99 ? "99+" : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                  ),
                 ],
               ),
             ),
           ),
-        ],
+       ],
       ),
     );
   }
@@ -921,54 +943,70 @@ class BannerAds extends StatefulWidget {
 class _BannerAdsState extends State<BannerAds> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
-  final String _adUnitId = 'ca-app-pub-3472349079404953/6153930445';
+  final String _adUnitId = AppConstants.Bennar_ad_Id;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Reload the ad if the orientation changes to get the correct adaptive banner size.
-    _loadAd();
+    // Load the ad when the widget is first created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadAd();
+      }
+    });
   }
 
   void _loadAd() async {
-    // Get an AnchoredAdaptiveBannerAdSize before loading the ad.
-    final AnchoredAdaptiveBannerAdSize? size =
-        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-      MediaQuery.of(context).size.width.truncate(),
-    );
+    try {
+      // Get an AnchoredAdaptiveBannerAdSize before loading the ad.
+      final AnchoredAdaptiveBannerAdSize? size =
+          await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+        MediaQuery.of(context).size.width.truncate(),
+      );
 
-    if (size == null) {
-      debugPrint('Unable to get adaptive banner size');
-      return;
+      if (size == null || !mounted) {
+        debugPrint('Unable to get adaptive banner size');
+        return;
+      }
+
+      // Dispose the old ad.
+      _bannerAd?.dispose();
+
+      // Create and load the new ad.
+      _bannerAd = BannerAd(
+        adUnitId: _adUnitId,
+        request: const AdRequest(),
+        size: size,
+        listener: BannerAdListener(
+          onAdLoaded: (Ad ad) {
+            if (mounted) {
+              debugPrint('$ad loaded successfully.');
+              setState(() {
+                _bannerAd = ad as BannerAd;
+                _isAdLoaded = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (Ad ad, LoadAdError error) {
+            debugPrint('BannerAd failed to load: $error');
+            ad.dispose();
+            // Don't set state if widget is unmounted
+            if (mounted) {
+              setState(() {
+                _isAdLoaded = false;
+              });
+            }
+          },
+        ),
+      )..load();
+    } catch (e) {
+      debugPrint('Error loading banner ad: $e');
+      if (mounted) {
+        setState(() {
+          _isAdLoaded = false;
+        });
+      }
     }
-
-    // Dispose the old ad.
-    _bannerAd?.dispose();
-
-    // Create and load the new ad.
-    _bannerAd = BannerAd(
-      adUnitId: _adUnitId,
-      request: const AdRequest(),
-      size: size,
-      listener: BannerAdListener(
-        onAdLoaded: (Ad ad) {
-          debugPrint('$ad loaded successfully.');
-          setState(() {
-            _bannerAd = ad as BannerAd;
-            _isAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (Ad ad, LoadAdError error) {
-          debugPrint('BannerAd failed to load: $error');
-          ad.dispose();
-        },
-      ),
-    )..load();
   }
 
   @override

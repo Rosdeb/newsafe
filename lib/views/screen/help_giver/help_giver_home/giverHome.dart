@@ -14,6 +14,7 @@ import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifica
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../../../controller/UserController/userController.dart';
 import '../../../../controller/profile/profile.dart';
+import '../../../../utils/app_constant.dart';
 import '../../../base/AppText/appText.dart';
 import '../../map_seeker/map_seeker_enhanced.dart';
 
@@ -653,13 +654,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       } else {
         return "${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago";
       }
-    } catch (e) {
+    }on Exception catch (e) {
       return "Recently";
     }
   }
 
-
-  // Replace ONLY the helpComing widget with this complete fixed version:
 
   Widget helpComing(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -990,7 +989,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                               zoom: 14,
                             );
 
-                            Set<Marker> markers = {
+                            final Set<Marker> markers = {
                               Marker(
                                 markerId: const MarkerId("giver_location"),
                                 position: LatLng(giverPos.latitude, giverPos.longitude),
@@ -1016,7 +1015,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => UniversalMapViewEnhanced(
+                                        builder: (context) =>const UniversalMapViewEnhanced(
                                           // giverLocation: LatLng(giverPos.latitude, giverPos.longitude),
                                           // seekerLocation: seekerLatLng!,
                                           // seekerName: seekerName,
@@ -1074,7 +1073,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
 
                     const SizedBox(height: 14),
 
-                    // Address Info - FIXED: Use locationController
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1101,7 +1099,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                         ),
                         Expanded(
                           child: Obx(() {
-                            // ✅ CORRECT: Use locationController for address
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1290,50 +1287,65 @@ class BannerAds extends StatefulWidget {
 class _BannerAdsState extends State<BannerAds> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
-  final String _adUnitId = 'ca-app-pub-3940256099942544/6300978111';
+  final String _adUnitId = AppConstants.Bennar_ad_Id;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadAd();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadAd();
+      }
+    });
   }
 
   void _loadAd() async {
-    final AnchoredAdaptiveBannerAdSize? size =
-    await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-      MediaQuery.of(context).size.width.truncate(),
-    );
+    try {
+      final AnchoredAdaptiveBannerAdSize? size =
+      await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+        MediaQuery.of(context).size.width.truncate(),
+      );
 
-    if (size == null) {
-      debugPrint('Unable to get adaptive banner size');
-      return;
+      if (size == null || !mounted) {
+        debugPrint('Unable to get adaptive banner size');
+        return;
+      }
+
+      _bannerAd?.dispose();
+
+      _bannerAd = BannerAd(
+        adUnitId: _adUnitId,
+        request: const AdRequest(),
+        size: size,
+        listener: BannerAdListener(
+          onAdLoaded: (Ad ad) {
+            if (mounted) {
+              debugPrint('$ad loaded successfully.');
+              setState(() {
+                _bannerAd = ad as BannerAd;
+                _isAdLoaded = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (Ad ad, LoadAdError error) {
+            debugPrint('BannerAd failed to load: $error');
+            ad.dispose();
+            if (mounted) {
+              setState(() {
+                _isAdLoaded = false;
+              });
+            }
+          },
+        ),
+      )..load();
+    }on Exception catch (e) {
+      debugPrint('Error loading banner ad: $e');
+      if (mounted) {
+        setState(() {
+          _isAdLoaded = false;
+        });
+      }
     }
-
-    _bannerAd?.dispose();
-
-    _bannerAd = BannerAd(
-      adUnitId: _adUnitId,
-      request: const AdRequest(),
-      size: size,
-      listener: BannerAdListener(
-        onAdLoaded: (Ad ad) {
-          debugPrint('$ad loaded successfully.');
-          setState(() {
-            _bannerAd = ad as BannerAd;
-            _isAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (Ad ad, LoadAdError error) {
-          debugPrint('BannerAd failed to load: $error');
-          ad.dispose();
-        },
-      ),
-    )..load();
   }
 
   @override

@@ -7,6 +7,7 @@ class AppConstants{
   static String APP_NAME="Saferadar";
   static String BASE_URL ="https://self-rows-threaded-distributions.trycloudflare.com";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
+  static String get Bennar_ad_Id=> dotenv.env['BANNER_ADS_ID'] ?? '';
 
   // share preference Key
   static String THEME ="theme";

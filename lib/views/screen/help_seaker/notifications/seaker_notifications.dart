@@ -10,6 +10,8 @@ import '../../../../utils/app_color.dart';
 import '../../../../views/base/AppText/appText.dart';
 import '../../../base/Ios_effect/iosTapEffect.dart';
 import 'base/GiverNotificationitem.dart';
+import 'base/givernotificationShimmer.dart';
+import 'base/notificationItemByrole.dart';
 
 class SeakerNotifications extends StatelessWidget {
   SeakerNotifications({super.key});
@@ -31,128 +33,94 @@ class SeakerNotifications extends StatelessWidget {
             stops: [0.0046, 0.5005, 0.9964],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18.0),
-          child: Column(
-            children: [
+        child: RefreshIndicator(
+          backgroundColor: AppColors.colorYellow,
+          displacement: 60.0,
+          edgeOffset: 60.0,
+          onRefresh:()=> notificationsController.fetchNotifications(context: context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18.0),
+            child: Column(
+              children: [
 
-              const SizedBox(height: 60),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Notification",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
+                const SizedBox(height: 60),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Notification",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
 
 
-                  Row(
-                    children: [
-                      Obx(() {
-                        final unreadCount = notificationsController.unreadCount;
-                        if (unreadCount > 0) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Obx(() {
+                          final unreadCount = notificationsController.unreadCount;
+                          if (unreadCount > 0) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      }),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        }),
 
-                      const SizedBox(width: 8),
+                        const SizedBox(width: 8),
 
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                  ],
+                ),
 
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
               Obx(() {
+                // 1️⃣ LOADING STATE → SHIMMER
                 if (notificationsController.isLoading.value) {
                   return const Expanded(
-                    child: Center(
-                      child: CircularProgressIndicator(),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: NotificationShimmerByRole(),
                     ),
                   );
                 }
 
+                  if (notificationsController.notifications.isEmpty) {
+                    return const EmptyHistoryBox(
+                        title: "No notification yet",
+                        subtitle: "Your notification will appear here",
+                        iconPath: "assets/icon/notifications.svg",
+                        height: 200,
+                    );
+                  }
 
-                if (notificationsController.notifications.isEmpty) {
-                  return const EmptyHistoryBox(
-                      title: "No notification yet",
-                      subtitle: "Your notification will appear here",
-                      iconPath: "assets/icon/notifications.svg",
-                      height: 200,
-                  );
-                }
 
-
-                if (userController.userRole.value == "giver") {
-                  return Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      itemCount: notificationsController.notifications.length,
-                      itemBuilder: (_, index) {
-                        final notification = notificationsController.notifications[index];
-                        return Dismissible(
-                          key: Key(notification.id),
-                          background: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            child: const Icon(
-                              Icons.delete,
-                              color: Colors.white,
-                            ),
-                          ),
-                          direction: DismissDirection.endToStart,
-                          onDismissed: (direction) {
-                            notificationsController.deleteNotification(notification.id);
-                          },
-                          child: GestureDetector(
-                            onTap: () {
-                              notificationsController.markAsRead(notification.id);
-                            },
-                            child: SeakernotificationItem(
-                              notification: notification,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  return Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      itemCount: notificationsController.notifications.length,
-                      itemBuilder: (_, index) {
-                        final notification = notificationsController.notifications[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Dismissible(
+                  if (userController.userRole.value == "giver") {
+                    return Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        itemCount: notificationsController.notifications.length,
+                        itemBuilder: (_, index) {
+                          final notification = notificationsController.notifications[index];
+                          return Dismissible(
                             key: Key(notification.id),
                             background: Container(
                               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -170,39 +138,74 @@ class SeakerNotifications extends StatelessWidget {
                             direction: DismissDirection.endToStart,
                             onDismissed: (direction) {
                               notificationsController.deleteNotification(notification.id);
-                              Get.snackbar(
-                                'Deleted',
-                                'Notification deleted',
-                                snackPosition: SnackPosition.BOTTOM,
-                                duration: const Duration(seconds: 2),
-                              );
                             },
                             child: GestureDetector(
                               onTap: () {
                                 notificationsController.markAsRead(notification.id);
-                                _showNotificationDetails(context, notification);
+                                _showNotificationDetails(context,notification);
                               },
-                              child: CustomBox(
-                                child: GiverNotificationItem(
-                                  title: notification.title,
-                                  name: notification.body,
-                                  distance: notification.distance,
-                                  profileImage: notification.userImage,
-                                  isRead: notification.isRead,
-                                  timestamp: notification.timestamp,
+                              child: SeakernotificationItem(
+                                notification: notification,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  } else {
+                    return Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        itemCount: notificationsController.notifications.length,
+                        itemBuilder: (_, index) {
+                          final notification = notificationsController.notifications[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Dismissible(
+                              key: Key(notification.id),
+                              background: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (direction) {
+                                notificationsController.deleteNotification(notification.id);
+                              },
+                              child: GestureDetector(
+                                onTap: () {
+                                  notificationsController.markAsRead(notification.id);
+                                  _showNotificationDetails(context,notification);
+                                },
+                                child: CustomBox(
+                                  child: GiverNotificationItem(
+                                    title: notification.title,
+                                    name: notification.body,
+                                    distance: notification.distance,
+                                    profileImage: notification.userImage,
+                                    isRead: notification.isRead,
+                                    timestamp: notification.timestamp,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                }
-              }),
+                          );
+                        },
+                      ),
+                    );
+                  }
+                }),
 
-
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -213,6 +216,7 @@ class SeakerNotifications extends StatelessWidget {
   void _showNotificationDetails(BuildContext context, NotificationItemModel notification) {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => AlertDialog(
         title: Text(notification.title),
         content: Column(

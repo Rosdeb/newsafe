@@ -86,7 +86,7 @@ class NotificationsController extends GetxController {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final list = data['notifications'] as List? ?? [];
+        final list = data['data'] as List? ?? [];
 
         notifications.value =
             list.map((e) => NotificationItemModel.fromJson(e)).toList();
@@ -112,6 +112,8 @@ class NotificationsController extends GetxController {
           notifications[index].isRead = true;
           notifications.refresh();
         }
+        Logger.log("mark as read done ");
+
       } else {
         Logger.log('Failed to mark notification as read: ${response.body}', type: 'error');
       }
