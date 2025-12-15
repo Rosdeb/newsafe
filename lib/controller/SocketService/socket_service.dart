@@ -289,7 +289,7 @@ class SocketService extends GetxService {
         return;
       }
 
-      // ⚠️ CRITICAL: According to backend spec, payload should ONLY contain latitude & longitude
+      //⚠️ CRITICAL: According to backend spec, payload should ONLY contain latitude & longitude
       // Server identifies the help request from the room the socket is in
       final locationData = {
         'latitude': latitude,

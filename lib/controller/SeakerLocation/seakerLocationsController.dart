@@ -2,11 +2,14 @@ import 'dart:async';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:saferader/controller/UserController/userController.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../SeakerHome/seakerHomeController.dart';
 import '../SocketService/socket_service.dart';
+import '../../services/background_location_socket_service.dart';
+import '../../utils/token_service.dart';
 
 class SeakerLocationsController extends GetxController {
   RxBool liveLocation = false.obs;
@@ -32,11 +35,6 @@ class SeakerLocationsController extends GetxController {
   SocketService? _cachedSocketService;
   DateTime? _socketCacheTime;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _setupConnectionStateMonitoring();
-  }
 
   @override
   void onClose() {
@@ -78,12 +76,19 @@ class SeakerLocationsController extends GetxController {
   SocketService? getActiveSocket() {
     final now = DateTime.now();
 
-    // 🔥 FIXED: Reduce cache time from 5s to 2s for faster updates
+    // 🔥 FIXED: Enhanced cache validation - check if cached socket is still connected
     if (_socketCacheTime != null &&
         now.difference(_socketCacheTime!).inSeconds < 2 &&
         _cachedSocketService != null &&
         _cachedSocketService!.isConnected.value) {
       return _cachedSocketService;
+    }
+
+    // 🔥 FIXED: If cached socket is disconnected, clear the cache
+    if (_cachedSocketService != null && !_cachedSocketService!.isConnected.value) {
+      Logger.log("⚠️ [SOCKET] Cached socket is disconnected, clearing cache", type: "warning");
+      _cachedSocketService = null;
+      _socketCacheTime = null;
     }
 
     SocketService? socketService;
@@ -120,6 +125,7 @@ class SeakerLocationsController extends GetxController {
     if (socketService != null) {
       _cachedSocketService = socketService;
       _socketCacheTime = now;
+      Logger.log("✅ [SOCKET] Setting new active socket in cache", type: "debug");
     } else {
       Logger.log("⚠️ [SOCKET] No active socket found", type: "warning");
     }
@@ -132,9 +138,15 @@ class SeakerLocationsController extends GetxController {
       currentHelpRequestId.value = helpRequestId;
       _cachedSocketService = null;
       _socketCacheTime = null;
+
+      // Update background service with new help request ID
+      BackgroundLocationSocketService.setActiveHelpRequestId(helpRequestId);
+
       Logger.log("✅ [LOCATION SHARE] Help request ID set: $helpRequestId", type: "success");
     } else {
       Logger.log("⚠️ [LOCATION SHARE] Attempted to set empty help request ID", type: "warning");
+      // Clear help request ID in background service too
+      BackgroundLocationSocketService.setActiveHelpRequestId('');
     }
   }
 
@@ -143,6 +155,10 @@ class SeakerLocationsController extends GetxController {
     currentHelpRequestId.value = '';
     _cachedSocketService = null;
     _socketCacheTime = null;
+
+    // Also clear in background service
+    BackgroundLocationSocketService.setActiveHelpRequestId('');
+
     Logger.log("📍 [LOCATION SHARE] Help request ID cleared (was: $oldId)", type: "info");
   }
 
@@ -150,6 +166,250 @@ class SeakerLocationsController extends GetxController {
     _cachedSocketService = null;
     _socketCacheTime = null;
     Logger.log("🔄 [LOCATION SHARE] Socket cache forcibly refreshed", type: "info");
+  }
+
+  // 🔥 NEW: Complete socket refresh including room rejoining
+  Future<void> refreshSocketAndRejoinRoom() async {
+    Logger.log("🔄 [CONNECTION] Starting complete socket refresh", type: "info");
+
+    // First, force refresh the socket cache to get new socket instance
+    forceSocketRefresh();
+
+    // Give a moment for the cache refresh to complete
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // Get the updated socket service
+    final socketService = getActiveSocket();
+
+    if (socketService == null) {
+      Logger.log("❌ [CONNECTION] No socket service found after refresh", type: "error");
+      return;
+    }
+
+    Logger.log("✅ [CONNECTION] Socket service found: ${socketService.isConnected.value}", type: "info");
+
+    // Rejoin room if needed
+    await rejoinRoomIfNeeded();
+
+    Logger.log("✅ [CONNECTION] Complete socket refresh completed", type: "success");
+  }
+
+  // 🔥 NEW: Background service integration methods
+  Future<void> startBackgroundLocationSharing() async {
+    Logger.log("🔄 [BACKGROUND] Starting background location sharing", type: "info");
+
+    // Initialize the background service if not already done
+    if (!await BackgroundLocationSocketService.isServiceRunning()) {
+      await BackgroundLocationSocketService.initializeService();
+    }
+
+    // Get the auth token using TokenService
+    final tokenService = TokenService();
+    final token = await tokenService.getToken();
+
+    if (token == null || token.isEmpty) {
+      Logger.log("❌ [BACKGROUND] No auth token available", type: "error");
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+
+    // Set user role for background service
+    String role = 'seeker'; // Default role
+
+    // Safely try to get the user role from either controller
+    try {
+      if (Get.isRegistered<SeakerHomeController>()) {
+        final seekerController = Get.find<SeakerHomeController>();
+        role = seekerController.userController.userRole.value;
+      } else if (Get.isRegistered<UserController>()) {
+        final userController = Get.find<UserController>();
+        role = userController.userRole.value;
+      }
+    } catch (e) {
+      Logger.log("⚠️ [BACKGROUND] Could not get user role, using default: $role", type: "warning");
+    }
+
+    await prefs.setString('user_role', role);
+
+    // Start background location sharing
+    await BackgroundLocationSocketService.startLocationSharing();
+
+    // Set the current help request ID for the background service
+    if (currentHelpRequestId.value.isNotEmpty) {
+      await BackgroundLocationSocketService.setActiveHelpRequestId(currentHelpRequestId.value);
+    }
+
+    Logger.log("✅ [BACKGROUND] Background location sharing started", type: "success");
+  }
+
+  Future<void> stopBackgroundLocationSharing() async {
+    Logger.log("🔄 [BACKGROUND] Stopping background location sharing", type: "info");
+
+    await BackgroundLocationSocketService.stopLocationSharing();
+    await BackgroundLocationSocketService.setActiveHelpRequestId('');
+
+    // Completely stop the background service when not needed
+    await BackgroundLocationSocketService.stopService();
+
+    Logger.log("✅ [BACKGROUND] Background location sharing stopped", type: "success");
+  }
+
+  // Call this when starting active location sharing
+  @override
+  void onInit() {
+    super.onInit();
+    _setupConnectionStateMonitoring();
+
+    // Listen for help request ID changes to update background service
+    ever(currentHelpRequestId, (String? requestId) async {
+      if (requestId != null && requestId.isNotEmpty) {
+        await BackgroundLocationSocketService.setActiveHelpRequestId(requestId);
+      } else {
+        await BackgroundLocationSocketService.setActiveHelpRequestId('');
+      }
+    });
+  }
+
+
+
+  // Method to periodically check for background location updates
+  Timer? _backgroundLocationCheckTimer;
+
+  void startBackgroundLocationMonitoring() {
+    // Check for location updates from background service every 3 seconds
+    _backgroundLocationCheckTimer = Timer.periodic(Duration(seconds: 3), (timer) async {
+      if (!isSharingLocation.value) {
+        // Stop monitoring if not sharing location
+        _backgroundLocationCheckTimer?.cancel();
+        return;
+      }
+
+      // Check for incoming location updates from background service
+      final incomingUpdate = await BackgroundLocationSocketService.getIncomingLocationUpdate();
+      if (incomingUpdate != null) {
+        // Process the incoming location update (this might be from the other party)
+        Logger.log("📍 [BACKGROUND] Incoming location update: $incomingUpdate", type: "info");
+
+        // This would typically update the other party's position on the map
+        // For example, update giver position if you're a seeker, or seeker position if you're a giver
+      }
+
+      // Check for pending location updates that couldn't be sent due to connection issues
+      final pendingUpdate = await BackgroundLocationSocketService.getPendingLocationUpdate();
+      if (pendingUpdate != null) {
+        // This means there was a location that couldn't be sent, might want to handle this
+        Logger.log("📍 [BACKGROUND] Pending location update: $pendingUpdate", type: "info");
+      }
+    });
+  }
+
+  // Call this method when starting location sharing
+  @override
+  void startLocationSharing() {
+    isSharingLocation.value = true;
+    _lastSentPosition = null;
+    _consecutiveFailures = 0;
+
+    final helpRequestId = _getHelpRequestId();
+    if (helpRequestId == null || helpRequestId.isEmpty) {
+      Logger.log("⚠️ [LOCATION SHARE] Starting without help request ID", type: "warning");
+    } else {
+      Logger.log("✅ [LOCATION SHARE] Started for request: $helpRequestId", type: "success");
+    }
+
+    if (currentPosition.value != null) {
+      _shareLocation(currentPosition.value!);
+    }
+
+    // Start background service when location sharing starts
+    if (helpRequestId != null && helpRequestId.isNotEmpty) {
+      startBackgroundLocationSharing();
+    }
+
+    // Start monitoring for background updates
+    startBackgroundLocationMonitoring();
+
+    Logger.log("✅ [LOCATION SHARE] Location sharing started with background monitoring", type: "success");
+  }
+
+  // Update the stop method to cancel the timer
+  void stopLocationSharing() {
+    Logger.log("🛑 [STOP] Stopping location sharing...", type: "info");
+
+    isSharingLocation.value = false;
+    _lastSentPosition = null;
+    _locationTimer?.cancel();
+    _backgroundLocationCheckTimer?.cancel(); // Cancel the background update timer
+    _consecutiveFailures = 0;
+    _lastSuccessfulUpdate = null;
+    _hasReceivedFirstLocation = false;
+
+    _forceStopLocationStream();
+
+    // Stop background service when location sharing stops
+    stopBackgroundLocationSharing();
+
+    Logger.log("✅ [STOP] Location sharing stopped", type: "success");
+  }
+
+  // Method to be called when help request is completed or cancelled
+  Future<void> completeBackgroundLocationSharing() async {
+    Logger.log("🛑 [BACKGROUND] Completing background location sharing (help request ended)", type: "info");
+
+    // Clear help request ID first
+    await BackgroundLocationSocketService.setActiveHelpRequestId('');
+
+    // Stop location sharing (this will also stop background service)
+    stopLocationSharing();
+
+    Logger.log("✅ [BACKGROUND] Background location sharing completely stopped", type: "success");
+  }
+
+  // 🔥 NEW: Comprehensive refresh specifically for returning from map
+  Future<void> refreshAfterMapReturn() async {
+    Logger.log("🔄 [MAP RETURN] Starting comprehensive refresh after returning from map", type: "info");
+
+    // Force refresh socket cache to get latest socket instance
+    forceSocketRefresh();
+
+    // Wait for cache to clear
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Ensure we have the right socket
+    final socketService = getActiveSocket();
+
+    if (socketService == null) {
+      Logger.log("❌ [MAP RETURN] No socket service available after map return", type: "error");
+      return;
+    }
+
+    Logger.log("✅ [MAP RETURN] Socket service available: ${socketService.isConnected.value}", type: "info");
+
+    // If we have an active help request, make sure we're in the right room
+    if (currentHelpRequestId.value.isNotEmpty) {
+      Logger.log("🚪 [MAP RETURN] Rejoining room: ${currentHelpRequestId.value}", type: "info");
+      await rejoinRoomIfNeeded();
+
+      // Wait for room to be joined
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Share current location to ensure we're active in the system
+      if (currentPosition.value != null) {
+        Logger.log("📍 [MAP RETURN] Sharing current location after room rejoin", type: "info");
+        _shareLocation(currentPosition.value!);
+      }
+
+      // Ensure background service is also in sync
+      await BackgroundLocationSocketService.setActiveHelpRequestId(currentHelpRequestId.value);
+    } else {
+      Logger.log("ℹ️ [MAP RETURN] No active help request, skipping room join", type: "info");
+      // Clear background service help request ID if none is active
+      await BackgroundLocationSocketService.setActiveHelpRequestId('');
+    }
+
+    Logger.log("✅ [MAP RETURN] Comprehensive refresh completed", type: "success");
   }
 
   void _setupConnectionStateMonitoring() {
@@ -167,6 +427,13 @@ class SeakerLocationsController extends GetxController {
       if (wasConnected != isConnected) {
         if (isConnected) {
           Logger.log("✅ [CONNECTION] Socket connection restored", type: "success");
+
+          // Rejoin room if we have an active help request
+          if (currentHelpRequestId.value.isNotEmpty) {
+            Logger.log("🔄 [CONNECTION] Rejoining room after connection restore", type: "info");
+            rejoinRoomIfNeeded();
+          }
+
           if (currentPosition.value != null) {
             _shareLocation(currentPosition.value!);
           }
@@ -397,6 +664,19 @@ class SeakerLocationsController extends GetxController {
         return;
       }
 
+      // 🔥 NEW: Ensure we're in the correct room before sending location
+      if (socketService.currentRoom != helpRequestId) {
+        Logger.log("⚠️ [SHARE] Not in correct room, joining: $helpRequestId", type: "warning");
+        socketService.joinRoom(helpRequestId);
+        // Wait a bit for room to join before sending location
+        Future.delayed(const Duration(milliseconds: 300)).then((_) {
+          // Retry sending location after joining room
+          Logger.log("🔄 [SHARE] Retrying location send after room join", type: "info");
+          _shareLocation(position);
+        });
+        return;
+      }
+
       isSocketConnected.value = true;
 
       Logger.log("📤 [SHARE] Sending to room: $helpRequestId", type: "info");
@@ -405,7 +685,6 @@ class SeakerLocationsController extends GetxController {
       socketService.sendLocationUpdate(
         position.latitude,
         position.longitude,
-        helpRequestId: helpRequestId,
       );
 
       _lastSuccessfulUpdate = DateTime.now();
@@ -439,26 +718,15 @@ class SeakerLocationsController extends GetxController {
     }
 
     Logger.log("📍 [LOCATION] Force starting location sharing", type: "info");
+
+    // Force refresh socket cache to get updated socket service
+    forceSocketRefresh();
+
     startLocationSharing();
     shareCurrentLocation();
   }
 
-  void startLocationSharing() {
-    isSharingLocation.value = true;
-    _lastSentPosition = null;
-    _consecutiveFailures = 0;
 
-    final helpRequestId = _getHelpRequestId();
-    if (helpRequestId == null || helpRequestId.isEmpty) {
-      Logger.log("⚠️ [LOCATION SHARE] Starting without help request ID", type: "warning");
-    } else {
-      Logger.log("✅ [LOCATION SHARE] Started for request: $helpRequestId", type: "success");
-    }
-
-    if (currentPosition.value != null) {
-      _shareLocation(currentPosition.value!);
-    }
-  }
 
   Map<String, dynamic> getLocationSharingStatus() {
     final timeSinceLastUpdate = _lastSuccessfulUpdate != null
@@ -494,20 +762,6 @@ class SeakerLocationsController extends GetxController {
   }
 
   // 🔥 FIXED: Complete cleanup in stopLocationSharing
-  void stopLocationSharing() {
-    Logger.log("🛑 [STOP] Stopping location sharing...", type: "info");
-
-    isSharingLocation.value = false;
-    _lastSentPosition = null;
-    _locationTimer?.cancel();
-    _consecutiveFailures = 0;
-    _lastSuccessfulUpdate = null;
-    _hasReceivedFirstLocation = false;
-
-    _forceStopLocationStream();
-
-    Logger.log("✅ [STOP] Location sharing stopped", type: "success");
-  }
 
   void _autoShareLocation(Position newPosition) {
     if (!isSharingLocation.value) return;
@@ -538,6 +792,36 @@ class SeakerLocationsController extends GetxController {
     } else {
       Logger.log("📍 No current position available", type: "warning");
     }
+  }
+
+  // 🔥 NEW: Method to rejoin room after returning from map
+  Future<void> rejoinRoomIfNeeded() async {
+    final helpRequestId = currentHelpRequestId.value;
+
+    if (helpRequestId.isEmpty) {
+      Logger.log("⚠️ [ROOM] No active help request, no need to rejoin", type: "info");
+      return;
+    }
+
+    final socketService = getActiveSocket();
+    if (socketService == null) {
+      Logger.log("⚠️ [ROOM] No active socket to rejoin room", type: "warning");
+      return;
+    }
+
+    // Check if we're already in the right room
+    if (socketService.currentRoom == helpRequestId) {
+      Logger.log("✅ [ROOM] Already in correct room: $helpRequestId", type: "info");
+      return;
+    }
+
+    Logger.log("🚪 [ROOM] Rejoining room: $helpRequestId", type: "info");
+    await socketService.joinRoom(helpRequestId);
+
+    // Wait a bit for the room join to complete
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    Logger.log("✅ [ROOM] Successfully rejoined room: $helpRequestId", type: "success");
   }
 
   String get sharingStatus {

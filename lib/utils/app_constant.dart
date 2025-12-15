@@ -3,13 +3,12 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants{
-
   static String APP_NAME="Saferadar";
-  static String BASE_URL ="https://self-rows-threaded-distributions.trycloudflare.com";
+  static String BASE_URL ="https://cams-quantities-spectacular-pcs.trycloudflare.com";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
   static String get Bennar_ad_Id=> dotenv.env['BANNER_ADS_ID'] ?? '';
 
-  // share preference Key
+  //----===--- share preference Key ----====---//
   static String THEME ="theme";
   static const String fcmToken = '';
 
