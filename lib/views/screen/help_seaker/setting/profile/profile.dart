@@ -152,8 +152,6 @@ class _ProfileState extends State<Profile> {
                       child: IosTapEffect(
                         onTap: () async {
                           // Navigate to edit page and wait for result
-                          TokenService().removeToken();
-                          print("done");
 
                           await Navigator.push(
                             context,

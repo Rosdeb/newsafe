@@ -4,7 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants{
   static String APP_NAME="Saferadar";
-  static String BASE_URL ="https://cams-quantities-spectacular-pcs.trycloudflare.com";
+  //http://164.92.215.115:9443/
+  static String BASE_URL ="http://164.92.215.115:9548";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
   static String get Bennar_ad_Id=> dotenv.env['BANNER_ADS_ID'] ?? '';
 

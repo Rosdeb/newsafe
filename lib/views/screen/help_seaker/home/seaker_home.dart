@@ -949,11 +949,11 @@ class _BannerAdsState extends State<BannerAds> {
   void initState() {
     super.initState();
     // Load the ad when the widget is first created
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _loadAd();
-      }
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (mounted) {
+    //     _loadAd();
+    //   }
+    // });
   }
 
   void _loadAd() async {

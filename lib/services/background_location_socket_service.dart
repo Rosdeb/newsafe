@@ -8,6 +8,7 @@ import '../../utils/app_constant.dart';
 
 /// Background service to maintain location sharing and socket connection when app is in background
 /// This allows real-time communication to continue when user switches to Google Maps or other apps
+@pragma('vm:entry-point')
 class BackgroundLocationSocketService {
   static const String SERVICE_NAME = "LocationSocketSharing";
 
