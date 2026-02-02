@@ -3,6 +3,7 @@
 // 2. Socket disconnection handling
 // 3. Visual connection status indicators
 // 4. Location sharing status display
+// 5. AppLifecycle handling for socket reconnection
 
 import 'dart:async';
 import 'dart:io';
@@ -59,7 +60,74 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> wit
     super.initState();
     _initializeApp();
 
+    // Add the lifecycle observer
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    // Remove the lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
+
+    _connectionMonitor?.cancel();
+    _otherPersonLocation.dispose();
+    _myLocation.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+      // App is back in foreground, refresh socket connection
+        _handleAppResume();
+        break;
+      case AppLifecycleState.paused:
+      // App is in background, keep socket alive
+        _handleAppPause();
+        break;
+      case AppLifecycleState.inactive:
+      // App is inactive
+        break;
+      case AppLifecycleState.detached:
+      // App is detached
+        break;
+      case AppLifecycleState.hidden:
+      // App is hidden (iOS specific)
+        break;
+    }
+  }
+
+  void _handleAppResume() {
+    Logger.log("📱 App resumed - refreshing socket connection", type: "info");
+
+    // Refresh socket connection and rejoin room if needed
+    if (mounted) {
+      _refreshSocketConnection();
+    }
+  }
+
+  void _handleAppPause() {
+    Logger.log("📱 App paused - keeping socket connection alive", type: "info");
+  }
+
+  Future<void> _refreshSocketConnection() async {
+    try {
+      // Refresh the socket connection
+      await locationsController.refreshAfterMapReturn();
+
+      // Update connection status
+      final socketService = locationsController.getActiveSocket();
+      if (socketService != null) {
+        isSocketConnected.value = socketService.isConnected.value;
+      }
+
+      Logger.log("🔄 Socket connection refreshed after app resume", type: "success");
+    } catch (e) {
+      Logger.log("❌ Error refreshing socket connection: $e", type: "error");
+    }
   }
 
   void _initializeApp() {
@@ -1212,69 +1280,5 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> wit
     });
 
     return completer.future;
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    if (state == AppLifecycleState.resumed) {
-      Logger.log("📱 App resumed – attempting socket reconnection...", type: "info");
-
-      _updateCurrentMode(); // Ensure mode is up to date early
-
-      // Initiate connection attempts for relevant controllers
-      if (_currentMode == 'seeker' && _seekerController?.socketService != null) {
-        final socket = _seekerController!.socketService!;
-        if (!socket.isConnected.value) {
-          Logger.log("🔁 Reconnecting seeker socket...", type: "info");
-          socket.socket.connect(); // Initiate connection
-        }
-      } else if (_currentMode == 'giver' && _giverController?.socketService != null) {
-        final socket = _giverController!.socketService!;
-        if (!socket.isConnected.value) {
-          Logger.log("🔁 Reconnecting giver socket...", type: "info");
-          socket.socket.connect(); // Initiate connection
-        }
-      }
-
-      // Now, wait for the relevant socket to connect before proceeding
-      Future.microtask(() async {
-        if (!mounted) return;
-
-        bool socketConnected = false;
-        if (_currentMode == 'seeker' && _seekerController?.socketService != null) {
-          socketConnected = await _waitForSocketConnection(
-              _seekerController!.socketService!.isConnected, 'Seeker');
-        } else if (_currentMode == 'giver' && _giverController?.socketService != null) {
-          socketConnected = await _waitForSocketConnection(
-              _giverController!.socketService!.isConnected, 'Giver');
-        }
-
-        if (!mounted) return; // Check mounted again after await
-
-        if (socketConnected && _hasActiveRequest()) {
-          Logger.log("✅ Socket ready – restarting location sharing", type: "success");
-          _startLocationSharingIfNeeded();
-
-          // Refresh other person's location after resuming
-          _updateOtherPersonLocation();
-        } else {
-          Logger.log("⚠️ Socket not ready for location sharing or no active request.", type: "warning");
-        }
-      });
-    } else if (state == AppLifecycleState.paused) {
-      Logger.log("📱 App paused – location sharing will continue in background", type: "info");
-    }
-  }
-
-  @override
-  void dispose() {
-    _connectionMonitor?.cancel();
-    _otherPersonLocation.dispose();
-    _myLocation.dispose();
-    mapController?.dispose();
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
   }
 }

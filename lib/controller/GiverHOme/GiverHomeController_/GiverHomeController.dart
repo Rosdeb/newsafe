@@ -772,4 +772,21 @@ class GiverHomeController extends GetxController {
     super.onClose();
   }
 
+  void refreshSocketOnResume() {
+    // This method can be called when the app resumes
+    // to ensure the socket is properly connected and in the right room
+    if (socketService != null) {
+      final helpRequestId = acceptedHelpRequest.value?['_id']?.toString();
+      if (helpRequestId != null && helpRequestId.isNotEmpty) {
+        if (!socketService!.isConnected.value) {
+          // Reconnect the socket if needed
+          initSocket();
+        } else {
+          // Ensure we're in the right room
+          socketService!.joinRoom(helpRequestId);
+        }
+      }
+    }
+  }
+
 }

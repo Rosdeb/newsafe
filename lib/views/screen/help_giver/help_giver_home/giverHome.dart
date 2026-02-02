@@ -13,6 +13,8 @@ import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dar
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../../../controller/UserController/userController.dart';
+import '../../../../controller/bottom_nav/bottomNavController.dart';
+import '../../../../controller/notifications/notifications_controller.dart';
 import '../../../../controller/profile/profile.dart';
 import '../../../../utils/app_constant.dart';
 import '../../../base/AppText/appText.dart';
@@ -33,7 +35,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
   late final SeakerLocationsController locationController;
   late AnimationController _blinkController;
   late Animation<double> _blinkAnimation;
-
+  final navController = Get.find<BottomNavController>();
+  final NotificationsController notificationsController = Get.find<NotificationsController>();
 
   @override
   void initState() {
@@ -1232,39 +1235,61 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
             ],
           ),
           const Spacer(),
-          Align(
-            alignment: Alignment.center,
+          IosTapEffect(
+            onTap: () {
+              navController.notification(2);
+            },
             child: SizedBox(
               height: 50,
               width: 32,
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Positioned(
-                    right: 0,
-                    top: -0,
-                    child: Container(
-                      height: 16,
-                      width: 16,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.red,
-                      ),
-                      child: const Center(
-                        child: AppText(
-                          "1",
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.colorWhite,
-                        ),
-                      ),
-                    ),
-                  ),
+
                   Positioned(
                     top: 4,
                     child: SvgPicture.asset(
                       "assets/icon/notifications.svg",
                       height: 30,
                       width: 30,
+                    ),
+                  ),
+
+                  Positioned(
+                    right: -2,
+                    top: 0,
+                    child:Obx(() {
+                      final unreadCount = notificationsController.unreadCount;
+
+                      if (unreadCount <= 0) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unreadCount > 99 ? "99+" : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     ),
                   ),
                 ],

@@ -16,8 +16,8 @@ class BottomNavController extends GetxController{
     selectedIndex.value = index;
   }
 
-  void notification(){
-    selectedIndex.value = 2;
+  void notification(int index){
+    selectedIndex.value = index;
   }
 
 }

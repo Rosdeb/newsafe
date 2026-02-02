@@ -152,6 +152,20 @@ class SeakerHomeController extends GetxController {
     });
   }
 
+  void refreshSocketOnResume() {
+    // This method can be called when the app resumes
+    // to ensure the socket is properly connected and in the right room
+    if (socketService != null && currentHelpRequestId.value.isNotEmpty) {
+      if (!socketService!.isConnected.value) {
+        // Reconnect the socket if needed
+        _attemptReconnect();
+      } else {
+        // Ensure we're in the right room
+        socketService!.joinRoom(currentHelpRequestId.value);
+      }
+    }
+  }
+
   Future<void> initSocket() async {
     try {
       final token = await TokenService().getToken();

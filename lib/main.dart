@@ -8,30 +8,19 @@ import 'package:saferader/helpers/route.dart';
 import 'package:saferader/utils/auth_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
+import 'utils/app_lifecycle_socket_handler.dart';
 
-void main()async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // await TokenService().init();
-  // await NotificationService.initialize();
-  //
-  // // Initialize background location service
-  // await BackgroundLocationSocketService.initializeService();
-  //
-  // final appDir = await getApplicationDocumentsDirectory();
-  // Hive.init(appDir.path);
-  // await dotenv.load(fileName: ".env");
-  // final box = await Hive.openBox('userBox');
-  // final savedRole = box.get('role', defaultValue: 'seeker');
-  // Get.put(NetworkController());
-  // final userController = UserController();
-  // userController.userRole.value = savedRole;
-  // Get.put(userController, permanent: true);
-  // await checkAndRefreshToken();
-  await dotenv.load(fileName: ".env");
-  runApp(const MyApp());
 
+  await dotenv.load(fileName: ".env");
+
+  // Add the lifecycle observer
+  final lifecycleHandler = AppLifecycleSocketHandler();
+  WidgetsBinding.instance.addObserver(lifecycleHandler);
+
+  runApp(MyApp(lifecycleHandler: lifecycleHandler));
 }
 
 Future<void> checkAndRefreshToken() async {
@@ -74,12 +63,15 @@ bool isTokenValid(String? token) {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppLifecycleSocketHandler? lifecycleHandler;
+
+  const MyApp({Key? key, this.lifecycleHandler}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Saferadar',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor:const Color(0xFF202020)),
         fontFamily: "Roboto",

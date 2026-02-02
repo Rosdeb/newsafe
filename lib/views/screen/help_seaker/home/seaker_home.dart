@@ -866,7 +866,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
 
           IosTapEffect(
             onTap: () {
-              navController.notification();
+              navController.notification(2);
             },
             child: SizedBox(
               height: 50,
