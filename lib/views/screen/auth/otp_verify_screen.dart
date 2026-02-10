@@ -15,9 +15,28 @@ import '../../base/animationsWrapper/animations_wrapper.dart';
 import '../welcome/welcome_sreen.dart';
 import 'base/back_to_login.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:pinput/pinput.dart';
+import 'package:saferader/controller/forgot/forgotController.dart';
+import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
+import '../../../utils/app_color.dart';
+import '../../base/AppText/appText.dart';
+import '../../base/AppTextField/apptextfield.dart';
+import '../../base/animationsWrapper/animations_wrapper.dart';
+import 'base/back_to_login.dart';
+import 'dart:async';
+
 class SimpleOtpScreen extends StatefulWidget {
+  final bool isSignUp;
   final String email;
-  const SimpleOtpScreen({Key? key, required this.email}) : super(key: key);
+
+  const SimpleOtpScreen({
+    Key? key,
+    required this.email,
+    this.isSignUp = true
+  }) : super(key: key);
 
   @override
   State<SimpleOtpScreen> createState() => _SimpleOtpScreenState();
@@ -25,30 +44,81 @@ class SimpleOtpScreen extends StatefulWidget {
 
 class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
   final ForgotController forgotController = Get.put(ForgotController());
-
   final TextEditingController pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
   final int _length = 5;
+
+
+  Timer? _timer;
+  int _remainingSeconds = 60;
+  bool _canResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
 
   @override
   void dispose() {
     pinController.dispose();
     _pinFocusNode.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
-  void _onSubmit(String pin) {
+  void _startTimer() {
+    setState(() {
+      _remainingSeconds = 60;
+      _canResend = false;
+    });
 
-    final isValid = pin == '12345';
-    final snackMsg = isValid ? 'OTP verified ✅' : 'Invalid OTP ❌';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(snackMsg)));
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        setState(() {
+          _canResend = true;
+        });
+        timer.cancel();
+      }
+    });
+  }
+
+  void _resendOtp() {
+    if (!_canResend) return;
+
+    // Call resend OTP API
+    if (widget.isSignUp) {
+      forgotController.resendSignupOtp(context, widget.email);
+    } else {
+      forgotController.resendForgotOtp(context, widget.email);
+    }
+
+    // Restart timer
+    _startTimer();
+
+    // Show feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('OTP resent successfully'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Color(0xff202020),
@@ -77,23 +147,25 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
         color: Colors.white.withOpacity(0.80),
         border: Border.all(color: Colors.yellow, width: 2),
         borderRadius: BorderRadius.circular(8),
-      ),);
+      ),
+    );
 
     final submittedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
         color: Colors.grey.shade800,
-        border: Border.all(color: Colors.green, width: 2), // ✅ after entered
+        border: Border.all(color: Colors.green, width: 2),
         borderRadius: BorderRadius.circular(8),
       ),
     );
+
     return Scaffold(
-      backgroundColor:const Color(0xff202020),
+      backgroundColor: const Color(0xff202020),
       body: Center(
         child: Container(
-          height: 371,
+          height: 420,
           width: double.infinity,
-          padding:const EdgeInsets.symmetric(horizontal: 24),
-          margin:const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: AppColors.fill_Color2,
@@ -103,15 +175,17 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              const  AnimatedAppText(
+              const AnimatedAppText(
                 "OTP Verification",
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFFEDC602),
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.008),
-              const  AppText(
-                "Enter the otp sent to your email address to reset your old password",
+              AppText(
+                widget.isSignUp
+                    ? "Enter the OTP sent to ${widget.email} to verify your account"
+                    : "Enter the OTP sent to ${widget.email} to reset your password",
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: AppColors.colorSubheading,
@@ -130,49 +204,85 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 onSubmitted: (pin) {
                   debugPrint("onSubmitted PinCode: $pin");
                   _pinFocusNode.unfocus();
-                  forgotController.verifyEmail(context, widget.email, pin);
+                  _verifyOtp(pin);
                 },
                 onCompleted: (pin) {
                   debugPrint("onCompleted PinCode: $pin");
                   _pinFocusNode.unfocus();
-                  forgotController.verifyEmail(context, widget.email, pin);
-
+                  _verifyOtp(pin);
                 },
                 onChanged: (value) {
                   debugPrint("Changed: $value");
                 },
                 pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
-                autofillHints:  [AutofillHints.oneTimeCode],
+                autofillHints: const [AutofillHints.oneTimeCode],
               ),
+
               SizedBox(height: MediaQuery.of(context).size.height * 0.025),
-              EnhancedAnimatedWrapper (
-                duration:const Duration(milliseconds: 500),
-                delay:const Duration(milliseconds: 400),
+
+              EnhancedAnimatedWrapper(
+                duration: const Duration(milliseconds: 500),
+                delay: const Duration(milliseconds: 400),
                 direction: AnimationDirection.bottom,
                 curve: Curves.elasticOut,
-                child:Obx(()=>GradientButton(
-                  isLoading: forgotController.isVerify.value,
-                  text: "verify otp".toUpperCase().toUpperCase(),
-                  onTap: () {
-
-                    forgotController.verifyEmail(context, widget.email, pinController.text.toString());
-
-                  },
-                ),)
-              ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              IosTapEffect(
-                onTap: (){
-
-                },
-                child: const AnimatedAppText(
-                  "Resend Otp?",
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFEDC602),
+                child: Obx(
+                      () => GradientButton(
+                    isLoading: forgotController.isVerify.value,
+                    text: "VERIFY OTP",
+                    onTap: () {
+                      if (pinController.text.length == _length) {
+                        _verifyOtp(pinController.text);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter complete OTP'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      }
+                    },
+                  ),
                 ),
               ),
+
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+
+              // Resend OTP Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (!_canResend)
+                    AppText(
+                      "Resend OTP in ${_formatTime(_remainingSeconds)}",
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.colorSubheading,
+                    )
+                  else
+                    IosTapEffect(
+                      onTap: _resendOtp,
+                      child: Row(
+                        children: [
+                          const AnimatedAppText(
+                            "Didn't receive code? ",
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorSubheading,
+                          ),
+                          const AnimatedAppText(
+                            "Resend OTP",
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFEDC602),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+
+              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+
               AnimatedWidgetWrapper(
                 child: BackToLogin(
                   onTap: () {
@@ -180,12 +290,26 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                   },
                 ),
               ),
-
             ],
           ),
         ),
       ),
     );
+  }
 
+  void _verifyOtp(String pin) {
+    if (widget.isSignUp) {
+      forgotController.signupEmail(
+        context,
+        widget.email,
+        pin,
+      );
+    } else {
+      forgotController.verifyEmail(
+        context,
+        widget.email,
+        pin,
+      );
+    }
   }
 }

@@ -98,7 +98,7 @@ class SignUpController extends GetxController{
         // await userController.saveUserRole(role);
         Logger.log("Signup successful", type: "info");
         if(context.mounted){
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SigninScreen()));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SimpleOtpScreen(email: email)));
         }
 
       } else {

@@ -10,11 +10,11 @@ import 'package:saferader/utils/app_utils.dart';
 import 'package:saferader/views/base/AppText/appText.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/base/borderButton/borderbuton.dart';
+import 'package:saferader/views/screen/auth/signUpPage/sign_up_screen.dart';
 import 'package:saferader/views/screen/auth/signinPage/signIn_screen.dart';
 import '../../../controller/welcome/welcome.dart';
 import '../../base/animationsWrapper/animations_wrapper.dart';
 import '../../base/gradientbutton/gradientButton.dart';
-
 
 class WelcomeSreen extends StatelessWidget {
   WelcomeSreen({super.key});
@@ -26,7 +26,7 @@ class WelcomeSreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value:const  SystemUiOverlayStyle(
+      value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
       ),
@@ -45,7 +45,7 @@ class WelcomeSreen extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: Color(0xFFEDC602),
               ),
-              SizedBox(height: 18),
+              const SizedBox(height: 18),
               const AnimatedAppText(
                 "Join a community that cares. When you need help, we're here.When others need help, you can be their hero.",
                 fontSize: 11,
@@ -58,17 +58,20 @@ class WelcomeSreen extends StatelessWidget {
               SimpleAnimatedContainersList(),
               const SizedBox(height: 24),
               EnhancedAnimatedWrapper(
-                duration:const  Duration(milliseconds: 800),
-                delay:const  Duration(milliseconds: 500),
+                duration: Duration(milliseconds: 800),
+                delay: const Duration(milliseconds: 500),
                 direction: AnimationDirection.top,
-                curve: Curves.elasticOut, // Better curve for bounce effect
+                curve: Curves.elasticOut,
+                // Better curve for bounce effect
                 child: Gradientbutton1(
                   text: 'GET STARTED',
                   ontap: () {
                     apputils.logInfo("Get started");
                     // Navigation is handled internally with better transitions
-                    Navigator.push(context, MaterialPageRoute(builder: (builder)=>SigninScreen()));
-
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (builder) => SigninScreen()),
+                    );
                   },
                 ),
               ),
@@ -76,8 +79,8 @@ class WelcomeSreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               EnhancedAnimatedWrapper(
-                duration:Duration(milliseconds: 800),
-                delay:const Duration(milliseconds: 500),
+                duration: const Duration(milliseconds: 800),
+                delay: const Duration(milliseconds: 500),
                 direction: AnimationDirection.bottom,
                 curve: Curves.elasticOut,
                 child: Borderbuton(
@@ -86,12 +89,11 @@ class WelcomeSreen extends StatelessWidget {
                     apputils.logInfo("Get started");
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => SigninScreen()),
+                      MaterialPageRoute(builder: (_) => SignUpScreen()),
                     );
                   },
                 ),
               ),
-
             ],
           ),
         ),
@@ -99,6 +101,7 @@ class WelcomeSreen extends StatelessWidget {
     );
   }
 }
+
 // Replace your HeroGradientButton with this simpler version for testing
 class SimpleHeroButton extends StatelessWidget {
   final String text;
@@ -161,19 +164,19 @@ class SimpleAnimatedContainersList extends StatelessWidget {
       "icon": AppIcons.alart,
       "title": "Emergency Panic button",
       "subtitle": "Get instant help when you need it most",
-      "role":"seeker"
+      "role": "seeker",
     },
     {
       "icon": AppIcons.flat_handshake,
       "title": "Community Support",
       "subtitle": "Connect with helpers in your area",
-      "role":"giver"
+      "role": "giver",
     },
     {
       "icon": "assets/image/locations.png",
       "title": "Real-time Location",
       "subtitle": "Share your location safely with helpers",
-      "role": "both"
+      "role": "both",
     },
   ];
 
@@ -337,6 +340,7 @@ class AnimatedAppText extends StatelessWidget {
     );
   }
 }
+
 // Enhanced Hero Button with better transitions
 class EnhancedAnimatedWrapper extends StatefulWidget {
   final Widget child;
@@ -357,7 +361,8 @@ class EnhancedAnimatedWrapper extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<EnhancedAnimatedWrapper> createState() => _EnhancedAnimatedWrapperState();
+  State<EnhancedAnimatedWrapper> createState() =>
+      _EnhancedAnimatedWrapperState();
 }
 
 class _EnhancedAnimatedWrapperState extends State<EnhancedAnimatedWrapper>
@@ -371,10 +376,7 @@ class _EnhancedAnimatedWrapperState extends State<EnhancedAnimatedWrapper>
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
-      duration: widget.duration,
-      vsync: this,
-    );
+    _controller = AnimationController(duration: widget.duration, vsync: this);
 
     // Define slide direction based on AnimationDirection
     Offset startOffset;
@@ -396,26 +398,17 @@ class _EnhancedAnimatedWrapperState extends State<EnhancedAnimatedWrapper>
     _slideAnimation = Tween<Offset>(
       begin: startOffset,
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: widget.curve,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: widget.curve));
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _scaleAnimation = Tween<double>(
       begin: 0.8,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     // Start animation after delay
     Future.delayed(widget.delay, () {
@@ -440,17 +433,13 @@ class _EnhancedAnimatedWrapperState extends State<EnhancedAnimatedWrapper>
           position: _slideAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: widget.child,
-            ),
+            child: FadeTransition(opacity: _fadeAnimation, child: widget.child),
           ),
         );
       },
     );
   }
 }
-
 
 // Enhanced Hero Button with better transitions
 class HeroGradientButton extends StatefulWidget {
@@ -486,13 +475,9 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _pressController,
-      curve: Curves.easeInOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -517,7 +502,8 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
   void _navigateWithCustomTransition() {
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => widget.destinationScreen,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            widget.destinationScreen,
         transitionDuration: widget.animationDuration,
         reverseTransitionDuration: const Duration(milliseconds: 400),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -527,7 +513,9 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
           const curve = Curves.easeInOutCubic;
 
           var tween = Tween(begin: begin, end: end);
-          var offsetAnimation = animation.drive(tween.chain(CurveTween(curve: curve)));
+          var offsetAnimation = animation.drive(
+            tween.chain(CurveTween(curve: curve)),
+          );
 
           var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
             CurvedAnimation(parent: animation, curve: Curves.easeInOut),
@@ -535,13 +523,11 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
 
           return SlideTransition(
             position: offsetAnimation,
-            child: FadeTransition(
-              opacity: fadeAnimation,
-              child: child,
-            ),
+            child: FadeTransition(opacity: fadeAnimation, child: child),
           );
         },
-      ),(route)=>false,
+      ),
+      (route) => false,
     );
   }
 
@@ -549,58 +535,72 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
   Widget build(BuildContext context) {
     return Hero(
       tag: widget.heroTag,
-      flightShuttleBuilder: (
-          BuildContext flightContext,
-          Animation<double> animation,
-          HeroFlightDirection flightDirection,
-          BuildContext fromHeroContext,
-          BuildContext toHeroContext,
+      flightShuttleBuilder:
+          (
+            BuildContext flightContext,
+            Animation<double> animation,
+            HeroFlightDirection flightDirection,
+            BuildContext fromHeroContext,
+            BuildContext toHeroContext,
           ) {
-        // Custom hero flight animation
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: 1.0 + (animation.value * 0.1), // Slight scale during flight
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color.lerp(Colors.blue, Colors.purple, animation.value)!,
-                      Color.lerp(Colors.purple, Colors.blue, animation.value)!,
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2 * animation.value),
-                      blurRadius: 20 * animation.value,
-                      spreadRadius: 5 * animation.value,
+            // Custom hero flight animation
+            return AnimatedBuilder(
+              animation: animation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 1.0 + (animation.value * 0.1),
+                  // Slight scale during flight
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color.lerp(
+                            Colors.blue,
+                            Colors.purple,
+                            animation.value,
+                          )!,
+                          Color.lerp(
+                            Colors.purple,
+                            Colors.blue,
+                            animation.value,
+                          )!,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(
+                            0.2 * animation.value,
+                          ),
+                          blurRadius: 20 * animation.value,
+                          spreadRadius: 5 * animation.value,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    widget.text,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16 + (animation.value * 4), // Grow text during flight
-                      fontWeight: FontWeight.bold,
+                    child: Center(
+                      child: Text(
+                        widget.text,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16 + (animation.value * 4),
+                          // Grow text during flight
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
-        );
-      },
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: IosTapEffect(
-              onTap: () {  // Use onTap instead of onTapDown/onTapUp
+              onTap: () {
+                // Use onTap instead of onTapDown/onTapUp
                 print("Button tapped!"); // Debug line
                 _navigateWithCustomTransition();
               },
@@ -616,7 +616,7 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
                 child: Center(
                   child: Text(
                     widget.text,
-                    style:  TextStyle(
+                    style: TextStyle(
                       color: AppColors.color2Box,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -638,7 +638,6 @@ class GradientButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isLoading;
 
-
   const GradientButton({
     Key? key,
     required this.text,
@@ -653,8 +652,12 @@ class GradientButton extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: LinearGradient(
-          colors:isLoading ? [Color(0xfff7d481).withOpacity(0.6), Color(0xffffc91d).withOpacity(0.6)]
-              :const [Color(0xfff7d481), Color(0xffffc91d)],
+          colors: isLoading
+              ? [
+                  Color(0xfff7d481).withOpacity(0.6),
+                  Color(0xffffc91d).withOpacity(0.6),
+                ]
+              : const [Color(0xfff7d481), Color(0xffffc91d)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -672,20 +675,20 @@ class GradientButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: isLoading ? null : onTap,
           child: Center(
-            child:isLoading ?
-            const CupertinoActivityIndicator(
-              color: Color(0xFF202020),
-              radius: 12,
-            )
-            :Text(
-              text,
-              style:const TextStyle(
-                color: AppColors.color2Box,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
+            child: isLoading
+                ? const CupertinoActivityIndicator(
+                    color: Color(0xFF202020),
+                    radius: 12,
+                  )
+                : Text(
+                    text,
+                    style: const TextStyle(
+                      color: AppColors.color2Box,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
           ),
         ),
       ),
