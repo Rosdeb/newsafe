@@ -313,7 +313,6 @@ class ProfileEditController extends GetxController {
 
     await loadUserData();
 
-
     if (context.mounted) {
       Navigator.pop(context);
     }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:pinput/pinput.dart';
 import 'package:saferader/controller/forgot/forgotController.dart';
+import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/auth/reset_pass_screen.dart';
 import 'package:saferader/views/screen/auth/success_message_screen.dart';
 
@@ -23,7 +24,7 @@ class SimpleOtpScreen extends StatefulWidget {
 }
 
 class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
-  final ForgotController forgotController = Get.find<ForgotController>();
+  final ForgotController forgotController = Get.put(ForgotController());
 
   final TextEditingController pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
@@ -160,11 +161,16 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 ),)
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              const AnimatedAppText(
-                "Resend Otp?",
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFFEDC602),
+              IosTapEffect(
+                onTap: (){
+
+                },
+                child: const AnimatedAppText(
+                  "Resend Otp?",
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFEDC602),
+                ),
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
               AnimatedWidgetWrapper(

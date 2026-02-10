@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import GoogleMaps
+import GoogleMobileAds
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,7 +9,7 @@ import GoogleMaps
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-     GADMobileAds.sharedInstance().start(completionHandler: nil)
+     MobileAds.shared.start(completionHandler: nil)
      GMSServices.provideAPIKey("AIzaSyAAvnKkwZndTn8j7MNpL55B42I6jlIIoSk")
      GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

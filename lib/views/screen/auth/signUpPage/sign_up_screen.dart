@@ -216,12 +216,12 @@ class SignUpScreen extends StatelessWidget {
                   }
 
                   await controller.signUpUser(
-                    context,
-                    email,
-                    password,
-                    phone,
-                    role,
-                    name,
+                    context: context,
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    password: password,
+                    role: role,
                   );
                 },
               )),

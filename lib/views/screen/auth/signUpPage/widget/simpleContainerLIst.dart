@@ -47,6 +47,7 @@ class SimpleAnimatedContainersListsss extends StatelessWidget {
                 onTap: (){
                   controller.tapSelected(index);
                   controller.selectedRole.value = item['role'];
+                  print("${item['role']}");
                 },
                 child: Transform.translate(
                   offset: Offset(0, (1 - value) * -100), // Slide from top

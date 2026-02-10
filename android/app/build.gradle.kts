@@ -48,8 +48,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 5
+        versionName = "1.1.0"
         multiDexEnabled = true
 
     }
@@ -58,7 +58,7 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-//            signingConfig = signingConfigs.getByName("debug")
+            //signingConfig = signingConfigs.getByName("debug")
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             proguardFiles(

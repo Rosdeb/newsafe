@@ -7,6 +7,7 @@ import 'package:saferader/utils/logger.dart';
 import 'package:saferader/views/screen/auth/signinPage/signIn_screen.dart';
 import '../../utils/app_constant.dart';
 import '../../utils/token_service.dart';
+import '../../views/screen/auth/otp_verify_screen.dart';
 import '../../views/screen/bottom_nav/bottom_nav_wrappers.dart';
 import '../UserController/userController.dart';
 import '../networkService/networkService.dart';
@@ -17,7 +18,7 @@ class SignUpController extends GetxController{
   final RxBool isLoading = false.obs;
   final RxBool passShowHide1 = false.obs;
   final RxBool rememberMe = false.obs;
-  final RxString selectedRole = ''.obs;
+  final RxString selectedRole = 'seeker'.obs;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -38,13 +39,25 @@ class SignUpController extends GetxController{
 
   void tapSelected(int index){
     selectedIndex.value = index;
+    if(index==0){
+      selectedRole.value = 'seeker';
+    }else{
+      selectedRole.value = 'giver';
+    }
   }
 
   void togglePrivacy(){
     rememberMe.value = ! rememberMe.value;
   }
 
-  Future<void> signUpUser(BuildContext context, String emails, String passwords, String phone, String role, String name) async {
+  Future<void> signUpUser({
+    required BuildContext context,
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String role,
+ }) async {
     final networkController = Get.find<NetworkController>();
     final url = '${AppConstants.BASE_URL}/api/auth/signup';
 
@@ -59,9 +72,9 @@ class SignUpController extends GetxController{
 
     final body = {
       "name": name,
-      "email": emails,
+      "email": email,
       "phoneNumber": phone,
-      "password": passwords,
+      "password": password,
       "role": role,
     };
 
@@ -75,18 +88,19 @@ class SignUpController extends GetxController{
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final token = data["accessToken"];
-        final refresh = data["accessToken"];
-        final role = data['user']['role'];
-        await TokenService().saveToken(token);
-        await TokenService().saveRefreshToken(refresh);
-        final userController = Get.find<UserController>();
-        await userController.saveUserRole(role);
+        final message = data['message'];
+        // final token = data["accessToken"];
+        // final refresh = data["refreshToken"];
+        // final role = data["user"]["role"];
+        // await TokenService().saveToken(token);
+        // await TokenService().saveRefreshToken(refresh);
+        // final userController = Get.find<UserController>();
+        // await userController.saveUserRole(role);
         Logger.log("Signup successful", type: "info");
         if(context.mounted){
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => SigninScreen()),
+            MaterialPageRoute(builder: (_) => SimpleOtpScreen(email: email,)),
           );
         }
 

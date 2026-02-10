@@ -197,7 +197,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                   ),
                 ),
                 SizedBox(height: size.height * 0.05),
-                const BannerAds(),
+                //const BannerAds(),
                 SizedBox(height: size.height * 0.01),
                 CustomBox(
                   backgroundColor: AppColors.colorYellow.withOpacity(0.10),
@@ -1180,9 +1180,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(50),
 
-                    child: userController.userImage.value.isNotEmpty
+                    child: controller1.profileImage.value.isNotEmpty
                         ? Image.network(
-                      userController.userImage.value,
+                      controller1.profileImage.value,
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,
@@ -1204,7 +1204,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
 
               Obx(() {
                 return AppText(
-                  userController.userName.value,
+                  controller1.firstName.value,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.color2Box,
@@ -1232,6 +1232,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                   ),
                 ],
               ),
+
             ],
           ),
           const Spacer(),

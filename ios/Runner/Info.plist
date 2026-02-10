@@ -24,34 +24,29 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3472349079404953~9132227820</string>
 	<key>GMSApiKey</key>
 	<string>AIzaSyAAvnKkwZndTn8j7MNpL55B42I6jlIIoSk</string>
-
-	<key>GADApplicationIdentifier</key>
-    <string>ca-app-pub-3472349079404953~9132227820</string>
-
-<key>LSApplicationQueriesSchemes</key>
-<array>
-  <string>sms</string>
-  <string>tel</string>
-</array>
-
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>sms</string>
+		<string>tel</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Your location is required for live location tracking.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app needs access to location when in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app requires location access for live tracking.</string>
-	<key>UIBackgroundModes</key>
-    <array>
-      <string>location</string>
-    </array>
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Your location is required for live location tracking.</string>
-
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

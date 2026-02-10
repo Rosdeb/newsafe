@@ -17,7 +17,6 @@ import '../../../controller/UserController/userController.dart';
 import '../../../controller/networkService/networkService.dart';
 import '../../../firebase_options.dart';
 import '../../../main.dart';
-import '../../../services/background_location_socket_service.dart';
 import '../bottom_nav/bottom_nav_wrappers.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -68,10 +67,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initNonCriticalServices() async {
     try {
+      await dotenv.load(fileName: ".env");
       MobileAds.instance.initialize();
       await NotificationService.initialize();
-      await BackgroundLocationSocketService.initializeService();
-      await dotenv.load(fileName: ".env");
       final token = await TokenService().getToken();
       if (token != null) await checkAndRefreshToken();
     }on Exception catch (e) {
