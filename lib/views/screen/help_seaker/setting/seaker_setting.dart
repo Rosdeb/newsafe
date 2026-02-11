@@ -207,50 +207,51 @@ class SeakerSetting extends StatelessWidget {
   final List<Map<String, dynamic>> items = [
     {
       "icon": "assets/icon/Add-User.svg",
-      "title": "Profile",
+      "title": "Profile".tr,
       "subtitle": "Get instant help when you need it most",
     },
     {
       "icon": "assets/icon/Add-User.svg",
-      "title": "User Role",
+      "title": "User Role".tr,
       "subtitle": "Connect with helpers in your area",
     },
     {
       "icon": "assets/icon/weui_location-filled copy.svg",
-      "title": "Distance Settings",
+      "title": "Distance Settings".tr,
       "subtitle": "Share your location safely with helpers",
     },
     {
       "icon": "assets/icon/material-symbols_settings-rounded copy.svg",
-      "title": "User Preferences",
+      "title": "User Preferences".tr,
       "subtitle": "Share your location safely with helpers",
     },
     {
       "icon": "assets/icon/mdi_star-rate copy.svg",
-      "title": "Rate App",
+      "title": "Rate App".tr,
       "subtitle": "Share your location safely with helpers",
     },
     {
       "icon": "assets/icon/material-symbols_share copy.svg",
-      "title": "Share App",
+      "title": "Share App".tr,
       "subtitle": "Share your location safely with helpers",
     },
     {
       "icon": "assets/icon/mdi_legal (1) copy.svg",
-      "title": "Legal Terms",
+      "title": "Legal Terms".tr,
       "subtitle": "Share your location safely with helpers",
     },
     {
       "icon": "assets/icon/material-symbols_question-mark-rounded.svg",
-      "title": "Help",
+      "title": "Help".tr,
       "subtitle": "Share your location safely with helpers",
     },
     {
       "icon": "assets/image/out.png",
-      "title": "Log Out",
+      "title": "Log Out".tr,
       "subtitle": "Log out your profile",
     },
   ];
+
 }
 
 class LogoutDialog {
@@ -278,10 +279,10 @@ class LogoutDialog {
                     child: SvgPicture.asset("assets/icons/maki_cross.svg"),
                   ),
                 ),
-                const Align(
+                 Align(
                   alignment: Alignment.topLeft,
                   child: AppText(
-                    "Log Out",
+                    "Log Out".tr,
                     color: AppColors.color2Box,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -315,8 +316,8 @@ class LogoutDialog {
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child:const Text(
-                            "Cancel",
+                          child: Text(
+                            "Cancel".tr,
                             style: TextStyle(
                               color: AppColors.color2Box,
                               fontSize: 18,
@@ -333,7 +334,7 @@ class LogoutDialog {
                           controllers.logoutUser(context);
                           Navigator.pop(context);
                           Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (builder)=>SigninScreen()), (route)=> false);
-                        }, text: "Log Out",
+                        }, text: "Log Out".tr,
                       ),
                     ),
                   ],

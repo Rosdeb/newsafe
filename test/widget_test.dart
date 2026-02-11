@@ -21,6 +21,8 @@ void main() {
 
     await tester.pumpWidget(MyApp(
       translationsMap: {'en_US': <String, String>{}},
+      languages: {},
+
     ));
 
     expect(find.byType(MaterialApp), findsOneWidget);

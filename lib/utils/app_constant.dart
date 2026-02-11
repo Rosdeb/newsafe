@@ -31,6 +31,7 @@ class AppConstants{
     LanguageModel(languageName: 'English', countryCode: 'US', languageCode: 'en'),
     LanguageModel(languageName: 'Dutch', countryCode: 'NL', languageCode: 'nl'),
     LanguageModel(languageName: 'German', countryCode: 'DE', languageCode: 'de'),
+    LanguageModel(languageName: 'Italian', countryCode: 'IT', languageCode: 'it'),
     LanguageModel(languageName: 'Swedish', countryCode: 'SE', languageCode: 'sv'),
     LanguageModel(languageName: 'Spanish', countryCode: 'ES', languageCode: 'es'),
     LanguageModel(languageName: 'French', countryCode: 'FR', languageCode: 'fr'),

@@ -192,9 +192,7 @@ class UserPreferrence extends StatelessWidget {
                   child: BannerAds(),
                 ),
 
-
-                _buildLanguageTabs(isTablet),
-                Text("Home".tr),
+                _buildLanguageTabs(isTablet,context),
 
               ],
             ),
@@ -203,7 +201,9 @@ class UserPreferrence extends StatelessWidget {
     );
   }
 
-  Widget _buildLanguageTabs(bool isTablet) {
+  Widget _buildLanguageTabs(bool isTablet, BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GetBuilder<LocalizationController>(
       builder: (controller) {
         return Wrap(
@@ -214,9 +214,12 @@ class UserPreferrence extends StatelessWidget {
             int index = entry.key;
             final language = entry.value;
             final isSelected = controller.selectedIndex == index;
+
             return GestureDetector(
               onTap: () {
-                controller.setLanguage(Locale(language.languageCode, language.countryCode));
+                controller.setLanguage(
+                    Locale(language.languageCode, language.countryCode)
+                );
               },
               behavior: HitTestBehavior.opaque,
               child: AnimatedContainer(
@@ -232,7 +235,10 @@ class UserPreferrence extends StatelessWidget {
                       language.languageName.tr,
                       fontSize: isTablet ? 15 : 13,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? AppColors.colorWhite : AppColors.colorBlue2),
+                      color: isSelected
+                          ? (isDark ? AppColors.colorWhite : AppColors.color2Box)
+                          : (isDark ? AppColors.colorWhite.withOpacity(0.6) : AppColors.color2Box.withOpacity(0.6)),
+                    ),
                     Container(
                       margin: const EdgeInsets.only(top: 2),
                       height: isTablet ? 3 : 2,
@@ -243,7 +249,9 @@ class UserPreferrence extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      color: isSelected ? Colors.yellow : Colors.transparent
+                      color: isSelected
+                          ? (isDark ? Colors.white : AppColors.colorYellow)
+                          : Colors.transparent,
                     ),
                   ],
                 ),

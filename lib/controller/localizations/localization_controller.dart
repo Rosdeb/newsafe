@@ -71,4 +71,5 @@ class LocalizationController extends GetxController {
     }
     update();
   }
+
 }
