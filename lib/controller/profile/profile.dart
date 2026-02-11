@@ -292,7 +292,7 @@ class ProfileController extends GetxController {
       await userBox.put('dateOfBirth', userData['dateOfBirth'] ?? '');
       await userBox.put('_id', userData['_id'] ?? userData['id'] ?? '');
       await userBox.put('role', userData['role'] ?? '');
-      await userBox.put('profileImage', userData['profileImage'] ?? userData['image'] ?? '');
+      await userBox.put('profileImage', userData['profileImage'] ?? userData['profileImage'] ?? '');
       await userBox.put('isEmailVerified', userData['isEmailVerified'] ?? false);
 
       // Save preferences if available
@@ -455,6 +455,8 @@ class ProfileController extends GetxController {
       distance.value = '1';
     }
   }
+
+
 
   /// Refresh profile from API
   Future<void> refreshProfile() async {

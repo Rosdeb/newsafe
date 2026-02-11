@@ -791,38 +791,37 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
       backgroundColor: AppColors.iconBg.withOpacity(0.01),
       child: Row(
         children: [
-          Obx(() =>
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.colorYellow, width: 2),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(50),
-
-                  child: controller1.profileImage.value.isNotEmpty
-                      ? Image.network(
-                    "${AppConstants.BASE_URL}/${controller.profileImage.value}",
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      );
-                    },
-                  )
-                      : Image.asset(
+          Obx(() => Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.colorYellow, width: 2),
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(50),
+              child: controller1.profileImage.value.isNotEmpty
+                  ? Image.network(
+                controller1.profileImage.value,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset(
                     "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,
-                  ),
-                ),
-              ),),
+                  );
+                },
+              )
+                  : Image.asset(
+                "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+            ),
+          )),
+
           const SizedBox(width: 10),
           Expanded(
             child: Column(

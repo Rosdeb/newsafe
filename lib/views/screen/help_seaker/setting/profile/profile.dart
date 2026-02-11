@@ -548,41 +548,11 @@ class _ProfileState extends State<Profile> {
             children: [
               // Profile Image
               Obx(() {
-                final imageUrl = controller.profileImage.value;
-
-                return Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: AppColors.colorYellow,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.colorYellow.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: imageUrl.isNotEmpty
-                        ? Image.network(
-                      "${AppConstants.BASE_URL}/$imageUrl",
-                      height: 100,
-                      width: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildDefaultAvatar();
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return _buildLoadingAvatar();
-                      },
-                    )
-                        : _buildDefaultAvatar(),
-                  ),
+                return CircleAvatar(
+                  radius: 50,
+                  backgroundImage: controller.profileImage.value.isNotEmpty
+                      ? NetworkImage(controller.profileImage.value)
+                      : const AssetImage('assets/default_user.png') as ImageProvider,
                 );
               }),
 

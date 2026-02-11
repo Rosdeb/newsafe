@@ -69,7 +69,7 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
 
   void _startTimer() {
     setState(() {
-      _remainingSeconds = 60;
+      _remainingSeconds = 120;
       _canResend = false;
     });
 
