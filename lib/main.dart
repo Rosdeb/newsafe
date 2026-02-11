@@ -14,6 +14,7 @@ import 'package:saferader/utils/auth_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
 import 'utils/app_lifecycle_socket_handler.dart';
+#import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
