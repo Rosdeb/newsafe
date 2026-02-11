@@ -829,7 +829,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
               children: [
                 Obx(() {
                   return AppText(
-                    controller1.firstName.value,
+                    controller1.firstName.value + " " + controller1.lastName.value,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: AppColors.color2Box,

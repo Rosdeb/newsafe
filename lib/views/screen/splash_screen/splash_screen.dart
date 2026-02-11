@@ -12,8 +12,10 @@ import 'package:saferader/utils/app_icon.dart';
 import 'package:saferader/utils/app_image.dart';
 import 'package:saferader/utils/token_service.dart';
 import 'package:saferader/views/screen/welcome/welcome_sreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../Service/Firebase/notifications.dart';
 import '../../../controller/UserController/userController.dart';
+import '../../../controller/localizations/localization_controller.dart';
 import '../../../controller/networkService/networkService.dart';
 import '../../../firebase_options.dart';
 import '../../../main.dart';
@@ -42,26 +44,25 @@ class _SplashScreenState extends State<SplashScreen> {
     final box = await Hive.openBox('userBox');
     final savedRole = box.get('role', defaultValue: 'seeker');
     Get.put(NetworkController(), permanent: true);
+    final prefs = await SharedPreferences.getInstance();
+    Get.put(LocalizationController(sharedPreferences: prefs), permanent: true);
     final userController = UserController();
     userController.userRole.value = savedRole;
     Get.put(userController, permanent: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initNonCriticalServices();
     });
+
     final token = await TokenService().getToken();
     if (!mounted) return;
     if (token != null && token.isNotEmpty) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => BottomMenuWrappers()),
-            (route) => false,
-      );
+        MaterialPageRoute(builder: (_) => BottomMenuWrappers()), (route) => false);
     } else {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => WelcomeSreen()),
-            (route) => false,
-      );
+        MaterialPageRoute(builder: (_) => WelcomeSreen()), (route) => false);
     }
   }
 

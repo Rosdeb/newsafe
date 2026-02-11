@@ -6,7 +6,9 @@ import 'package:get/get.dart';
 import 'package:saferader/controller/notifications/notifications_controller.dart';
 import 'package:saferader/controller/profile/profile.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
+import '../../../../../controller/localizations/localization_controller.dart';
 import '../../../../../utils/app_color.dart';
+import '../../../../../utils/app_constant.dart';
 import '../../../../base/AppText/appText.dart';
 import '../../../help_giver/help_giver_home/giverHome.dart';
 import '../base/headers.dart';
@@ -25,6 +27,8 @@ class UserPreferrence extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = size.width > 600;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -187,12 +191,80 @@ class UserPreferrence extends StatelessWidget {
                   padding:  EdgeInsets.symmetric(horizontal: 18.0),
                   child: BannerAds(),
                 ),
+
+
+                _buildLanguageTabs(isTablet),
+                Text("Home".tr),
+
               ],
             ),
           ),
       ),
     );
   }
+
+  Widget _buildLanguageTabs(bool isTablet) {
+    return GetBuilder<LocalizationController>(
+      builder: (controller) {
+        return Wrap(
+          alignment: WrapAlignment.start,
+          spacing: isTablet ? 12.0 : 8.0,
+          runSpacing: isTablet ? 4.0 : 2.0,
+          children: AppConstants.languages.asMap().entries.map((entry) {
+            int index = entry.key;
+            final language = entry.value;
+            final isSelected = controller.selectedIndex == index;
+            return GestureDetector(
+              onTap: () {
+                controller.setLanguage(Locale(language.languageCode, language.countryCode));
+              },
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? 12 : 11,
+                  vertical: isTablet ? 10 : 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppText(
+                      language.languageName.tr,
+                      fontSize: isTablet ? 15 : 13,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? AppColors.colorWhite : AppColors.colorBlue2),
+                    Container(
+                      margin: const EdgeInsets.only(top: 2),
+                      height: isTablet ? 3 : 2,
+                      width: _textWidth(
+                        language.languageName.tr,
+                        TextStyle(
+                          fontSize: isTablet ? 18 : 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      color: isSelected ? Colors.yellow : Colors.transparent
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  double _textWidth(String text, TextStyle style) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout(minWidth: 0, maxWidth: double.infinity);
+    return textPainter.size.width;
+  }
+
+
   Widget buildLanguageSelector(ProfileController controller, List<String> languages) {
     return Obx(() => PopupMenuButton<String>(
       offset: const Offset(0, 45), // menu shows below the button

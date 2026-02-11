@@ -2,6 +2,8 @@
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../Models/Language/language_model.dart';
+
 class AppConstants{
   static String APP_NAME="Saferadar";
   //http://164.92.215.115:9443/
@@ -24,8 +26,9 @@ class AppConstants{
   static RegExp passwordValidator = RegExp(
       r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
   );
-  // static List<LanguageModel> languages = [
-  //   LanguageModel( languageName: 'English', countryCode: 'US', languageCode: 'en'),
-  //   LanguageModel(languageName: 'French', countryCode: 'FR', languageCode: 'fr'),
-  // ];
+
+  static List<LanguageModel> languages = [
+    LanguageModel( languageName: 'English', countryCode: 'US', languageCode: 'en'),
+    LanguageModel(languageName: 'French', countryCode: 'FR', languageCode: 'fr'),
+  ];
 }

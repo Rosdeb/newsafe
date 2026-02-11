@@ -218,6 +218,60 @@ class ProfileController extends GetxController {
     password.text = "myCurrentPassword";
     loadUserData();
     loadDistanceFromPrefs();
+    loadUserDataFromHive();
+
+  }
+
+
+  Future<void> loadUserDataFromHive() async {
+    try {
+      final userBox = await Hive.openBox('userProfileBox');
+
+      final name = userBox.get('name', defaultValue: '');
+      final email = userBox.get('email', defaultValue: '');
+      final phone = userBox.get('phone', defaultValue: '');
+      final gender = userBox.get('gender', defaultValue: '');
+      final dob = userBox.get('dateOfBirth', defaultValue: '');
+      final image = userBox.get('profileImage', defaultValue: '');
+      final id = userBox.get('_id', defaultValue: '');
+      final role = userBox.get('role', defaultValue: '');
+
+      Logger.log("📦 Loading from Hive - Name: $name, Email: $email, Phone: $phone, Gender: $gender, DOB: $dob, Image: $image", type: "info");
+
+      // Update observable values
+      userName.value = name?.toString() ?? '';
+      emails.value = email?.toString() ?? '';
+      phones.value = phone?.toString() ?? '';
+      genders.value = gender?.toString() ?? '';
+      userId.value = id?.toString() ?? '';
+      userRole.value = role?.toString() ?? '';
+
+      // Handle profile image
+      String imageUrl = image?.toString() ?? '';
+      if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+        imageUrl = '${AppConstants.BASE_URL}$imageUrl';
+      }
+      profileImage.value = imageUrl;
+
+      // Parse name into first and last
+      if (name != null && name.toString().isNotEmpty) {
+        final nameParts = name.toString().split(' ');
+        firstName.value = nameParts.isNotEmpty ? nameParts[0] : '';
+        lastName.value = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+      }
+
+      // Format date of birth
+      if (dob != null && dob.toString().isNotEmpty) {
+        dateOfBirth.value = formatDate(dob.toString());
+      } else {
+        dateOfBirth.value = 'Not provided';
+      }
+
+      Logger.log("✅ Hive data loaded - First: ${firstName.value}, Last: ${lastName.value}, Image: ${profileImage.value}", type: "info");
+
+    } catch (e) {
+      Logger.log("❌ Error loading from Hive: $e", type: "error");
+    }
   }
 
   void setLanguage(String lang) => selectedLanguage.value = lang;
@@ -234,49 +288,68 @@ class ProfileController extends GetxController {
     }
   }
 
-  /// Fetch user profile from API
   Future<void> fetchUserProfile() async {
-    final networkController = Get.find<NetworkController>();
-
-    if (!networkController.isOnline.value) {
-      Logger.log("📵 No internet connection", type: "error");
-      return;
-    }
-
-    isLoading.value = true;
-
     try {
-      final response = await ApiService.get('/api/users/me')
-          .timeout(const Duration(seconds: 10));
+      isLoading.value = true;
+      Logger.log("🌐 Fetching user profile from API...", type: "info");
 
-      Logger.log("📥 Profile API Response - Status: ${response.statusCode}", type: "info");
-      Logger.log("📥 Profile API Response - Body: ${response.body}", type: "info");
+      final response = await ApiService.get('/api/users/me');
+
+      Logger.log("📥 API Response Status: ${response.statusCode}", type: "info");
+      Logger.log("📥 API Response Body: ${response.body}", type: "info");
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final userData = data['data'] ?? data;
+        final data = json.decode(response.body);
+        final user = data['data'] ?? data;
 
-        // Save to Hive for offline access
-        await _saveUserDataToHive(userData);
+        Logger.log("📦 User data from API: $user", type: "info");
 
-        // Load from Hive to update UI
-        await loadUserData();
+        // Save to Hive first
+        await _saveToHive(user);
 
-        Logger.log("✅ Profile fetched and saved successfully!", type: "success");
+        // Then load from Hive to ensure consistency
+        await loadUserDataFromHive();
+
+        Logger.log("✅ Profile fetched and saved successfully", type: "success");
       } else {
-        final message = jsonDecode(response.body)["message"] ?? "Failed to fetch profile";
-        Logger.log("❌ Error fetching profile: $message", type: "error");
-
-        // Fallback to Hive data
-        await loadUserData();
+        Logger.log("⚠️ Failed to fetch profile: ${response.statusCode}", type: "warning");
       }
-    } on Exception catch (e) {
+    } catch (e) {
       Logger.log("❌ Error fetching profile: $e", type: "error");
-
-      // Fallback to Hive data
-      await loadUserData();
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> _saveToHive(Map<String, dynamic> user) async {
+    try {
+      final userBox = await Hive.openBox('userProfileBox');
+
+      // Clear old data
+      await userBox.clear();
+
+      // Save complete user data
+      await userBox.put('name', user['name'] ?? '');
+      await userBox.put('email', user['email'] ?? '');
+      await userBox.put('_id', user['_id'] ?? user['id'] ?? '');
+      await userBox.put('role', user['role'] ?? '');
+      await userBox.put('phone', user['phone'] ?? '');
+      await userBox.put('dateOfBirth', user['dateOfBirth'] ?? '');
+      await userBox.put('gender', user['gender'] ?? '');
+
+      // Handle profile image
+      String imageUrl = '';
+      if (user['profileImage'] != null && user['profileImage'].toString().isNotEmpty) {
+        imageUrl = user['profileImage'];
+      } else if (user['image'] != null && user['image'].toString().isNotEmpty) {
+        imageUrl = user['image'];
+      }
+
+      await userBox.put('profileImage', imageUrl);
+
+      Logger.log("✅ Data saved to Hive successfully", type: "info");
+    } catch (e) {
+      Logger.log("❌ Error saving to Hive: $e", type: "error");
     }
   }
 
@@ -292,7 +365,7 @@ class ProfileController extends GetxController {
       await userBox.put('dateOfBirth', userData['dateOfBirth'] ?? '');
       await userBox.put('_id', userData['_id'] ?? userData['id'] ?? '');
       await userBox.put('role', userData['role'] ?? '');
-      await userBox.put('profileImage', userData['profileImage'] ?? userData['profileImage'] ?? '');
+      await userBox.put('profileImage', userData['profileImage'] ?? userData['image'] ?? '');
       await userBox.put('isEmailVerified', userData['isEmailVerified'] ?? false);
 
       // Save preferences if available
@@ -456,10 +529,23 @@ class ProfileController extends GetxController {
     }
   }
 
-
-
-  /// Refresh profile from API
-  Future<void> refreshProfile() async {
-    await fetchUserProfile();
+  String _formatDate(String date) {
+    try {
+      final DateTime parsedDate = DateTime.parse(date);
+      return "${parsedDate.day.toString().padLeft(2, '0')}/${parsedDate.month.toString().padLeft(2, '0')}/${parsedDate.year}";
+    } catch (e) {
+      Logger.log("⚠️ Error formatting date: $e", type: "warning");
+      return date;
+    }
   }
+
+
+  /// Refresh profile (called after edit)
+  Future<void> refreshProfile() async {
+    Logger.log("🔄 Refreshing profile...", type: "info");
+    // First fetch fresh data from API, then load from Hive
+    await fetchUserProfile();
+    await loadUserDataFromHive();
+  }
+
 }
