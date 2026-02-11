@@ -58,7 +58,7 @@ class _MapScreenState extends State<MapScreensssss> {
           },
           myLocationEnabled: true,
           // The .toSet() inside Obx ensures markers move on screen in real-time
-          markers: mapController.markers.toSet(),
+          //markers: mapController.markers.toSet(),
           polylines: mapController.polylines.toSet(),
           circles: mapController.circles.toSet(),
           myLocationButtonEnabled: false,
