@@ -38,7 +38,7 @@ class SeakerLocationsController extends GetxController {
   @override
   void onClose() {
     _locationTimer?.cancel();
-    _forceStopLocationStream(); // 🔥 FIXED
+    _forceStopLocationStream();
     stopLocationSharing();
     super.onClose();
   }

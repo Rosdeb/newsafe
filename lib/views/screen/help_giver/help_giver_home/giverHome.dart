@@ -1182,12 +1182,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
 
                     child: controller1.profileImage.value.isNotEmpty
                         ? Image.network(
-                      controller1.profileImage.value,
+                     "${AppConstants.BASE_URL}/${controller1.profileImage.value}",
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,
-                    )
-                        : Image.asset(
+                    ): Image.asset(
                       "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
                       width: 50,
                       height: 50,

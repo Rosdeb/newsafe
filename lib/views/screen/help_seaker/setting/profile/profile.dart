@@ -358,6 +358,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:saferader/controller/profile/profile.dart';
 import 'package:saferader/utils/app_color.dart';
+import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/views/base/AppText/appText.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/help_seaker/setting/profile/editpage.dart';
@@ -548,6 +549,7 @@ class _ProfileState extends State<Profile> {
               // Profile Image
               Obx(() {
                 final imageUrl = controller.profileImage.value;
+
                 return Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(50),
@@ -567,7 +569,7 @@ class _ProfileState extends State<Profile> {
                     borderRadius: BorderRadius.circular(50),
                     child: imageUrl.isNotEmpty
                         ? Image.network(
-                      imageUrl,
+                      "${AppConstants.BASE_URL}/$imageUrl",
                       height: 100,
                       width: 100,
                       fit: BoxFit.cover,

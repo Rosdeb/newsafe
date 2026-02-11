@@ -44,7 +44,7 @@ class IosStyleBottomNavigations extends StatelessWidget {
         child:SafeArea(
             child: Container(
               color: Colors.transparent,
-              padding:const EdgeInsets.symmetric(vertical: 8),
+              padding:const EdgeInsets.only(top: 10),
               child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: List.generate(labels.length, (index)=>_buildNavItem(index))
@@ -65,11 +65,11 @@ class IosStyleBottomNavigations extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         decoration: BoxDecoration(
-          color: isSelected? Color(0xFFFDE047).withOpacity(0.20) : Colors.transparent,
+          color: isSelected? const Color(0xFFFDE047).withOpacity(0.20) : Colors.transparent,
           borderRadius: BorderRadius.circular(8)
         ),
         duration: const Duration(milliseconds: 200),
-        padding:const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding:const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -57,12 +57,20 @@ class Body extends StatelessWidget {
                   );
                 }
 
+
                 if (controller.historyList.isEmpty) {
-                  return const EmptyHistoryBox(
-                      title: "No activity yet",
-                      subtitle: "Your emergency history will appear here",
-                      iconPath: "assets/icon/Group.svg",
-                      height: 200,
+                  return const SingleChildScrollView(
+                    physics:  AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        EmptyHistoryBox(
+                            title: "No activity yet",
+                            subtitle: "Your emergency history will appear here",
+                            iconPath: "assets/icon/Group.svg",
+                            height: 200,
+                        ),
+                      ],
+                    ),
                   );
                 }
 

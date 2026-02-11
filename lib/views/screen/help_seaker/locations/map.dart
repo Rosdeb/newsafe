@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:saferader/utils/logger.dart';
 
 class MapControllerAll extends GetxController {
   GoogleMapController? _mapController;
@@ -17,53 +18,60 @@ class MapControllerAll extends GetxController {
   LatLng? lastUpdatedLatLng;
   RxString currentAddress = "Getting location...".obs;
   RxString currentAreaName = "".obs;
-
-  // Observable for initial position
-  Rx<LatLng?> initialPosition = Rx<LatLng?>(null);
   RxBool isLocationLoaded = false.obs;
-
+  Rx<Position?> currentPosition = Rx<Position?>(null);
+  String get latString => currentPosition.value?.latitude.toString() ?? "";
+  String get lngString => currentPosition.value?.longitude.toString() ?? "";
   BitmapDescriptor? carIcon;
   BitmapDescriptor? userIcon;
 
   @override
   void onInit() {
     super.onInit();
-    getCurrentLocation(); // Get location on init
+    getUserLocationOnce();
   }
 
-  // Get current location for initial camera position
-  Future<void> getCurrentLocation() async {
-    try {
-      var permission = await Permission.location.request();
-      if (!permission.isGranted) {
-        // Set default location if permission denied
-        initialPosition.value = LatLng(23.8103, 90.4125);
-        isLocationLoaded.value = true;
-        return;
-      }
+  Future<bool> handlePermission() async {
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      Logger.log("📍 Location services disabled", type: "warning");
+      return false;
+    }
 
-      Position position = await Geolocator.getCurrentPosition(
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        Logger.log("📍 Location permission denied", type: "warning");
+        return false;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      Logger.log("📍 Location permission permanently denied", type: "error");
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<void> getUserLocationOnce() async {
+    final hasPermission = await handlePermission();
+    if (!hasPermission) return;
+
+    try {
+      Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      LatLng currentPos = LatLng(position.latitude, position.longitude);
-      initialPosition.value = currentPos;
-      currentLatLng = currentPos;
-
-      // Create initial marker
-      updateUserMarker(currentPos, position.accuracy);
-
+      currentPosition.value = pos;
+      currentLatLng = LatLng(pos.latitude, pos.longitude);
+      updateUserMarker(currentLatLng!, pos.accuracy);
       isLocationLoaded.value = true;
-
-      // Get address for current location
-      await getAddressFromLatLng(currentPos);
-
-      print("📍 Initial Location: ${position.latitude}, ${position.longitude}");
+      Logger.log("📍 One-time location: Lat ${pos.latitude}, Lng ${pos.longitude}", type: "info",);
     } catch (e) {
-      print("❌ Error getting current location: $e");
-      // Fallback to default location
-      initialPosition.value = LatLng(23.8103, 90.4125);
-      isLocationLoaded.value = true;
+      Logger.log("❌ Error getting location: $e", type: "error");
     }
   }
 
@@ -78,9 +86,10 @@ class MapControllerAll extends GetxController {
         Placemark place = placemarks[0];
 
         currentAddress.value =
-        "${place.street ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}";
+            "${place.street ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}";
 
-        currentAreaName.value = place.locality ?? place.subLocality ?? "Unknown";
+        currentAreaName.value =
+            place.locality ?? place.subLocality ?? "Unknown";
 
         print("📍 Address: ${currentAddress.value}");
       }
@@ -95,13 +104,51 @@ class MapControllerAll extends GetxController {
     _mapController = controller;
   }
 
+  // Future<void> startLiveLocation() async {
+  //   var permission = await Permission.location.request();
+  //   if (!permission.isGranted) return;
+  //
+  //   LocationSettings settings = LocationSettings(
+  //     accuracy: LocationAccuracy.high,
+  //     distanceFilter: 5,
+  //   );
+  //
+  //   _positionStream = Geolocator.getPositionStream(locationSettings: settings);
+  //
+  //   _positionStream!.listen((Position position) {
+  //     LatLng liveLatLng = LatLng(position.latitude, position.longitude);
+  //
+  //     if (lastUpdatedLatLng != null) {
+  //       double distance = Geolocator.distanceBetween(
+  //         lastUpdatedLatLng!.latitude,
+  //         lastUpdatedLatLng!.longitude,
+  //         liveLatLng.latitude,
+  //         liveLatLng.longitude,
+  //       );
+  //
+  //       if (distance < 10) {
+  //         return;
+  //       }
+  //     }
+  //
+  //     lastUpdatedLatLng = liveLatLng;
+  //     currentLatLng = liveLatLng;
+  //     updateUserMarker(liveLatLng, position.accuracy);
+  //     animateCameraTo(liveLatLng);
+  //
+  //     markers.refresh();
+  //     circles.refresh();
+  //     polylines.refresh();
+  //   });
+  // }
+
   Future<void> startLiveLocation() async {
     var permission = await Permission.location.request();
     if (!permission.isGranted) return;
 
-    LocationSettings settings = LocationSettings(
+    LocationSettings settings = const LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 5,
+      distanceFilter: 2, // Reduced to 2 meters for smoother tracking
     );
 
     _positionStream = Geolocator.getPositionStream(locationSettings: settings);
@@ -109,27 +156,19 @@ class MapControllerAll extends GetxController {
     _positionStream!.listen((Position position) {
       LatLng liveLatLng = LatLng(position.latitude, position.longitude);
 
-      if (lastUpdatedLatLng != null) {
-        double distance = Geolocator.distanceBetween(
-          lastUpdatedLatLng!.latitude,
-          lastUpdatedLatLng!.longitude,
-          liveLatLng.latitude,
-          liveLatLng.longitude,
-        );
-
-        if (distance < 10) {
-          return;
-        }
-      }
-
-      lastUpdatedLatLng = liveLatLng;
+      // Update the variables
       currentLatLng = liveLatLng;
+      currentPosition.value = position;
+
+      // 1. Update the marker position on the map
       updateUserMarker(liveLatLng, position.accuracy);
+
+      // 2. 🔥 AUTO-MOVE: This line makes the map follow the user automatically
       animateCameraTo(liveLatLng);
 
+      // Refresh UI sets
       markers.refresh();
       circles.refresh();
-      polylines.refresh();
     });
   }
 
@@ -158,11 +197,17 @@ class MapControllerAll extends GetxController {
     );
   }
 
-  void animateCameraTo(LatLng latLng, {double zoom = 14}) {
+  void animateCameraTo(LatLng latLng, {double zoom = 18}) {
     if (_mapController != null) {
       _mapController!.animateCamera(
-        CameraUpdate.newLatLng(latLng),
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: latLng,
+            zoom: zoom,
+          ),
+        ),
       );
     }
   }
+
 }
