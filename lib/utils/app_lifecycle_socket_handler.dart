@@ -1,0 +1,107 @@
+import 'package:flutter/widgets.dart';
+import 'package:get/get.dart';
+import '../controller/SocketService/socket_service.dart';
+import '../controller/SeakerLocation/seakerLocationsController.dart';
+import '../controller/SeakerHome/seakerHomeController.dart';
+import '../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
+import 'token_service.dart'; // Import your token service
+
+class AppLifecycleSocketHandler extends WidgetsBindingObserver {
+  @override
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App is back in foreground, reconnect socket and rejoin room
+        await _handleAppResume();
+        break;
+      case AppLifecycleState.paused:
+        // App is in background, but don't disconnect socket
+        // Just monitor the connection
+        _handleAppPause();
+        break;
+      case AppLifecycleState.inactive:
+        // App is inactive, keep socket alive
+        break;
+      case AppLifecycleState.detached:
+        // App is detached, this rarely happens in practice
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden (iOS specific)
+        break;
+    }
+  }
+
+  Future<void> _handleAppResume() async {
+    try {
+      // Reconnect socket and rejoin room for all possible socket services
+      
+      // Check and reconnect SeakerHomeController socket
+      if (Get.isRegistered<SeakerHomeController>()) {
+        final seakerController = Get.find<SeakerHomeController>();
+        await _reconnectSocketAndRejoinRoom(seakerController.socketService);
+      }
+
+      // Check and reconnect GiverHomeController socket
+      if (Get.isRegistered<GiverHomeController>()) {
+        final giverController = Get.find<GiverHomeController>();
+        await _reconnectSocketAndRejoinRoom(giverController.socketService);
+      }
+
+      // Check and reconnect general SocketService if registered
+      if (Get.isRegistered<SocketService>()) {
+        final generalSocket = Get.find<SocketService>();
+        await _reconnectSocketAndRejoinRoom(generalSocket);
+      }
+
+      // Also refresh the location controller's socket connection
+      if (Get.isRegistered<SeakerLocationsController>()) {
+        final locationController = Get.find<SeakerLocationsController>();
+        await locationController.refreshAfterMapReturn();
+      }
+      
+    } catch (e) {
+      debugPrint('Error handling app resume: $e');
+    }
+  }
+
+  void _handleAppPause() {
+    // On app pause, we don't disconnect the socket
+    // Just log the state for monitoring purposes
+    debugPrint('App paused - keeping socket connection alive');
+  }
+
+  Future<void> _reconnectSocketAndRejoinRoom(SocketService? socketService) async {
+    if (socketService == null) return;
+
+    try {
+      // If socket is not connected, attempt to reconnect
+      if (!socketService.isConnected.value) {
+        debugPrint('Socket disconnected, attempting to reconnect...');
+        
+        // Get the token and role to reinitialize
+        final token = await TokenService().getToken();
+        final role = socketService.userRole.value;
+        
+        if (token != null && token.isNotEmpty) {
+          // Reinitialize the socket
+          await socketService.init(token, role: role);
+          
+          // Wait a bit for connection to establish
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+
+      // After reconnection, rejoin the room if there was one
+      final currentRoomId = socketService.currentRoom;
+      if (currentRoomId != null && currentRoomId.isNotEmpty) {
+        debugPrint('Rejoining room: $currentRoomId');
+        await socketService.joinRoom(currentRoomId);
+        
+        // Wait for room to join
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    } catch (e) {
+      debugPrint('Error reconnecting socket: $e');
+    }
+  }
+}
