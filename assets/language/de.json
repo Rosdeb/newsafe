@@ -133,5 +133,13 @@
   "Powered by Windy": "Unterstützt von Windy",
   "Configure API": "API konfigurieren",
   "Could not load webcams": "Webcams konnten nicht geladen werden",
-  "No webcams available": "Keine Webcams verfügbar"
+  "No webcams available": "Keine Webcams verfügbar",
+  "User Preferences": "Benutzereinstellungen",
+  "Your Safety Network": "Ihr Sicherheitsnetzwerk",
+  "Select your preferable settings": "Wählen Sie Ihre bevorzugten Einstellungen",
+  "Language": "Sprache",
+  "Vibrations": "Vibrationen",
+  "Select Language": "Sprache wählen",
+  "Dutch": "Niederländisch",
+  "Swedish": "Schwedisch"
 }

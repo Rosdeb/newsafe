@@ -52,7 +52,7 @@ class UserPreferrence extends StatelessWidget {
                 SizedBox(height: size.height * 0.07),
                 Headers(
                   iconPath: "assets/icon/Vector.svg",
-                  title: "User Preferences",
+                  title: "User Preferences".tr,
                   onTap: () => Navigator.pop(context),
                 ),
                 SizedBox(height: size.height * 0.02),
@@ -65,15 +65,15 @@ class UserPreferrence extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
-                        const AppText(
-                          "Select your preferable settings",
+                        AppText(
+                          "Select your preferable settings".tr,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: AppColors.color2Box,
                         ),
                         SizedBox(height: size.height * 0.012),
                         AppText(
-                          "Language",
+                          "Language".tr,
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                           color: AppColors.color2Box.withOpacity(0.50),
@@ -86,7 +86,7 @@ class UserPreferrence extends StatelessWidget {
                             SvgPicture.asset("assets/icon/streamline-cyber_mobile-phone-vibration.svg"),
                             SizedBox(width: size.height * 0.009),
                             AppText(
-                              "Vibrations",
+                              "Vibrations".tr,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: AppColors.color2Box.withOpacity(0.50),
@@ -276,13 +276,13 @@ class UserPreferrence extends StatelessWidget {
         debugPrint("Selected Language: $value");
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           enabled: false,
           child: AppText(
-            "Select Language",
+            "Select Language".tr,
             fontWeight: FontWeight.w400,
             fontSize: 14,
-            color: Color(0xff71717A),
+            color: const Color(0xff71717A),
           ),
         ),
         ...languages.map(

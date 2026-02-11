@@ -4,7 +4,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:saferader/helpers/app_translations.dart';
+import 'package:saferader/helpers/di.dart';
 import 'package:saferader/helpers/route.dart';
+import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/auth_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
@@ -16,11 +20,20 @@ void main() async {
 
   await dotenv.load(fileName: ".env");
 
-  // Add the lifecycle observer
+  final prefs = await SharedPreferences.getInstance();
+  final translationsMap = await loadTranslationMaps();
+  final localeCode = prefs.getString(AppConstants.LANGUAGE_CODE) ?? 'en';
+  final countryCode = prefs.getString(AppConstants.COUNTRY_CODE) ?? 'US';
+  final initialLocale = Locale(localeCode, countryCode);
+
   final lifecycleHandler = AppLifecycleSocketHandler();
   WidgetsBinding.instance.addObserver(lifecycleHandler);
 
-  runApp(MyApp(lifecycleHandler: lifecycleHandler));
+  runApp(MyApp(
+    lifecycleHandler: lifecycleHandler,
+    translationsMap: translationsMap,
+    initialLocale: initialLocale,
+  ));
 }
 
 Future<void> checkAndRefreshToken() async {
@@ -64,8 +77,15 @@ bool isTokenValid(String? token) {
 
 class MyApp extends StatelessWidget {
   final AppLifecycleSocketHandler? lifecycleHandler;
+  final Map<String, Map<String, String>> translationsMap;
+  final Locale initialLocale;
 
-  const MyApp({Key? key, this.lifecycleHandler}) : super(key: key);
+  const MyApp({
+    Key? key,
+    this.lifecycleHandler,
+    required this.translationsMap,
+    required this.initialLocale,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +93,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Saferadar',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor:const Color(0xFF202020)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF202020)),
         fontFamily: "Roboto",
       ),
+      translations: [AppTranslations(translationsMap)],
+      locale: initialLocale,
+      fallbackLocale: const Locale('en', 'US'),
       getPages: AppRoutes.page,
       initialRoute: AppRoutes.splashScreen,
     );

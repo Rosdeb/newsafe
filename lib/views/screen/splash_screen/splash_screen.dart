@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive/hive.dart';
@@ -105,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 SizedBox(height: size.height * 0.2 ,),
                 Image.asset(AppImage.safe_radar_text),
                 SizedBox(height: size.height * 0.02 ,),
-                const Text("Your Safety Network",style: TextStyle(color: Color(0xFFD7D7D7)),),
+                Text("Your Safety Network".tr, style: const TextStyle(color: Color(0xFFD7D7D7))),
               ],
             ),
           ),

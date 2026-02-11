@@ -133,5 +133,13 @@
   "Powered by Windy": "Powered by Windy",
   "Configure API": "Configure API",
   "Could not load webcams": "Could not load webcams",
-  "No webcams available": "No webcams available"
+  "No webcams available": "No webcams available",
+  "User Preferences": "User Preferences",
+  "Your Safety Network": "Your Safety Network",
+  "Select your preferable settings": "Select your preferable settings",
+  "Language": "Language",
+  "Vibrations": "Vibrations",
+  "Select Language": "Select Language",
+  "Dutch": "Dutch",
+  "Swedish": "Swedish"
 }
