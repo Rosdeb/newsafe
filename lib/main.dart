@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:saferader/controller/localizations/localization_controller.dart';
 import 'package:saferader/helpers/app_translations.dart';
 import 'package:saferader/helpers/di.dart';
 import 'package:saferader/helpers/route.dart';
@@ -21,10 +22,8 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   final prefs = await SharedPreferences.getInstance();
+  Get.put(LocalizationController(sharedPreferences: prefs), permanent: true);
   final translationsMap = await loadTranslationMaps();
-  final localeCode = prefs.getString(AppConstants.LANGUAGE_CODE) ?? 'en';
-  final countryCode = prefs.getString(AppConstants.COUNTRY_CODE) ?? 'US';
-  final initialLocale = Locale(localeCode, countryCode);
 
   final lifecycleHandler = AppLifecycleSocketHandler();
   WidgetsBinding.instance.addObserver(lifecycleHandler);
@@ -32,7 +31,6 @@ void main() async {
   runApp(MyApp(
     lifecycleHandler: lifecycleHandler,
     translationsMap: translationsMap,
-    initialLocale: initialLocale,
   ));
 }
 
@@ -78,29 +76,29 @@ bool isTokenValid(String? token) {
 class MyApp extends StatelessWidget {
   final AppLifecycleSocketHandler? lifecycleHandler;
   final Map<String, Map<String, String>> translationsMap;
-  final Locale initialLocale;
 
   const MyApp({
     Key? key,
     this.lifecycleHandler,
     required this.translationsMap,
-    required this.initialLocale,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Saferadar',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF202020)),
-        fontFamily: "Roboto",
+    return GetBuilder<LocalizationController>(
+      builder: (controller) => GetMaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Saferadar',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF202020)),
+          fontFamily: "Roboto",
+        ),
+        translations: [AppTranslations(translationsMap)],
+        locale: controller.locale,
+        fallbackLocale: const Locale('en', 'US'),
+        getPages: AppRoutes.page,
+        initialRoute: AppRoutes.splashScreen,
       ),
-      translations: [AppTranslations(translationsMap)],
-      locale: initialLocale,
-      fallbackLocale: const Locale('en', 'US'),
-      getPages: AppRoutes.page,
-      initialRoute: AppRoutes.splashScreen,
     );
   }
 }

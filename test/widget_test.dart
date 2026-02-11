@@ -7,17 +7,22 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:saferader/controller/localizations/localization_controller.dart';
 import 'package:saferader/main.dart';
 
 void main() {
   testWidgets('App loads', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    Get.put(LocalizationController(sharedPreferences: prefs), permanent: true);
+
     await tester.pumpWidget(MyApp(
-      translationsMap: const {'en_US': {}},
-      initialLocale: const Locale('en', 'US'),
+      translationsMap: {'en_US': <String, String>{}},
     ));
 
-    // Verify that the app builds (splash or first route is shown).
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }
