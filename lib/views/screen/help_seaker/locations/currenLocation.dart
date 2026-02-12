@@ -218,7 +218,7 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Live Tracking Map"),
+        title: Text("Live Tracking Map".tr),
         actions: [
           Obx(() {
             if (locationsController.isSharingLocation.value) {

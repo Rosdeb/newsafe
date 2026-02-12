@@ -48,9 +48,9 @@ class SeakerSetting extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 60),
-                const Text(
-                  "Setting",
-                  style: TextStyle(
+                Text(
+                  "Setting".tr,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w500,
                     color: Colors.black,
@@ -289,9 +289,9 @@ class LogoutDialog {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  "Are you sure you want to log out your account?",
-                  style: TextStyle(
+                Text(
+                  "Are you sure you want to log out your account?".tr,
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 1.2,
                     fontWeight: FontWeight.w400,

@@ -24,7 +24,7 @@ class _MapScreenState extends State<MapScreensssss> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Live Tracking Map")),
+      appBar: AppBar(title: Text("Live Tracking Map".tr)),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.my_location, color: Colors.red),
         onPressed: () {

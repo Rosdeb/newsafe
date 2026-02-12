@@ -66,8 +66,8 @@ class _BothhomeState extends State<Bothhome> {
                  padding: const EdgeInsets.symmetric(vertical: 20),
                  child: Column(
               children: [
-                 const AppText("Help Seeker",fontSize: 18,fontWeight: FontWeight.w500,color:  Colors.black,),
-                 AppText("If you need help click here",fontSize: 14,fontWeight: FontWeight.w400,color: AppColors.color2Box.withOpacity(0.50),),
+                 AppText("Help Seeker".tr, fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black),
+                 AppText("If you need help click here".tr, fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.color2Box.withOpacity(0.50)),
               ],
                        )),
            ),
@@ -89,8 +89,8 @@ class _BothhomeState extends State<Bothhome> {
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Column(
               children: [
-                const AppText("Help Giver",fontSize: 18,fontWeight: FontWeight.w500,color: Colors.black,),
-                 AppText("If you want to help click here",fontSize: 15,fontWeight: FontWeight.w400,color: AppColors.color2Box.withOpacity(0.50),),
+                AppText("Help Giver".tr, fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black),
+                 AppText("If you want to help click here".tr, fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.color2Box.withOpacity(0.50)),
               ],
             )),
           ),
@@ -123,8 +123,8 @@ class _BothhomeState extends State<Bothhome> {
           const SizedBox(width: 10),
           Column(
             children: [
-              const AppText(
-                "John Doe",
+              AppText(
+                "John Doe".tr,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppColors.color2Box,
@@ -133,7 +133,7 @@ class _BothhomeState extends State<Bothhome> {
                 children: [
                   Obx(
                         () => AppText(
-                      "Help ${userController.userRole}",
+                      (userController.userRole.value == 'seeker' ? "Help Seeker" : "Help Giver").tr,
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: AppColors.color2Box,

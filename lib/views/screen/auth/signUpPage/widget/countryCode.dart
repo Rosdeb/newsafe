@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
@@ -20,7 +20,7 @@ class CountryPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0.0,
-        title: const Text('Choose a country'),
+        title: Text('Choose a country'.tr),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.back(),
@@ -35,7 +35,7 @@ class CountryPage extends StatelessWidget {
               controller: controller.searchController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Search for a country',
+                hintText: 'Search for a country'.tr,
                 hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: Colors.grey[900],

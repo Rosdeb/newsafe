@@ -119,7 +119,7 @@ class UserPreferrence extends StatelessWidget {
                             SvgPicture.asset("assets/icon/akar-icons_sound-on.svg"),
                             SizedBox(width: size.height * 0.009),
                             AppText(
-                              "Speaker",
+                              "Speaker".tr,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: AppColors.color2Box.withOpacity(0.50),
@@ -147,8 +147,8 @@ class UserPreferrence extends StatelessWidget {
 
                           ],
                         ),
-                        const AppText(
-                          "Emergency Response Notification",
+                        AppText(
+                          "Emergency Response Notification".tr,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: AppColors.color2Box,
@@ -158,7 +158,7 @@ class UserPreferrence extends StatelessWidget {
                             SvgPicture.asset("assets/icon/akar-icons_sound-on.svg"),
                             SizedBox(width: size.height * 0.009),
                             AppText(
-                              "Receive alerts when others need help",
+                              "Receive alerts when others need help".tr,
                               fontSize: 14,
                               fontWeight: FontWeight.w100,
                               color: AppColors.color2Box.withOpacity(0.50),

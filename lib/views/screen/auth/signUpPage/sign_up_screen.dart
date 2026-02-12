@@ -48,13 +48,13 @@ class SignUpScreen extends StatelessWidget {
             SizedBox(height: size.height * 0.08),
             SvgPicture.asset(AppIcons.miniSafeRadar),
             SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-            const Align(
+            Align(
               alignment: Alignment.center,
               child: AnimatedAppText(
-                "Join SafeRadar",
+                "Join SafeRadar".tr,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFEDC602),
+                color: const Color(0xFFEDC602),
               ),
             ),
             SizedBox(height: MediaQuery.of(context).size.height * 0.02),
@@ -73,15 +73,15 @@ class SignUpScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(height: size.height * 0.01),
-                  const AnimatedAppText(
-                    "Choose Your Role",
+                  AnimatedAppText(
+                    "Choose Your Role".tr,
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFEDC602),
+                    color: const Color(0xFFEDC602),
                   ),
                   SizedBox(height: size.height * 0.008),
-                  const AppText(
-                    "Select how you want to participate in the\nSafeRadar community",
+                  AppText(
+                    "Select how you want to participate in the SafeRadar community".tr,
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     height: 2,
@@ -91,8 +91,8 @@ class SignUpScreen extends StatelessWidget {
                   SizedBox(height: size.height * 0.023),
                   SimpleAnimatedContainersListsss(),
                   SizedBox(height: size.height * 0.015),
-                  const AppText(
-                    "You can change these settings anytime in your profile",
+                  AppText(
+                    "You can change these settings anytime in your profile".tr,
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     color: AppColors.colorSubheading,
@@ -119,33 +119,33 @@ class SignUpScreen extends StatelessWidget {
                   )),
                 ),
                 RichText(
-                  text: const TextSpan(
-                    text: 'I agree to the ', // Normal text
-                    style: TextStyle(
+                  text: TextSpan(
+                    text: 'I agree to the '.tr,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.normal,
                       color: AppColors.colorStroke,
                     ),
-                    children: const <TextSpan>[
+                    children: <TextSpan>[
                       TextSpan(
-                        text: 'Terms of service', // Bold part
-                        style: TextStyle(
+                        text: 'Terms of service'.tr,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: AppColors.colorYellow,
                         ),
                       ),
                       TextSpan(
-                        text: ' and', // Normal or bold depending on style
-                        style: TextStyle(
+                        text: ' and'.tr,
+                        style: const TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 14,
                           color: AppColors.colorStroke,
                         ),
                       ),
                       TextSpan(
-                        text: ' Privacy Policy', // Normal or bold depending on style
-                        style: TextStyle(
+                        text: ' Privacy Policy'.tr,
+                        style: const TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 14,
                           color: AppColors.colorYellow,
@@ -165,7 +165,7 @@ class SignUpScreen extends StatelessWidget {
               curve: Curves.elasticOut,
               child:Obx(()=> GradientButton(
                 isLoading: controller.isLoading.value,
-                text: 'Sign up'.toUpperCase(),
+                text: 'Sign up'.tr.toUpperCase(),
                 onTap: () async {
                   final name = controller.nameController.text.trim();
                   final email = controller.emailController.text.trim();
@@ -176,7 +176,7 @@ class SignUpScreen extends StatelessWidget {
 
                   if (name.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please enter your name")),
+                      SnackBar(content: Text("Please enter your name".tr)),
                     );
                     return;
                   }
@@ -184,33 +184,33 @@ class SignUpScreen extends StatelessWidget {
                   final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                   if (email.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please enter your email")),
+                      SnackBar(content: Text("Please enter your email".tr)),
                     );
                     return;
                   }
                   if (!emailRegex.hasMatch(email)) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please enter a valid email address")),
+                      SnackBar(content: Text("Please enter a valid email address".tr)),
                     );
                     return;
                   }
 
                   if (password.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please enter a password")),
+                      SnackBar(content: Text("Please enter a password".tr)),
                     );
                     return;
                   }
                   if (password.length < 6) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Password must be at least 6 characters")),
+                      SnackBar(content: Text("Password must be at least 6 characters".tr)),
                     );
                     return;
                   }
 
                   if (password != confirmPassword) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Passwords do not match")),
+                      SnackBar(content: Text("Passwords do not match".tr)),
                     );
                     return;
                   }
@@ -237,8 +237,8 @@ class SignUpScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: size.height * 0.025),
-            const AnimatedAppText(
-              "or continue with",
+            AnimatedAppText(
+              "or continue with".tr,
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.colorSubheading,
@@ -249,7 +249,7 @@ class SignUpScreen extends StatelessWidget {
               delay:const Duration(milliseconds: 500),
               direction: AnimationDirection.top, // ✅ works now
               curve: Curves.elasticOut,
-              child: GoogleOrAppcle(text: "Continue with google",onTap: (){
+              child: GoogleOrAppcle(text: "Continue with Google".tr, onTap: (){
 
               },icon: AppIcons.google,),),
             SizedBox(height: size.height * 0.025),
@@ -258,7 +258,7 @@ class SignUpScreen extends StatelessWidget {
               delay: Duration(milliseconds: 500),
               direction: AnimationDirection.top, // ✅ works now
               curve: Curves.elasticOut,
-              child: GoogleOrAppcle(text: "Continue with apple",onTap: (){
+              child: GoogleOrAppcle(text: "Continue with Apple".tr, onTap: (){
 
               },icon: AppIcons.apple,),),
             SizedBox(height: size.height * 0.012),

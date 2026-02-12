@@ -47,25 +47,25 @@ class ForgotScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              const AnimatedAppText(
-                "Forgot Password",
+              AnimatedAppText(
+                "Forgot Password".tr,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFEDC602),
+                color: const Color(0xFFEDC602),
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.008),
-              const AppText(
-                "Enter your email address and we’ll send your a link to reset your password",
+              AppText(
+                "Enter your email address and we’ll send you a link to reset your password".tr,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: AppColors.colorSubheading,
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.03),
-              const Align(
+              Align(
                 alignment: Alignment.topLeft,
                 child: AppText(
-                  "Email Address",
+                  "Email Address".tr,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.colorSubheading,
@@ -75,7 +75,7 @@ class ForgotScreen extends StatelessWidget {
               AppTextField(
                 keyboardType: TextInputType.emailAddress,
                 controller: controller.forgotEmail,
-                hint: "Enter your email",
+                hint: "Enter your email".tr,
                 suffix:const Icon(CupertinoIcons.mail, color: Colors.white38),
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.025),
@@ -88,7 +88,7 @@ class ForgotScreen extends StatelessWidget {
                 child: Obx((){
                   return GradientButton(
                     isLoading: controller.isForgot.value,
-                    text: "send reset link".toUpperCase(),
+                    text: "Send reset link".tr.toUpperCase(),
                     onTap: ()async {
 
                       controller.forgotPassword(context, controller.forgotEmail.text.toString());

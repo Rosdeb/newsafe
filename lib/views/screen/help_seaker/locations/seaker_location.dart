@@ -49,9 +49,9 @@ class _SeakerLocationState extends State<SeakerLocation> {
           child: Column(
             children: [
               const SizedBox(height: 60,),
-              const Text(
-                "Live Location",
-                style: TextStyle(
+              Text(
+                "Live Location".tr,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
@@ -63,12 +63,12 @@ class _SeakerLocationState extends State<SeakerLocation> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const AppText("Location Sharing",fontSize: 20,fontWeight: FontWeight.w500,color: AppColors.color2Box,),
+                    AppText("Location Sharing".tr, fontSize: 20, fontWeight: FontWeight.w500, color: AppColors.color2Box),
                     const SizedBox(height: 10),
-                    const AppText("Enable Live location",fontSize: 14,fontWeight: FontWeight.w500,color: AppColors.color2Box,),
+                    AppText("Enable Live location".tr, fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.color2Box),
                     Row(
                       children: [
-                        const AppText("Share your live location",fontSize: 14,fontWeight: FontWeight.w200,color: AppColors.color2Box,),
+                        AppText("Share your live location".tr, fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box),
                         const Spacer(),
                         LabeledSwitch(
                           title: "",
@@ -98,9 +98,9 @@ class _SeakerLocationState extends State<SeakerLocation> {
               const SizedBox(height: 14),
               Obx(() {
                 if (!controller.liveLocation.value){
-                  return const EmptyHistoryBox(
-                    title: "Location sharing is disabled",
-                    subtitle: "Enable your live location with others",
+                  return EmptyHistoryBox(
+                    title: "Location sharing is disabled".tr,
+                    subtitle: "Enable your live location with others".tr,
                     iconPath: "assets/icon/weui_location-filled.svg",
                     height: 200,
                   );
@@ -111,8 +111,8 @@ class _SeakerLocationState extends State<SeakerLocation> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const AppText(
-                          "Your Location",
+                        AppText(
+                          "Your Location".tr,
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                           color: AppColors.color2Box,

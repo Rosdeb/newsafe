@@ -39,20 +39,20 @@ class WelcomeSreen extends StatelessWidget {
               const SizedBox(height: 45),
               SvgPicture.asset(AppIcons.miniSafeRadar),
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              const AnimatedAppText(
-                "Welcome to SafeRadar",
+              AnimatedAppText(
+                "Welcome to SafeRadar".tr,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFEDC602),
+                color: const Color(0xFFEDC602),
               ),
               const SizedBox(height: 18),
-              const AnimatedAppText(
-                "Join a community that cares. When you need help, we're here.When others need help, you can be their hero.",
+              AnimatedAppText(
+                "Join a community that cares. When you need help, we're here. When others need help, you can be their hero.".tr,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: AppColors.colorSubheading,
-                duration: Duration(milliseconds: 800),
-                delay: Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 800),
+                delay: const Duration(milliseconds: 300),
               ),
               const SizedBox(height: 10),
               SimpleAnimatedContainersList(),
@@ -64,7 +64,7 @@ class WelcomeSreen extends StatelessWidget {
                 curve: Curves.elasticOut,
                 // Better curve for bounce effect
                 child: Gradientbutton1(
-                  text: 'GET STARTED',
+                  text: 'Get Started'.tr.toUpperCase(),
                   ontap: () {
                     apputils.logInfo("Get started");
                     // Navigation is handled internally with better transitions
@@ -84,7 +84,7 @@ class WelcomeSreen extends StatelessWidget {
                 direction: AnimationDirection.bottom,
                 curve: Curves.elasticOut,
                 child: Borderbuton(
-                  text: 'Create account',
+                  text: 'Create an account'.tr,
                   onTap: () {
                     apputils.logInfo("Get started");
                     Navigator.push(
@@ -257,13 +257,13 @@ class SimpleAnimatedContainersList extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   AppText(
-                                    item["title"],
+                                    (item["title"] as String).tr,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 14,
                                     color: AppColors.colorWhite,
                                   ),
                                   AppText(
-                                    item["subtitle"],
+                                    (item["subtitle"] as String).tr,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 10,
                                   ),

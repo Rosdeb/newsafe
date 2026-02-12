@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 import 'package:saferader/utils/app_color.dart';
 class IosStyleBottomNavigations extends StatelessWidget {
   final int currentIndex;
@@ -94,7 +95,7 @@ class IosStyleBottomNavigations extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: _getColor(index),
               ),
-              child: Text(labels[index]),
+              child: Text(labels[index].tr),
             ),
           ],
         ),

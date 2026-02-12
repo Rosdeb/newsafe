@@ -41,7 +41,7 @@ class ShareApp extends StatelessWidget {
               SizedBox(height: size.height * 0.07),
               Headers(
                 iconPath: "assets/icon/Vector.svg",
-                title: "Share",
+                title: "Share".tr,
                 onTap: () => Navigator.pop(context),
               ),
               const SizedBox(height: 16),
@@ -56,7 +56,7 @@ class ShareApp extends StatelessWidget {
                 child: Column(
                   children: [
                     Row(children: [
-                      const AppText("Share with",fontSize: 18,fontWeight: FontWeight.w600,color: AppColors.color2Box,),
+                      AppText("Share with".tr, fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.color2Box),
                       const Spacer(),
                       SvgPicture.asset("assets/icon/close.svg"),
 
@@ -66,24 +66,24 @@ class ShareApp extends StatelessWidget {
                       children: [
                         _buildIconColumn((){
                           controller.openChatSMS();
-                        },"assets/icon/comment 1.svg", "Chat"),
+                        },"assets/icon/comment 1.svg", "Chat".tr),
                         _buildIconColumn((){
                           controller.openTelegram();
-                        },"assets/icon/telegram-alt 1.svg", "Telegram"),
+                        },"assets/icon/telegram-alt 1.svg", "Telegram".tr),
 
                         _buildIconCircleAvatar((){
                           controller.openTwitter();
-                        },"assets/icon/twitter-alt 1.svg", "Twitter"),
+                        },"assets/icon/twitter-alt 1.svg", "Twitter".tr),
                         _buildIconColumn((){
                           controller.openWhatsApp();
-                        },"assets/icon/whatsapp 1.svg", "Whatsapp"),
+                        },"assets/icon/whatsapp 1.svg", "WhatsApp".tr),
                         _buildIconColumn((){
                           controller.openEmail();
-                        },"assets/icon/alternate_email.svg", "E-mail"),
+                        },"assets/icon/alternate_email.svg", "Email".tr),
                       ],
                     ),
                     SizedBox(height: size.height * 0.01),
-                    AppText("Or share with link",fontSize: 14,fontWeight: FontWeight.w500,color: Color(0xFF333C4A).withOpacity(0.50),),
+                    AppText("Or share with link".tr, fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF333C4A).withOpacity(0.50)),
                     SizedBox(height: size.height * 0.01),
                     Row(
                       children: [

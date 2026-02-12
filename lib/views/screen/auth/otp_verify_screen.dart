@@ -103,10 +103,10 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
 
     // Show feedback
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('OTP resent successfully'),
+      SnackBar(
+        content: Text('OTP resent successfully'.tr),
         backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -175,17 +175,17 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              const AnimatedAppText(
-                "OTP Verification",
+              AnimatedAppText(
+                "OTP Verification".tr,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFEDC602),
+                color: const Color(0xFFEDC602),
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.008),
               AppText(
                 widget.isSignUp
-                    ? "Enter the OTP sent to ${widget.email} to verify your account"
-                    : "Enter the OTP sent to ${widget.email} to reset your password",
+                    ? "Enter the OTP sent to your email to verify your account".tr
+                    : "Enter the OTP sent to your email to reset your password".tr,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: AppColors.colorSubheading,
@@ -228,14 +228,14 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 child: Obx(
                       () => GradientButton(
                     isLoading: forgotController.isVerify.value,
-                    text: "VERIFY OTP",
+                    text: "Verify OTP".tr.toUpperCase(),
                     onTap: () {
                       if (pinController.text.length == _length) {
                         _verifyOtp(pinController.text);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please enter complete OTP'),
+                          SnackBar(
+                            content: Text('Please enter complete OTP'.tr),
                             backgroundColor: Colors.orange,
                           ),
                         );
@@ -253,7 +253,7 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 children: [
                   if (!_canResend)
                     AppText(
-                      "Resend OTP in ${_formatTime(_remainingSeconds)}",
+                      "Resend OTP in".tr + " ${_formatTime(_remainingSeconds)}",
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: AppColors.colorSubheading,
@@ -263,17 +263,17 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                       onTap: _resendOtp,
                       child: Row(
                         children: [
-                          const AnimatedAppText(
-                            "Didn't receive code? ",
+                          AnimatedAppText(
+                            "Didn't receive code?".tr,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: AppColors.colorSubheading,
                           ),
-                          const AnimatedAppText(
-                            "Resend OTP",
+                          AnimatedAppText(
+                            "Resend OTP".tr,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFEDC602),
+                            color: const Color(0xFFEDC602),
                           ),
                         ],
                       ),

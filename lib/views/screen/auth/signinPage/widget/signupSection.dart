@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../../utils/app_color.dart';
 import '../../../../base/AppText/appText.dart';
@@ -14,8 +15,8 @@ class SignUpSection extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const AppText(
-            "Don't have an account? ",
+          AppText(
+            "Don't have an account? ".tr,
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: AppColors.colorSubheading,
@@ -30,9 +31,9 @@ class SignUpSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "Sign up",
-                    style: TextStyle(
+                  Text(
+                    "Sign up".tr,
+                    style: const TextStyle(
                       color: AppColors.colorYellow,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,

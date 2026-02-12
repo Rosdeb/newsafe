@@ -52,25 +52,25 @@ class ResetPassScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: size.height * 0.02),
-              const AnimatedAppText(
-                "Forgot Password",
+              AnimatedAppText(
+                "Forgot Password".tr,
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFEDC602),
+                color: const Color(0xFFEDC602),
               ),
               SizedBox(height: size.height * 0.008),
-              const AppText(
-                "Enter your email address and we’ll send your a link to reset your password",
+              AppText(
+                "Enter your email address and we’ll send you a link to reset your password".tr,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: AppColors.colorSubheading,
                 textAlign: TextAlign.center,
               ),
                SizedBox(height: size.height * 0.023),
-              const  Align(
+              Align(
                 alignment: Alignment.topLeft,
                 child: AppText(
-                  "New Password",
+                  "New Password".tr,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.colorSubheading,
@@ -81,7 +81,7 @@ class ResetPassScreen extends StatelessWidget {
                 obscure: controller.passShowHide.value,
                 keyboardType: TextInputType.twitter,
                 controller: controller.oldPassword,
-                hint: "Enter your password",
+                hint: "Enter your password".tr,
                 suffix: IconButton(
                   icon: Icon(
                     controller.passShowHide.value
@@ -95,10 +95,10 @@ class ResetPassScreen extends StatelessWidget {
                 ),
               )),
               SizedBox(height: size.height * 0.025),
-              const Align(
+              Align(
                 alignment: Alignment.topLeft,
                 child: AppText(
-                  "New Password",
+                  "New Password".tr,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.colorSubheading,
@@ -109,7 +109,7 @@ class ResetPassScreen extends StatelessWidget {
                 obscure: controller.passShowHide.value,
                 keyboardType: TextInputType.twitter,
                 controller: controller.newPassword,
-                hint: "Enter new password",
+                hint: "Enter new password".tr,
                 suffix: IconButton(
                   icon: Icon(
                     controller.passShowHide.value
@@ -130,17 +130,17 @@ class ResetPassScreen extends StatelessWidget {
                 curve: Curves.elasticOut,
                 child: Obx(()=>GradientButton(
                   isLoading:controller.isLoading.value,
-                  text: "submit".toUpperCase(),
+                  text: "Submit".tr.toUpperCase(),
                   onTap: () {
                     final password = controller.oldPassword.text;
                     final newPassword = controller.newPassword.text;
                     if(password.isEmpty|| newPassword.isEmpty){
                       ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(
+                       SnackBar(
                           backgroundColor: Colors.black,
-                          content:  Text(
-                            'Required fields missing!',
-                            style: TextStyle(
+                          content: Text(
+                            'Required fields missing!'.tr,
+                            style: const TextStyle(
                               color: Colors.red,
                               fontWeight: FontWeight.bold,
                             ),
@@ -149,8 +149,8 @@ class ResetPassScreen extends StatelessWidget {
                       );
                     }if (password != newPassword) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Passwords do not match!", style: TextStyle(color: Colors.red)),
+                        SnackBar(
+                          content: Text("Passwords do not match!".tr, style: const TextStyle(color: Colors.red)),
                           backgroundColor: Colors.black,
                         ),
                       );

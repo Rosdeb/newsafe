@@ -21,13 +21,13 @@ class InputSignUpPage extends StatelessWidget {
     return Column(
       children: [
 
-        const AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+        AnimatedWidgetWrapper(
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Align(
             alignment: Alignment.topLeft,
             child: AppText(
-              "Full Name",
+              "Full Name".tr,
               fontWeight: FontWeight.w600,
               fontSize: 12,
               color: AppColors.colorSubheading,
@@ -36,23 +36,23 @@ class InputSignUpPage extends StatelessWidget {
         ),
         SizedBox(height: size.height * 0.008),
         AnimatedWidgetWrapper(
-          duration:const Duration(milliseconds: 800),
-          delay:const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: AppTextField(
             keyboardType: TextInputType.text,
             controller: controller.nameController,
-            hint: "Enter your full name",
+            hint: "Enter your full name".tr,
           ),
         ),
         //----===--- email address --==---
         SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-        const AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+        AnimatedWidgetWrapper(
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Align(
             alignment: Alignment.topLeft,
             child: AppText(
-              "Email Address",
+              "Email Address".tr,
               fontWeight: FontWeight.w600,
               fontSize: 12,
               color: AppColors.colorSubheading,
@@ -61,24 +61,24 @@ class InputSignUpPage extends StatelessWidget {
         ),
         SizedBox(height: size.height * 0.008),
         AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: AppTextField(
             keyboardType: TextInputType.emailAddress,
             controller: controller.emailController,
-            hint: "Enter your email",
+            hint: "Enter your email".tr,
             suffix: Icon(CupertinoIcons.mail,color: Colors.white38),
           ),
         ),
         //----===--- phone number --==---
         SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-        const AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+        AnimatedWidgetWrapper(
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Align(
             alignment: Alignment.topLeft,
             child: AppText(
-              "Phone Number",
+              "Phone number".tr,
               fontWeight: FontWeight.w600,
               fontSize: 12,
               color: AppColors.colorSubheading,
@@ -89,13 +89,13 @@ class InputSignUpPage extends StatelessWidget {
         phoneNumber(),
         //----===--- password --==---
         SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-        const AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+        AnimatedWidgetWrapper(
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Align(
             alignment: Alignment.topLeft,
             child: AppText(
-              "Password",
+              "Password".tr,
               fontWeight: FontWeight.w600,
               fontSize: 12,
               color: AppColors.colorSubheading,
@@ -104,13 +104,13 @@ class InputSignUpPage extends StatelessWidget {
         ),
         SizedBox(height: size.height * 0.008),
         AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Obx(() => AppTextField(
-            obscure: controller.passShowHide.value, // ✅ dynamic obscure
+            obscure: controller.passShowHide.value,
             keyboardType: TextInputType.twitter,
-            controller: controller.passwordController, // ✅ use passwordController here
-            hint: "Enter your password",
+            controller: controller.passwordController,
+            hint: "Enter your password".tr,
             suffix: IconButton(
               icon: Icon(
                 controller.passShowHide.value
@@ -126,13 +126,13 @@ class InputSignUpPage extends StatelessWidget {
         ),
         //----===--- confirm password --==---
         SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-        const AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay: Duration(milliseconds: 500),
+        AnimatedWidgetWrapper(
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Align(
             alignment: Alignment.topLeft,
             child: AppText(
-              "Confirm Password",
+              "Confirm Password".tr,
               fontWeight: FontWeight.w600,
               fontSize: 12,
               color: AppColors.colorSubheading,
@@ -141,13 +141,13 @@ class InputSignUpPage extends StatelessWidget {
         ),
         SizedBox(height: size.height * 0.008),
         AnimatedWidgetWrapper(
-          duration: Duration(milliseconds: 800),
-          delay:const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
+          delay: const Duration(milliseconds: 500),
           child: Obx(() => AppTextField(
-            obscure: controller.passShowHide1.value, // ✅ dynamic obscure
+            obscure: controller.passShowHide1.value,
             keyboardType: TextInputType.twitter,
-            controller: controller.confirmPasswordController, // ✅ use passwordController here
-            hint: "Enter your password",
+            controller: controller.confirmPasswordController,
+            hint: "Enter your password".tr,
             suffix: IconButton(
               icon: Icon(
                 controller.passShowHide1.value
@@ -227,7 +227,7 @@ class InputSignUpPage extends StatelessWidget {
                         Text(
                           hasSelection
                               ? "+${controller1.selectedCountryCode.value}"
-                              : "Select",
+                              : "Select".tr,
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                         ),
                         const SizedBox(width: 1),
@@ -245,9 +245,9 @@ class InputSignUpPage extends StatelessWidget {
                       keyboardType: TextInputType.phone,
                       style: const TextStyle(color: Colors.white),
                       onTap: () => controller1.selectedField.value = true,
-                      decoration: const InputDecoration(
-                        hintText: "Enter number",
-                        hintStyle: TextStyle(color: Colors.white54),
+                      decoration: InputDecoration(
+                        hintText: "Enter number".tr,
+                        hintStyle: const TextStyle(color: Colors.white54),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding:

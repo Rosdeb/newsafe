@@ -66,11 +66,11 @@ class _SigninScreenState extends State<SigninScreen> {
                 SizedBox(height: size.height * 0.026),
                 SvgPicture.asset(AppIcons.miniSafeRadar),
                 SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-                const AnimatedAppText(
-                  'Welcome Back To',
+                AnimatedAppText(
+                  'Welcome Back To'.tr,
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFEDC602),
+                  color: const Color(0xFFEDC602),
                 ),
                 SizedBox(height: size.height * 0.010),
 
@@ -89,7 +89,7 @@ class _SigninScreenState extends State<SigninScreen> {
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: AppText(
-                      "Email Address",
+                      "Email Address".tr,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                       color: AppColors.colorSubheading,
@@ -104,7 +104,7 @@ class _SigninScreenState extends State<SigninScreen> {
                   child: AppTextField(
                     keyboardType: TextInputType.emailAddress,
                     controller: controller.emailController,
-                    hint: "Enter your email",
+                    hint: "Enter your email".tr,
                     suffix: const Icon(CupertinoIcons.mail,color: Colors.white38),
                   ),
                 ),
@@ -116,7 +116,7 @@ class _SigninScreenState extends State<SigninScreen> {
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: AppText(
-                      "Password",
+                      "Password".tr,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                       color: AppColors.colorSubheading,
@@ -132,7 +132,7 @@ class _SigninScreenState extends State<SigninScreen> {
                     obscure: controller.passShowHide.value,
                     keyboardType: TextInputType.twitter,
                     controller: controller.passwordController,
-                    hint: "Enter your password",
+                    hint: "Enter your password".tr,
                     suffix: IconButton(
                       icon: Icon(
                         controller.passShowHide.value
@@ -160,7 +160,7 @@ class _SigninScreenState extends State<SigninScreen> {
                   curve: Curves.elasticOut,
                   child: Obx(()=>GradientButton(
                     isLoading: controller.isLoading.value,
-                    text: 'Sign in'.toUpperCase(),
+                    text: 'Sign in'.tr.toUpperCase(),
                     onTap: ()async{
                       await controller.loginUser(
                           context,
@@ -181,8 +181,8 @@ class _SigninScreenState extends State<SigninScreen> {
                 ),
                 SizedBox(height: size.height * 0.025),
 
-                const AnimatedAppText(
-                  "or continue with",
+                AnimatedAppText(
+                  "or continue with".tr,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: AppColors.colorSubheading,
@@ -195,7 +195,7 @@ class _SigninScreenState extends State<SigninScreen> {
                   direction: AnimationDirection.top,
                   curve: Curves.elasticOut,
                   child: GoogleOrAppcle(
-                    text: "Continue with google", onTap: () {
+                    text: "Continue with Google".tr, onTap: () {
 
                   }, icon: AppIcons.google,),),
                 SizedBox(height: size.height * 0.025),
@@ -205,7 +205,7 @@ class _SigninScreenState extends State<SigninScreen> {
                   delay:const Duration(milliseconds: 500),
                   direction: AnimationDirection.top,
                   curve: Curves.elasticOut,
-                  child: GoogleOrAppcle(text: "Continue with apple", onTap: () {
+                  child: GoogleOrAppcle(text: "Continue with Apple".tr, onTap: () {
 
                   }, icon: AppIcons.apple,),),
                 SizedBox(height: size.height * 0.012),
