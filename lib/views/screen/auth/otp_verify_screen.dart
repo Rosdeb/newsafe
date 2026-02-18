@@ -231,7 +231,7 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                     text: "Verify OTP".tr.toUpperCase(),
                     onTap: () {
                       if (pinController.text.length == _length) {
-                        _verifyOtp(pinController.text);
+                        _verifyOtp(pinController.text.toString());
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -299,7 +299,7 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
 
   void _verifyOtp(String pin) {
     if (widget.isSignUp) {
-      forgotController.signupEmail(
+      forgotController.singupEmail(
         context,
         widget.email,
         pin,

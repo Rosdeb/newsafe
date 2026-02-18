@@ -154,7 +154,6 @@ class ForgotController extends GetxController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final reset_token = data['reset_token'];
         Logger.log("Forgot successful: $data", type: "info");
         isVerify.value = false;
         if(context.mounted) {
@@ -162,7 +161,7 @@ class ForgotController extends GetxController {
             context,
             MaterialPageRoute(
               builder: (builder) => SuccessMessageScreen(title: "OTP Verification Successful",details: "You can now reset your password",buttonText: "go to password reset",onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (builder)=>ResetPassScreen(token: reset_token,)));
+                Navigator.push(context, MaterialPageRoute(builder: (builder)=>SigninScreen()));
 
               },),
 
@@ -235,7 +234,7 @@ class ForgotController extends GetxController {
     await forgotPassword(context, email);
   }
 
-  // Rename your existing verify method to signupEmail
+/*  // Rename your existing verify method to signupEmail
   Future<void> signupEmail(BuildContext context, String email, String otp) async {
     // Your existing verify email logic for signup
     final networkController = Get.find<NetworkController>();
@@ -285,7 +284,7 @@ class ForgotController extends GetxController {
     } finally {
       isVerify.value = false;
     }
-  }
+  }*/
 
 
 

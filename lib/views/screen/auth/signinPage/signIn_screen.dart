@@ -126,7 +126,7 @@ class _SigninScreenState extends State<SigninScreen> {
                 SizedBox(height: size.height * 0.008),
 
                 AnimatedWidgetWrapper(
-                  duration: const Duration(milliseconds: 800),
+                  duration:  Duration(milliseconds: 800),
                   delay:const Duration(milliseconds: 500),
                   child: Obx(() => AppTextField(
                     obscure: controller.passShowHide.value,
