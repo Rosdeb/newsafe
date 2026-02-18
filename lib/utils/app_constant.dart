@@ -8,13 +8,14 @@ class AppConstants{
   static String APP_NAME="Saferadar";
   //http://164.92.215.115:9443/
   //http://164.92.215.115:9548
-  static String BASE_URL ="http://164.92.215.115:9548";
+  //static String BASE_URL ="http://164.92.215.115:9548";
+  static String BASE_URL ="https://country-few-store-greene.trycloudflare.com";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
   static String get Bennar_ad_Id=> dotenv.env['BANNER_ADS_ID'] ?? '';
 
   //----===---> share preference Key <----====---//
   static String THEME ="theme";
-  static const String fcmToken = '';
+  static const String fcmToken = 'fcm_token';
 
   static const String LANGUAGE_CODE = 'language_code';
   static const String COUNTRY_CODE = 'country_code';

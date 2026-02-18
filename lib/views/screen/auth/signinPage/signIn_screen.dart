@@ -83,7 +83,7 @@ class _SigninScreenState extends State<SigninScreen> {
                 ),
                 SizedBox(height: size.height * 0.025),
 
-                const AnimatedWidgetWrapper(
+                 AnimatedWidgetWrapper(
                   duration: Duration(milliseconds: 800),
                   delay: Duration(milliseconds: 500),
                   child: Align(
@@ -110,9 +110,9 @@ class _SigninScreenState extends State<SigninScreen> {
                 ),
                 SizedBox(height: size.height * 0.025),
 
-                const AnimatedWidgetWrapper(
+                 AnimatedWidgetWrapper(
                   duration: Duration(milliseconds: 800),
-                  delay: Duration(milliseconds: 500),
+                  delay: const Duration(milliseconds: 500),
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: AppText(
@@ -126,7 +126,7 @@ class _SigninScreenState extends State<SigninScreen> {
                 SizedBox(height: size.height * 0.008),
 
                 AnimatedWidgetWrapper(
-                  duration: Duration(milliseconds: 800),
+                  duration: const Duration(milliseconds: 800),
                   delay:const Duration(milliseconds: 500),
                   child: Obx(() => AppTextField(
                     obscure: controller.passShowHide.value,

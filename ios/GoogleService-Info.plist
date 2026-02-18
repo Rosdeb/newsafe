@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.tonydoor.saferaders</string>
+	<string>com.tonydoor.saferader</string>
 	<key>PROJECT_ID</key>
 	<string>saferader-7de07</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:203964485006:ios:5edc6067eb82448abd68df</string>
+	<string>1:203964485006:ios:180be7b4f746fb77bd68df</string>
 </dict>
 </plist>

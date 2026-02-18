@@ -730,11 +730,11 @@
 
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive/hive.dart';
+import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/app_constant.dart';
@@ -787,7 +787,6 @@ class ProfileEditController extends GetxController {
   Future<void> loadUserData() async {
     try {
       isLoading.value = true;
-
       final userBox = await Hive.openBox('userProfileBox');
       final name = userBox.get('name');
       final email = userBox.get('email');
@@ -798,10 +797,7 @@ class ProfileEditController extends GetxController {
       final gender = userBox.get('gender');
       final image = userBox.get('profileImage');
 
-      Logger.log(
-        "Raw Hive Data - name: $name, email: $email, phone: $phone, dob: $dob, gender: $gender, image: $image",
-        type: "info",
-      );
+      Logger.log("Raw Hive Data - name: $name, email: $email, phone: $phone, dob: $dob, gender: $gender, image: $image", type: "info",);
 
       userName.value = name ?? '';
       userEmail.value = email ?? '';
@@ -811,7 +807,6 @@ class ProfileEditController extends GetxController {
       userGender.value = gender ?? '';
       profileImageUrl.value = image ?? '';
 
-      // Split name into first and last name
       if (name != null && name.toString().isNotEmpty) {
         final nameParts = name.toString().split(' ');
         if (nameParts.isNotEmpty) {
@@ -840,7 +835,7 @@ class ProfileEditController extends GetxController {
         dateOfBirth.value = 'Not provided';
       }
 
-      // Set gender index for PageController
+
       if (gender != null && gender.toString().isNotEmpty) {
         final genderIndex = genderList.indexWhere(
           (g) => g.toLowerCase() == gender.toString().toLowerCase(),
@@ -848,7 +843,6 @@ class ProfileEditController extends GetxController {
         if (genderIndex != -1) {
           selectedIndex.value = genderIndex;
           selectedGender.value = genderList[genderIndex];
-          // Update PageController position
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (pageController.hasClients) {
               pageController.jumpToPage(genderIndex);
@@ -953,7 +947,7 @@ class ProfileEditController extends GetxController {
 
       if (image != null) {
         selectedProfileImage.value = File(image.path);
-        Logger.log("✅ Image selected: ${image.path}", type: "info");
+        Logger.log("Image selected: ${image.path}", type: "info");
       }
     } catch (e) {
       Logger.log("Error picking image: $e", type: "error");
@@ -971,7 +965,7 @@ class ProfileEditController extends GetxController {
         await _handleSuccessfulUpdate(context, result['data']);
       } else {
         final message = result['message'] ?? 'Unknown error occurred';
-        Logger.log("⚠️ Profile update failed: $message", type: "warning");
+        Logger.log("Profile update failed: $message", type: "warning");
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -984,7 +978,7 @@ class ProfileEditController extends GetxController {
         }
       }
     } on Exception catch (e, st) {
-      Logger.log("❌ Error updating profile: $e\n$st", type: "error");
+      Logger.log("Error updating profile: $e\n$st", type: "error");
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1025,24 +1019,18 @@ class ProfileEditController extends GetxController {
         final file = await http.MultipartFile.fromPath(
           'profileImage',
           profileImage.path,
+          contentType: MediaType('image', 'jpeg'),
         );
         request.files.add(file);
       }
 
-      // Use ApiService multipart which handles token refresh automatically
       final streamedResp = await ApiService.multipart('/api/users/me', request);
       final respString = await streamedResp.stream.bytesToString();
 
-      Logger.log(
-        "📥 Profile Update Response - Status: ${streamedResp.statusCode}",
-        type: "info",
-      );
-      Logger.log(
-        "📥 Profile Update Response - Body: $respString",
-        type: "info",
-      );
+      Logger.log("Profile Update Response - Status: ${streamedResp.statusCode}", type: "info",);
+      Logger.log("Profile Update Response - Body: $respString", type: "info",);
 
-      // Parse response
+
       Map<String, dynamic> parsed;
       try {
         parsed = json.decode(respString) as Map<String, dynamic>;
@@ -1061,7 +1049,7 @@ class ProfileEditController extends GetxController {
         'message': parsed['message'] ?? parsed['error'] ?? 'Unknown error',
       };
     } on Exception catch (e) {
-      Logger.log("❌ Exception in _attemptProfileUpdate: $e", type: "error");
+      Logger.log("Exception in _attemptProfileUpdate: $e", type: "error");
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
   }
@@ -1074,10 +1062,7 @@ class ProfileEditController extends GetxController {
     Logger.log("📦 User data received: $user", type: "info");
 
     try {
-      // Save ALL fields to Hive
       final userBox = await Hive.openBox('userProfileBox');
-
-      // Save complete user data (don't clear - keep other data)
       await userBox.put('name', user['name'] ?? '');
       await userBox.put('email', user['email'] ?? '');
       await userBox.put('_id', user['_id'] ?? user['id'] ?? '');
@@ -1086,7 +1071,6 @@ class ProfileEditController extends GetxController {
       await userBox.put('dateOfBirth', user['dateOfBirth'] ?? '');
       await userBox.put('gender', user['gender'] ?? '');
 
-      // Handle profile image URL - CRITICAL FIX
       String imageUrl = '';
       if (user['profileImage'] != null &&
           user['profileImage'].toString().isNotEmpty) {
@@ -1095,7 +1079,6 @@ class ProfileEditController extends GetxController {
         imageUrl = user['image'].toString();
       }
 
-      // Add base URL if it's a relative path
       if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
         imageUrl = '${AppConstants.BASE_URL}$imageUrl';
       }
@@ -1105,32 +1088,20 @@ class ProfileEditController extends GetxController {
       Logger.log("✅ Hive data updated successfully", type: "info");
       Logger.log("📦 Saved to Hive - Image URL: $imageUrl", type: "info");
 
-      // Reload local data in this controller FIRST
+
       await loadUserData();
 
-      // ✅ CRITICAL: Refresh ProfileController with fresh data from API
       if (Get.isRegistered<ProfileController>()) {
         final profileController = Get.find<ProfileController>();
-        Logger.log(
-          "🔄 Forcing ProfileController refresh from API...",
-          type: "info",
-        );
-
-        // Use the refreshProfile method which fetches from API and updates Hive
+        Logger.log("Forcing ProfileController refresh from API...", type: "info",);
         await profileController.refreshProfile();
+        Logger.log("ProfileController refreshed successfully", type: "success",);
 
-        Logger.log(
-          "✅ ProfileController refreshed successfully",
-          type: "success",
-        );
       } else {
-        Logger.log(
-          "⚠️ ProfileController not registered, skipping refresh",
-          type: "warning",
-        );
+        Logger.log("ProfileController not registered, skipping refresh", type: "warning",);
       }
 
-      // Show success message
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1144,14 +1115,12 @@ class ProfileEditController extends GetxController {
         Navigator.pop(context);
       }
     } catch (e) {
-      Logger.log("❌ Error in _handleSuccessfulUpdate: $e", type: "error");
+      Logger.log("Error in _handleSuccessfulUpdate: $e", type: "error");
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Profile updated but failed to save locally. Please restart the app.',
-            ),
+            content: Text('Profile updated but failed to save locally. Please restart the app.',),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),

@@ -1,3 +1,4 @@
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -79,7 +80,7 @@ class UserPreferrence extends StatelessWidget {
                           color: AppColors.color2Box.withOpacity(0.50),
                         ),
                         SizedBox(height: size.height * 0.012),
-                        buildLanguageSelector(controller, languages),
+                        buildLanguageSelector(context, isTablet),
                         SizedBox(height: size.height * 0.012),
                         Row(
                           children: [
@@ -157,11 +158,15 @@ class UserPreferrence extends StatelessWidget {
                           children: [
                             SvgPicture.asset("assets/icon/akar-icons_sound-on.svg"),
                             SizedBox(width: size.height * 0.009),
-                            AppText(
-                              "Receive alerts when others need help".tr,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w100,
-                              color: AppColors.color2Box.withOpacity(0.50),
+                            Expanded(
+                              child: AppText(
+                                "Receive alerts when others need help".tr,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w100,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                color: AppColors.color2Box.withOpacity(0.50),
+                              ),
                             ),
                             const Spacer(),
                             Obx(()=> Transform.scale(
@@ -192,7 +197,7 @@ class UserPreferrence extends StatelessWidget {
                   child: BannerAds(),
                 ),
 
-                _buildLanguageTabs(isTablet,context),
+              //  _buildLanguageTabs(isTablet,context),
 
               ],
             ),
@@ -272,185 +277,93 @@ class UserPreferrence extends StatelessWidget {
     return textPainter.size.width;
   }
 
-
-  Widget buildLanguageSelector(ProfileController controller, List<String> languages) {
-    return Obx(() => PopupMenuButton<String>(
-      offset: const Offset(0, 45), // menu shows below the button
-      elevation: 4,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) {
-        controller.setLanguage(value); // update reactive variable
-        debugPrint("Selected Language: $value");
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          enabled: false,
-          child: AppText(
-            "Select Language".tr,
-            fontWeight: FontWeight.w400,
-            fontSize: 14,
-            color: const Color(0xff71717A),
-          ),
-        ),
-        ...languages.map(
-              (lang) => PopupMenuItem<String>(
-            value: lang,
-            child: Row(
-              children: [
-                if (controller.selectedLanguage.value == lang)
-                  const Icon(Icons.check, color: Colors.green, size: 16),
-                if (controller.selectedLanguage.value == lang)
-                  const SizedBox(width: 6),
-                AppText(
-                  lang,
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                  color: Colors.black,
+  Widget buildLanguageSelector(BuildContext context, bool isTablet) {
+    return GetBuilder<LocalizationController>(
+      builder: (controller) {
+        final selectedLang = AppConstants.languages[controller.selectedIndex].languageName.tr;
+        return DropdownButtonHideUnderline(
+          child: DropdownButton2(
+            customButton: Container(
+              height: 42,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: AppColors.colorYellow.withOpacity(0.10),
+                border: Border.all(
+                  width: 1,
+                  color: AppColors.colorYellow,
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 15),
+                  AppText(
+                    selectedLang,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 15,
+                    color: Colors.black,
+                  ),
+                  const Spacer(),
+                  SvgPicture.asset("assets/icon/Frame (2).svg"),
+                  const SizedBox(width: 15),
+                ],
+              ),
+            ),
+            items: AppConstants.languages
+                .asMap()
+                .entries
+                .map((entry) {
+              int index = entry.key;
+              final language = entry.value;
+              final isSelected = controller.selectedIndex == index;
+
+              return DropdownMenuItem<int>(
+                value: index,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AppText(
+                        language.languageName.tr,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black,
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(
+                        Icons.check,
+                        size: 18,
+                        color: Colors.green,
+                      ),
+                  ],
+                ),
+              );
+            })
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                final language = AppConstants.languages[value];
+                controller.setLanguage(
+                  Locale(language.languageCode, language.countryCode)
+                );
+              }
+            },
+            dropdownStyleData: DropdownStyleData(
+              width: 300,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              elevation: 8,
+            ),
+            menuItemStyleData: const MenuItemStyleData(
+              padding: EdgeInsets.symmetric(vertical: 6),
             ),
           ),
-        ),
-      ],
-      child: Container(
-        height: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: AppColors.colorYellow.withOpacity(0.10),
-          border: Border.all(
-              width: 1,
-              color: AppColors.colorYellow),
-        ),
-        child: Row(
-          children: [
-            SizedBox(width: 15,),
-
-            AppText(
-              controller.selectedLanguage.value,
-              fontWeight: FontWeight.w400,
-              fontSize: 15,
-              color: Colors.black,
-            ),
-            Spacer(),
-            SvgPicture.asset(
-              "assets/icon/Frame (2).svg",
-            ),
-            SizedBox(width: 15,),
-          ],
-        ),
-      ),
-    ));
+        );
+      },
+    );
   }
-
-  // /// Show notification settings bottom sheet
-  // void _showSettingsBottomSheet(BuildContext context) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  //     ),
-  //     builder: (context) {
-  //       return Padding(
-  //         padding: const EdgeInsets.all(20.0),
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             const Text(
-  //               'Notification Settings',
-  //               style: TextStyle(
-  //                 fontSize: 20,
-  //                 fontWeight: FontWeight.bold,
-  //               ),
-  //             ),
-  //             const SizedBox(height: 20),
-  //
-  //             // Enable Notifications
-  //             Obx(() => SwitchListTile(
-  //               title: const Text('Enable Notifications'),
-  //               subtitle: const Text('Receive push notifications'),
-  //               value: notificationsController.isNotificationsEnabled.value,
-  //               onChanged: (value) {
-  //                 notificationsController.toggleNotifications(value);
-  //               },
-  //             )),
-  //
-  //             const Divider(),
-  //
-  //             // Sound
-  //             Obx(() => SwitchListTile(
-  //               title: const Text('Sound'),
-  //               subtitle: const Text('Play sound when notification arrives'),
-  //               value: notificationsController.isSoundEnabled.value,
-  //               onChanged: notificationsController.isNotificationsEnabled.value
-  //                   ? (value) {
-  //                 notificationsController.toggleSound(value);
-  //               }
-  //                   : null,
-  //             )),
-  //
-  //             const Divider(),
-  //
-  //             // Vibration
-  //             Obx(() => SwitchListTile(
-  //               title: const Text('Vibration'),
-  //               subtitle: const Text('Vibrate when notification arrives'),
-  //               value: notificationsController.isVibrationEnabled.value,
-  //               onChanged: notificationsController.isNotificationsEnabled.value
-  //                   ? (value) {
-  //                 notificationsController.toggleVibration(value);
-  //               }
-  //                   : null,
-  //             )),
-  //
-  //             const SizedBox(height: 10),
-  //
-  //             // Clear all button
-  //             if (notificationsController.notifications.isNotEmpty)
-  //               SizedBox(
-  //                 width: double.infinity,
-  //                 child: ElevatedButton(
-  //                   onPressed: () {
-  //                     Get.dialog(
-  //                       AlertDialog(
-  //                         title: const Text('Clear All Notifications'),
-  //                         content: const Text(
-  //                           'Are you sure you want to clear all notifications?',
-  //                         ),
-  //                         actions: [
-  //                           TextButton(
-  //                             onPressed: () => Get.back(),
-  //                             child: const Text('Cancel'),
-  //                           ),
-  //                           TextButton(
-  //                             onPressed: () {
-  //                               notificationsController.clearAllNotifications();
-  //                               Get.back();
-  //                               Get.back();
-  //                             },
-  //                             child: const Text(
-  //                               'Clear All',
-  //                               style: TextStyle(color: Colors.red),
-  //                             ),
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     );
-  //                   },
-  //                   style: ElevatedButton.styleFrom(
-  //                     backgroundColor: Colors.red,
-  //                     foregroundColor: Colors.white,
-  //                   ),
-  //                   child: const Text('Clear All Notifications'),
-  //                 ),
-  //               ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 
 }
