@@ -248,9 +248,6 @@ class ProfileController extends GetxController {
 
       // Handle profile image
       String imageUrl = image?.toString() ?? '';
-      if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
-        imageUrl = '${AppConstants.BASE_URL}$imageUrl';
-      }
       profileImage.value = imageUrl;
 
       // Parse name into first and last
@@ -295,22 +292,48 @@ class ProfileController extends GetxController {
 
       final response = await ApiService.get('/api/users/me');
 
-      Logger.log("📥 API Response Status: ${response.statusCode}", type: "info");
-      Logger.log("📥 API Response Body: ${response.body}", type: "info");
+      Logger.log("📥 Status: ${response.statusCode}", type: "info");
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final user = data['data'] ?? data;
+        final body = json.decode(response.body) as Map<String, dynamic>;
 
-        Logger.log("📦 User data from API: $user", type: "info");
+        // API wraps user inside "data"
+        final user = (body['data'] ?? body) as Map<String, dynamic>;
 
-        // Save to Hive first
-        await _saveToHive(user);
+        Logger.log("📦 User from API: $user", type: "info");
 
-        // Then load from Hive to ensure consistency
-        await loadUserDataFromHive();
+        // ── Map API fields directly to observables ──
+        final name = user['name']?.toString() ?? '';
+        userName.value = name;
+        emails.value   = user['email']?.toString() ?? '';
+        phones.value   = user['phone']?.toString() ?? '';
+        genders.value  = user['gender']?.toString() ?? '';
+        userId.value   = user['_id']?.toString() ?? '';
+        userRole.value = user['role']?.toString() ?? '';
+        profileImage.value = user['profileImage']?.toString() ?? '';
 
-        Logger.log("✅ Profile fetched and saved successfully", type: "success");
+        // Split full name
+        if (name.trim().isNotEmpty) {
+          final parts = name.trim().split(' ');
+          firstName.value = parts.first;
+          lastName.value  = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        }
+
+        // Format DOB
+        final dob = user['dateOfBirth']?.toString() ?? '';
+        dateOfBirth.value = dob.isNotEmpty ? _formatDate(dob) : 'N/A';
+
+        // Save preferences distance if present
+        final prefs = user['preferences'] as Map<String, dynamic>?;
+        if (prefs != null && prefs['maxDistanceKm'] != null) {
+          final km = prefs['maxDistanceKm'];
+          distance.value = km.toString();
+          final sp = await SharedPreferences.getInstance();
+          await sp.setInt('selectedDistanceKm', km is int ? km : int.tryParse(km.toString()) ?? 1);
+        }
+
+        Logger.log("✅ Profile loaded - Name: ${userName.value}, Image: ${profileImage.value}", type: "success");
+
       } else {
         Logger.log("⚠️ Failed to fetch profile: ${response.statusCode}", type: "warning");
       }

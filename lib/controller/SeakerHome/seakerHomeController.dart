@@ -20,6 +20,7 @@ class SeakerHomeController extends GetxController {
 
   final userController = Get.find<UserController>();
   RxBool isSearching = false.obs;
+  RxBool isLoading1 = false.obs;
 
   SocketService? socketService;
   RxBool isSocketInitialized = false.obs;
@@ -41,12 +42,88 @@ class SeakerHomeController extends GetxController {
   static const Duration _reconnectDelay = Duration(seconds: 3);
   RxBool isReconnecting = false.obs;
 
+  RxString userName1 = ''.obs;
+  RxString userEmail1 = ''.obs;
+  RxString userPhone1 = ''.obs;
+  RxString userId1 = ''.obs;
+  RxString userRole1 = ''.obs;
+  RxString emails1 = ''.obs;
+  RxString genders1 = ''.obs;
+  RxString phones1 = ''.obs;
+  RxString dateOfBirth1 = ''.obs;
+  RxString profileImage11 = ''.obs;
+  RxString firstName1 = ''.obs;
+  RxString lastName1 = ''.obs;
+
   @override
   void onInit() {
     super.onInit();
     _setupLocationListener();
     initSocket();
     loadUserData();
+    fetchUserProfile();
+    fetchProfileImage();
+
+  }
+
+
+
+  Future<void> fetchUserProfile() async {
+    try {
+      isLoading1.value = true;
+      Logger.log("🌐 Fetching profile image from API...", type: "info");
+
+      final response = await ApiService.get('/api/users/me');
+
+      Logger.log("📥 Status: ${response.statusCode}", type: "info");
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body) as Map<String, dynamic>;
+
+        // API wraps user inside "data"
+        final user = (body['data'] ?? body) as Map<String, dynamic>;
+
+        final imageUrl = user['profileImage']?.toString() ?? '';
+        if (imageUrl.isNotEmpty) {
+          profileImage11.value = imageUrl;
+          Logger.log("✅ Profile image loaded from API: $imageUrl", type: "info");
+        }
+
+      } else {
+        Logger.log("⚠ Failed to fetch profile: ${response.statusCode}", type: "warning");
+      }
+    } catch (e) {
+      Logger.log(" Error fetching profile image: $e", type: "error");
+    } finally {
+      isLoading1.value = false;
+    }
+  }
+
+  RxString profileImage1111 = ''.obs;
+
+  Future<void> fetchProfileImage() async {
+    try {
+      final response = await ApiService.get('/api/users/me');
+      Logger.log("📥 Status: ${response.statusCode}", type: "info");
+      Logger.log("📥 Body: ${response.body}", type: "info");
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body) as Map<String, dynamic>;
+        final user = (body['data'] ?? body) as Map<String, dynamic>;
+        Logger.log("👤 User keys: ${user.keys.toList()}", type: "info");
+        Logger.log(" profileImage value: ${user['profileImage']}", type: "info");
+
+        final imageUrl = user['profileImage']?.toString() ?? '';
+        if (imageUrl.isNotEmpty) {
+          profileImage11.value = imageUrl;
+          Logger.log("profileImage11 set to: $imageUrl", type: "info");
+        } else {
+          Logger.log(" profileImage is empty or null", type: "warning");
+        }
+      }
+    } catch (e) {
+      Logger.log("Error fetching profile image: $e", type: "error");
+    }
   }
 
 
@@ -1222,40 +1299,52 @@ class SeakerHomeController extends GetxController {
     try {
       final userBox = await Hive.openBox('userProfileBox');
 
-      final name = userBox.get('name');
-      final id = userBox.get('_id');
-      final role = userBox.get('role');
-      final image = userBox.get('profileImage');
+      final name  = userBox.get('name');
+      final id    = userBox.get('_id');
+      final role  = userBox.get('role');
+      final image = userBox.get('profileImage'); // ✅ was 'image', now 'profileImage'
 
-      userName.value = name ?? '';
-      userId.value = id ?? '';
-      userRole.value = role ?? '';
+      userName.value     = name  ?? '';
+      userId.value       = id    ?? '';
+      userRole.value     = role  ?? '';
       profileImage.value = image ?? '';
 
-      // ---------------- Full Name Split ----------------
       if (name != null && name.toString().trim().isNotEmpty) {
         final parts = name.toString().trim().split(" ");
         firstName.value = parts.first;
-
-        if (parts.length > 1) {
-          lastName.value = parts.sublist(1).join(" ");
-        }
+        lastName.value  = parts.length > 1 ? parts.sublist(1).join(" ") : '';
       }
 
-    }on Exception catch (e) {
+      // ✅ Fetch fresh profile image from API
+      await _fetchProfileImage();
+
+    } on Exception catch (e) {
       Logger.log("❌ Error loading user data: $e", type: "error");
-
       userName.value = 'Error loading';
+    }
+  }
 
-    } finally {
-
+  Future<void> _fetchProfileImage() async {
+    try {
+      final response = await ApiService.get('/api/users/me');
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body) as Map<String, dynamic>;
+        final user = (body['data'] ?? body) as Map<String, dynamic>;
+        String imageUrl = user['profileImage']?.toString() ?? '';
+        if (imageUrl.isNotEmpty) {
+          profileImage.value = imageUrl;
+          Logger.log("Profile image: $imageUrl", type: "info");
+        }
+      }
+    } catch (e) {
+      Logger.log(" Error fetching profile image: $e", type: "error");
     }
   }
 
   @override
   void onClose() {
     if (socketService?.isConnected.value == true) {
-      socketService!.socket.disconnect(); // 🔥 disconnect before dispose
+      socketService!.socket.disconnect();
       Logger.log("🔌 [SEEKER] Socket disconnected", type: "info");
     }
     removeAllListeners();

@@ -482,7 +482,7 @@ class _EditProfileState extends State<EditProfile> {
                   isLoading: controllers.save.value,
                   text: 'Save & update'.toUpperCase(),
                   onTap: ()async{
-                    controllers.updateProfileHttp(context);
+                    controllers.updateProfileHttp(context, profileImage: controllers.selectedProfileImage.value, );
                   },
                 ),)
               ),

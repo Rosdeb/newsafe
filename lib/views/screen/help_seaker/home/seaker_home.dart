@@ -1,4 +1,4 @@
-  import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
@@ -28,10 +28,11 @@ class SeakerHome extends StatefulWidget {
   State<SeakerHome> createState() => _SeakerHomeState();
 }
 
-class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateMixin {
-
+class _SeakerHomeState extends State<SeakerHome>
+    with SingleTickerProviderStateMixin {
   late final SeakerHomeController controller;
-  final NotificationsController notificationsController = Get.find<NotificationsController>();
+  final NotificationsController notificationsController =
+      Get.find<NotificationsController>();
   late final UserController userController;
   late final ProfileController controller1;
   late final SeakerLocationsController locationController;
@@ -53,13 +54,11 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
     )..repeat(reverse: true);
 
     _blinkAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _blinkController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
     );
-    locationController.startLiveLocation();
 
+    locationController.startLiveLocation();
+    controller1.fetchUserProfile();
   }
 
   @override
@@ -73,7 +72,6 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
     controller.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +87,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration:const BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.centerRight,
             end: Alignment.centerLeft,
@@ -104,12 +102,12 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: homeHeader(),
             ),
-            SizedBox(height: size.height * 0.01),
 
+            SizedBox(height: size.height * 0.01),
 
             Expanded(
               child: SingleChildScrollView(
-                padding:const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Obx(() {
                   switch (controller.emergencyMode.value) {
                     case 0:
@@ -131,73 +129,74 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
   }
 
   Widget helpMode(BuildContext context) {
-    final size = MediaQuery
-        .of(context)
-        .size;
+    final size = MediaQuery.of(context).size;
     final String userRole = userController.userRole.value;
     return Column(
       children: [
         SizedBox(height: size.height * 0.02),
 
         IosTapEffect(
-            onTap: () {
-              //controller.toggleMode();
-              controller.helpRequest(
-                  context, locationController.currentPosition.value!.latitude,
-                  locationController.currentPosition.value!.longitude);
-              print("click help request:${locationController.currentPosition
-                  .value!.latitude.toString()}");
-            },
-            child: AnimatedBuilder(
-                animation: _blinkAnimation,
-                builder: (context, child) {
-                  return Container(
-                    height: 300,
-                    width: 300,
-                    padding: const EdgeInsets.all(24),
+          onTap: () {
+            //controller.toggleMode();
+            controller.helpRequest(
+              context,
+              locationController.currentPosition.value!.latitude,
+              locationController.currentPosition.value!.longitude,
+            );
+            print(
+              "click help request:${locationController.currentPosition.value!.latitude.toString()}",
+            );
+          },
+          child: AnimatedBuilder(
+            animation: _blinkAnimation,
+            builder: (context, child) {
+              return Container(
+                height: 300,
+                width: 300,
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFBD3AB),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFF24A4A),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFFFBD3AB),
+                      color: Color(0xFFE94A4A),
                     ),
-                    child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFF24A4A),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFFE94A4A),
-                          ),
-                          child: Center(
-                            child: Opacity(
-                              opacity: _blinkAnimation.value,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  AppText(
-                                    "HELP".toUpperCase(),
-                                    fontSize: 35,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.colorWhite,
-                                  ),
-                                  const AppText(
-                                    "Emergency",
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.colorWhite,
-                                  ),
-                                ],
-                              ),
+                    child: Center(
+                      child: Opacity(
+                        opacity: _blinkAnimation.value,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AppText(
+                              "HELP".toUpperCase(),
+                              fontSize: 35,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.colorWhite,
                             ),
-                          ),
-                        )
+                            const AppText(
+                              "Emergency",
+                              fontSize: 25,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.colorWhite,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  );
-                }
-            )
+                  ),
+                ),
+              );
+            },
+          ),
         ),
 
         SizedBox(height: size.height * 0.10),
@@ -228,7 +227,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
 
   Widget condition(BuildContext context) {
     return Obx(() {
-        return helpMode(context);
+      return helpMode(context);
     });
   }
 
@@ -243,34 +242,34 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
           child: Container(
             height: 300,
             width: 300,
-            padding:const EdgeInsets.all(24),
-            decoration:const BoxDecoration(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Color(0xFFFEE3B5),
             ),
             child: Container(
-              padding:const EdgeInsets.all(10),
-              decoration:const BoxDecoration(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color(0xFFFD7F2C),
               ),
               child: Container(
-                padding:const EdgeInsets.all(10),
-                decoration:const BoxDecoration(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: Color(0xFFFD9346),
                 ),
-                child:const Center(
+                child: const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                        AppText(
-                          "SENDING",
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.colorWhite,
-                        ),
-                       AppText(
+                      AppText(
+                        "SENDING",
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.colorWhite,
+                      ),
+                      AppText(
                         "Request..",
                         fontSize: 22,
                         fontWeight: FontWeight.w500,
@@ -286,21 +285,19 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
 
         SizedBox(height: size.height * 0.02),
         IosTapEffect(
-          onTap: (){
-
+          onTap: () {
             controller.cancelHelpRequest();
-
           },
           child: Container(
             height: 46,
             width: 140,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              gradient:const LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFFD93A3A), Color(0xFFE94A4A)],
               ),
             ),
-            child:const Center(
+            child: const Center(
               child: AppText(
                 "Cancel Request",
                 fontWeight: FontWeight.w500,
@@ -311,77 +308,81 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
           ),
         ),
         SizedBox(height: size.height * 0.01),
-      const  Align(
-            child: AppText(
-              "Helpers Responding",
-              fontWeight: FontWeight.w500,
-              fontSize: 20,
-              color: AppColors.color2Box,
-            ),
+        const Align(
+          child: AppText(
+            "Helpers Responding",
+            fontWeight: FontWeight.w500,
+            fontSize: 20,
+            color: AppColors.color2Box,
           ),
+        ),
 
         SizedBox(height: size.height * 0.01),
         CustomBox(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const AppText(
-                      "Nearby Helpers",
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.color2Box,
-                    ),
-                    SvgPicture.asset("assets/icon/Frame (1).svg"),
-                  ],
-                ),
-                const SizedBox(height: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const AppText(
+                    "Nearby Helpers",
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.color2Box,
+                  ),
+                  SvgPicture.asset("assets/icon/Frame (1).svg"),
+                ],
+              ),
+              const SizedBox(height: 12),
 
+              Obx(() {
+                final nearbyList = [
+                  {
+                    "distance": "Within 1 km",
+                    "count": controller.nearbyStats.value.km1,
+                  },
+                  {
+                    "distance": "Within 2 km",
+                    "count": controller.nearbyStats.value.km2,
+                  },
+                ];
 
-                Obx(() {
-                  final nearbyList = [
-                    {"distance": "Within 1 km", "count": controller.nearbyStats.value.km1 },
-                    {"distance": "Within 2 km", "count": controller.nearbyStats.value.km2 },
-                  ];
-
-                  return Column(
-                    children: List.generate(nearbyList.length, (index) {
-                      final item = nearbyList[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: AppColors.iconBg.withOpacity(0.10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            AppText(
-                              "${item["distance"]}",
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                              color: AppColors.color2Box,
-                            ),
-                            AppText(
-                              "${item["count"]} available",
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: AppColors.colorIcons,
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  );
-                }),
-
-              ],
-            ),
-          )
+                return Column(
+                  children: List.generate(nearbyList.length, (index) {
+                    final item = nearbyList[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.iconBg.withOpacity(0.10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AppText(
+                            "${item["distance"]}",
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            color: AppColors.color2Box,
+                          ),
+                          AppText(
+                            "${item["count"]} available",
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.colorIcons,
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                );
+              }),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -455,7 +456,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
           ),
           SizedBox(height: size.height * 0.02),
           Padding(
-            padding:const EdgeInsets.symmetric(horizontal: 90),
+            padding: const EdgeInsets.symmetric(horizontal: 90),
             child: Column(
               children: [
                 GradientButtons(
@@ -468,8 +469,10 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 10),
                 GradientButtons(
-                  onTap: (){
-                    controller.helpCompleted(controller.currentHelpRequestId.toString());
+                  onTap: () {
+                    controller.helpCompleted(
+                      controller.currentHelpRequestId.toString(),
+                    );
                   },
                   text: "Work is done",
                   icon: Icons.check,
@@ -493,9 +496,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (builder) => UniversalMapViewEnhanced(),
-          ),
+          MaterialPageRoute(builder: (builder) => UniversalMapViewEnhanced()),
         );
       },
       child: Padding(
@@ -519,7 +520,11 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                         color: Colors.grey[300],
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.person, size: 40, color: Colors.grey[600]),
+                      child: Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Colors.grey[600],
+                      ),
                     );
                   },
                 ),
@@ -596,7 +601,8 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                 // Get helper's location (reactive)
                 final helperLat = controller.helperLatitude;
                 final helperLng = controller.helperLongitude;
-                final LatLng? helperLatLng = (helperLat != null && helperLng != null)
+                final LatLng? helperLatLng =
+                    (helperLat != null && helperLng != null)
                     ? LatLng(helperLat, helperLng)
                     : null;
 
@@ -606,10 +612,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
 
                 return Container(
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 2,
-                      color: AppColors.colorYellow,
-                    ),
+                    border: Border.all(width: 2, color: AppColors.colorYellow),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Stack(
@@ -623,8 +626,12 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                             child: GoogleMap(
                               initialCameraPosition: CameraPosition(
                                 target: LatLng(
-                                  (seekerLatLng.latitude + helperLatLng.latitude) / 2,
-                                  (seekerLatLng.longitude + helperLatLng.longitude) / 2,
+                                  (seekerLatLng.latitude +
+                                          helperLatLng.latitude) /
+                                      2,
+                                  (seekerLatLng.longitude +
+                                          helperLatLng.longitude) /
+                                      2,
                                 ),
                                 zoom: 13,
                               ),
@@ -632,7 +639,9 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                                 Marker(
                                   markerId: const MarkerId("seeker"),
                                   position: seekerLatLng,
-                                  infoWindow: const InfoWindow(title: "You (Seeker)"),
+                                  infoWindow: const InfoWindow(
+                                    title: "You (Seeker)",
+                                  ),
                                   icon: BitmapDescriptor.defaultMarkerWithHue(
                                     BitmapDescriptor.hueRed,
                                   ),
@@ -640,7 +649,9 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                                 Marker(
                                   markerId: const MarkerId("helper"),
                                   position: helperLatLng,
-                                  infoWindow: InfoWindow(title: controller.helperName),
+                                  infoWindow: InfoWindow(
+                                    title: controller.helperName,
+                                  ),
                                   icon: BitmapDescriptor.defaultMarkerWithHue(
                                     BitmapDescriptor.hueGreen,
                                   ),
@@ -650,13 +661,15 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => UniversalMapViewEnhanced(),
+                                    builder: (context) =>
+                                        UniversalMapViewEnhanced(),
                                   ),
                                 );
                               },
                               zoomControlsEnabled: false,
                               myLocationButtonEnabled: false,
-                              liteModeEnabled: false, // Changed to false for better rendering
+                              liteModeEnabled: false,
+                              // Changed to false for better rendering
                               compassEnabled: false,
                               mapToolbarEnabled: false,
                               myLocationEnabled: false,
@@ -664,7 +677,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                           ),
                         )
                       else
-                      // Show loading state
+                        // Show loading state
                         Container(
                           height: 150,
                           decoration: BoxDecoration(
@@ -698,7 +711,8 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => UniversalMapViewEnhanced(),
+                                builder: (context) =>
+                                    UniversalMapViewEnhanced(),
                               ),
                             );
                           },
@@ -792,35 +806,36 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
       child: Row(
         children: [
           Obx(() => Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.colorYellow, width: 2),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: controller1.profileImage.value.isNotEmpty
-                  ? Image.network(
-                controller1.profileImage.value,
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Image.asset(
-                    "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  );
-                },
-              )
-                  : Image.asset(
-                "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.colorYellow, width: 2),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: controller1.profileImage.value.isNotEmpty
+                    ? Image.network(
+                        controller1.profileImage.value,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
-          )),
+          ),
 
           const SizedBox(width: 10),
           Expanded(
@@ -829,7 +844,9 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
               children: [
                 Obx(() {
                   return AppText(
-                    controller1.firstName.value + " " + controller1.lastName.value,
+                    controller1.firstName.value +
+                        " " +
+                        controller1.lastName.value,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: AppColors.color2Box,
@@ -840,15 +857,15 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                 Row(
                   children: [
                     Obx(() {
-                        return AppText(
-                          "Help ${controller.userRole}",
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.color2Box,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        );
-                      }),
+                      return AppText(
+                        "Help ${controller.userRole}",
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.color2Box,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    }),
                     const SizedBox(width: 5),
                     IosTapEffect(
                       onTap: () {},
@@ -873,7 +890,6 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-
                   Positioned(
                     top: 4,
                     child: SvgPicture.asset(
@@ -886,51 +902,48 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                   Positioned(
                     right: -2,
                     top: 0,
-                    child:Obx(() {
-                          final unreadCount = notificationsController.unreadCount;
+                    child: Obx(() {
+                      final unreadCount = notificationsController.unreadCount;
 
-                          if (unreadCount <= 0) {
-                            return const SizedBox.shrink();
-                          }
+                      if (unreadCount <= 0) {
+                        return const SizedBox.shrink();
+                      }
 
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unreadCount > 99 ? "99+" : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Center(
-                              child: Text(
-                                unreadCount > 99 ? "99+" : unreadCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      ),
+                          ),
+                        ),
+                      );
+                    }),
                   ),
                 ],
               ),
             ),
           ),
-       ],
+        ],
       ),
     );
   }
-
 }
-
 
 class BannerAds extends StatefulWidget {
   const BannerAds({Key? key}) : super(key: key);
@@ -960,8 +973,8 @@ class _BannerAdsState extends State<BannerAds> {
       // Get an AnchoredAdaptiveBannerAdSize before loading the ad.
       final AnchoredAdaptiveBannerAdSize? size =
           await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-        MediaQuery.of(context).size.width.truncate(),
-      );
+            MediaQuery.of(context).size.width.truncate(),
+          );
 
       if (size == null || !mounted) {
         debugPrint('Unable to get adaptive banner size');
@@ -1029,7 +1042,7 @@ class _BannerAdsState extends State<BannerAds> {
         height: 50,
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.10),
-          borderRadius: BorderRadius.circular(12)
+          borderRadius: BorderRadius.circular(12),
         ),
       );
     }

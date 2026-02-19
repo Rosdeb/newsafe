@@ -30,7 +30,6 @@ class SigInController extends GetxController {
     final networkController = Get.find<NetworkController>();
 
     if (!networkController.isOnline.value) {
-      //print("Please connect to the internet!");
       return;
     }
 
@@ -50,31 +49,34 @@ class SigInController extends GetxController {
 
       if (response.statusCode == 200) {
         try {
-          final data = jsonDecode(response.body);
-          final user = data['user'];
-          final token = data["accessToken"];
-          final refreshToken = data['refreshToken'];
-          final id = user['_id'];
-          final role = data['user']['role'];
+          final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
+          final token        = responseBody['accessToken']  as String?;
+          final refreshToken = responseBody['refreshToken'] as String?;
+          final user         = responseBody['user']         as Map<String, dynamic>?;
 
+          if (token == null || user == null) {
+            Logger.log("❌ Missing token or user in response", type: "error");
+            return;
+          }
+
+          final id   = user['_id']  as String? ?? '';
+          final role = user['role'] as String? ?? '';
 
           await TokenService().saveToken(token);
           await TokenService().saveUserId(id);
-          await TokenService().saveRefreshToken(refreshToken);
+          await TokenService().saveRefreshToken(refreshToken ?? '');
 
           final userBox = await Hive.openBox('userProfileBox');
-          await userBox.put('name', user['name'] ?? '');
-          await userBox.put('email', user['email'] ?? '');
-          await userBox.put('_id', user['_id'] ?? '');
-          await userBox.put('role', user['role'] ?? '');
+          await userBox.put('name',        user['name']         ?? '');
+          await userBox.put('email',       user['email']        ?? '');
+          await userBox.put('_id',         user['_id']          ?? '');
+          await userBox.put('role',        user['role']         ?? '');
+          await userBox.put('phone',       user['phone']        ?? '');
+          await userBox.put('dateOfBirth', user['dateOfBirth']  ?? '');
+          await userBox.put('gender',      user['gender']       ?? '');
+          await userBox.put('profileImage',user['profileImage'] ?? '');
 
-
-          await userBox.put('phone', user['phone'] ?? '');
-          await userBox.put('dateOfBirth', user['dateOfBirth'] ?? '');
-          await userBox.put('gender', user['gender'] ?? '');
-          await userBox.put('image', user['profileImage'] ?? user['profileImage'] ?? '');
-
-          Logger.log("✅ Login successful - Basic info saved to Hive", type: "info");
+          Logger.log(" Login successful - user saved to Hive", type: "info");
 
           final userController = Get.find<UserController>();
           await userController.saveUserRole(role);
@@ -85,33 +87,38 @@ class SigInController extends GetxController {
             await clearCredentials();
           }
 
-          if(context.mounted){
+          if (context.mounted) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (builder) => BottomMenuWrappers()),
+              MaterialPageRoute(builder: (_) => BottomMenuWrappers()),
             );
           }
+
           registerFcmToken();
-          Logger.log("Login successful $data", type: "info");
+
         } on Exception catch (e) {
           Logger.log("Error parsing success response: $e", type: "error");
-
         }
+
       } else if (response.statusCode == 502) {
         final data = jsonDecode(response.body);
-        Logger.log("Server error (502): ${data}", type: "error");
+        Logger.log("Server error (502): $data", type: "error");
       } else {
         try {
-          final data = jsonDecode(response.body);
+          final data    = jsonDecode(response.body) as Map<String, dynamic>;
           final message = data["message"] ?? "Login failed. Please try again.";
           Logger.log("Login failed: $message", type: "error");
-
-        }on Exception catch (e) {
+          Get.snackbar(
+            'Login Failed',
+            message,
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.shade100,
+          );
+        } on Exception catch (e) {
           Logger.log("Error response (${response.statusCode}): ${response.body}", type: "error");
-
         }
       }
-    }on Exception catch (e, stackTrace) {
+    } on Exception catch (e) {
       Logger.log("Unexpected error: $e", type: "error");
     } finally {
       isLoading.value = false;
@@ -124,7 +131,7 @@ class SigInController extends GetxController {
     final networkController = Get.find<NetworkController>();
 
     if (fcmToken == null) {
-      Logger.log("❌ No FCM token found to register", type: "error");
+      Logger.log(" No FCM token found to register", type: "error");
       return;
     }
 
