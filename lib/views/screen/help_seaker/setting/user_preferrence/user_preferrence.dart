@@ -206,68 +206,6 @@ class UserPreferrence extends StatelessWidget {
     );
   }
 
-  Widget _buildLanguageTabs(bool isTablet, BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GetBuilder<LocalizationController>(
-      builder: (controller) {
-        return Wrap(
-          alignment: WrapAlignment.start,
-          spacing: isTablet ? 12.0 : 8.0,
-          runSpacing: isTablet ? 4.0 : 2.0,
-          children: AppConstants.languages.asMap().entries.map((entry) {
-            int index = entry.key;
-            final language = entry.value;
-            final isSelected = controller.selectedIndex == index;
-
-            return GestureDetector(
-              onTap: () {
-                controller.setLanguage(
-                    Locale(language.languageCode, language.countryCode)
-                );
-              },
-              behavior: HitTestBehavior.opaque,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? 12 : 11,
-                  vertical: isTablet ? 10 : 12,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppText(
-                      language.languageName.tr,
-                      fontSize: isTablet ? 15 : 13,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected
-                          ? (isDark ? AppColors.colorWhite : AppColors.color2Box)
-                          : (isDark ? AppColors.colorWhite.withOpacity(0.6) : AppColors.color2Box.withOpacity(0.6)),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      height: isTablet ? 3 : 2,
-                      width: _textWidth(
-                        language.languageName.tr,
-                        TextStyle(
-                          fontSize: isTablet ? 18 : 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      color: isSelected
-                          ? (isDark ? Colors.white : AppColors.colorYellow)
-                          : Colors.transparent,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
-
   double _textWidth(String text, TextStyle style) {
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: style),

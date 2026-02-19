@@ -491,7 +491,7 @@ class NotificationService {
         announcement: false,
         badge: true,
         carPlay: false,
-        criticalAlert: false,
+        criticalAlert: true,
         provisional: false,
         sound: true,
       );
@@ -727,6 +727,8 @@ class NotificationService {
       presentAlert: true,
       presentBadge: true,
       presentSound: _isSoundEnabled,
+      sound: _isSoundEnabled ? 'default' : null,
+      interruptionLevel: InterruptionLevel.active,
     );
 
     final NotificationDetails platformDetails = NotificationDetails(

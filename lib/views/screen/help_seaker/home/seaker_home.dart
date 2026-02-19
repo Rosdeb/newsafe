@@ -14,6 +14,7 @@ import 'package:saferader/utils/logger.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
+import 'package:vibration/vibration.dart';
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../../../controller/SeakerHome/seakerHomeController.dart';
 import '../../../../controller/UserController/userController.dart';
@@ -136,16 +137,37 @@ class _SeakerHomeState extends State<SeakerHome>
         SizedBox(height: size.height * 0.02),
 
         IosTapEffect(
-          onTap: () {
-            //controller.toggleMode();
+          onTap: ()async {
+
+            //<------> controller.toggleMode(); <------>//
             controller.helpRequest(
               context,
               locationController.currentPosition.value!.latitude,
               locationController.currentPosition.value!.longitude,
             );
-            print(
-              "click help request:${locationController.currentPosition.value!.latitude.toString()}",
-            );
+
+            controller.emergencyVibration();
+            // if (await Vibration.hasVibrator() ?? false) {
+            //   //<------> Custom emergency vibration pattern <------>
+            //   // await Vibration.vibrate(
+            //   //   pattern: [0, 200, 100, 200, 100, 200, 100, 200],
+            //   //   intensities: [255, 255, 255, 255],
+            //   // );
+            //   Vibration.vibrate(duration: 5000, pattern: [0, 200, 100, 200, 100, 200, 100, 200],
+            //     intensities: [255, 255, 255, 255],
+            //   repeat: 0,
+            //   );
+            //   Vibration.vibrate(duration: 50000);
+            // }
+            // HapticFeedback.heavyImpact();
+            // HapticFeedback.mediumImpact();
+            // HapticFeedback.lightImpact();
+            // HapticFeedback.selectionClick();
+            // HapticFeedback.vibrate();
+            // HapticFeedback.heavyImpact();
+
+            Logger.log("click help request:${locationController.currentPosition.value!.latitude.toString()}");
+
           },
           child: AnimatedBuilder(
             animation: _blinkAnimation,
@@ -239,47 +261,55 @@ class _SeakerHomeState extends State<SeakerHome>
           onTap: () {
             //controller.toggleMode();
           },
-          child: Container(
-            height: 300,
-            width: 300,
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFFEE3B5),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(10),
+          child: AnimatedBuilder(
+          animation: _blinkAnimation,
+          builder: (context, child) {
+            return Container(
+              height: 300,
+              width: 300,
+              padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFFFD7F2C),
+                color: Color(0xFFFEE3B5),
               ),
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFFFD9346),
+                  color: Color(0xFFFD7F2C),
                 ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AppText(
-                        "SENDING",
-                        fontSize: 34,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.colorWhite,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFD9346),
+                  ),
+                  child: Opacity(
+                    opacity: _blinkAnimation.value,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppText(
+                            "SENDING",
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.colorWhite,
+                          ),
+                          AppText(
+                            "Request..",
+                            fontSize: 22,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorWhite,
+                          ),
+                        ],
                       ),
-                      AppText(
-                        "Request..",
-                        fontSize: 22,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.colorWhite,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            );
+          }
           ),
         ),
 

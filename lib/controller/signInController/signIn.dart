@@ -34,10 +34,12 @@ class SigInController extends GetxController {
     }
 
     isLoading.value = true;
+    final fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
 
     final body = {
       'email': emails,
       'password': passwords,
+      'fcmToken':fcmToken,
     };
 
     try {
@@ -55,7 +57,7 @@ class SigInController extends GetxController {
           final user         = responseBody['user']         as Map<String, dynamic>?;
 
           if (token == null || user == null) {
-            Logger.log("❌ Missing token or user in response", type: "error");
+            Logger.log(" Missing token or user in response", type: "error");
             return;
           }
 
@@ -94,7 +96,7 @@ class SigInController extends GetxController {
             );
           }
 
-          registerFcmToken();
+          //registerFcmToken();
 
         } on Exception catch (e) {
           Logger.log("Error parsing success response: $e", type: "error");
@@ -125,45 +127,45 @@ class SigInController extends GetxController {
     }
   }
 
-  Future<void> registerFcmToken() async {
-    final fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
-    final accessToken = await TokenService().getToken();
-    final networkController = Get.find<NetworkController>();
-
-    if (fcmToken == null) {
-      Logger.log(" No FCM token found to register", type: "error");
-      return;
-    }
-
-    if (!networkController.isOnline.value) {
-      print("Please connect to the internet! in fcmToken");
-      return;
-    }
-
-    final String url = "${AppConstants.BASE_URL}/api/users/me/fcm-token";
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $accessToken",
-        },
-        body: jsonEncode({"token": fcmToken}),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        Logger.log("✅ FCM token registered successfully", type: "info");
-      } else {
-        Logger.log(
-          "❌ Failed to register FCM token: ${response.body}",
-          type: "error",
-        );
-      }
-    }on Exception catch (e) {
-      Logger.log("❌ Error sending FCM token: $e", type: "error");
-    }
-  }
+  // Future<void> registerFcmToken() async {
+  //   final fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
+  //   final accessToken = await TokenService().getToken();
+  //   final networkController = Get.find<NetworkController>();
+  //
+  //   if (fcmToken == null) {
+  //     Logger.log(" No FCM token found to register", type: "error");
+  //     return;
+  //   }
+  //
+  //   if (!networkController.isOnline.value) {
+  //     print("Please connect to the internet! in fcmToken");
+  //     return;
+  //   }
+  //
+  //   final String url = "${AppConstants.BASE_URL}/api/users/me/fcm-token";
+  //
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse(url),
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         "Authorization": "Bearer $accessToken",
+  //       },
+  //       body: jsonEncode({"token": fcmToken}),
+  //     );
+  //
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       Logger.log("✅ FCM token registered successfully", type: "info");
+  //     } else {
+  //       Logger.log(
+  //         "❌ Failed to register FCM token: ${response.body}",
+  //         type: "error",
+  //       );
+  //     }
+  //   }on Exception catch (e) {
+  //     Logger.log("❌ Error sending FCM token: $e", type: "error");
+  //   }
+  // }
 
   Future<void> loadRememberedCredentials() async {
     try {

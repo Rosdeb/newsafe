@@ -61,6 +61,9 @@ dependencies:
   flutter_background_service: ^5.1.0
   location: ^8.0.1
   dropdown_button2: ^2.3.9
+  vibration: ^3.1.7
+  device_info_plus: ^12.3.0
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
@@ -91,6 +94,7 @@ flutter:
      - assets/font/
      - .env
      - assets/language/
+     - assets/mp3/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

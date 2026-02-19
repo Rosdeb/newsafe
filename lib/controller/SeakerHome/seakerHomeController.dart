@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
@@ -8,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
+import 'package:vibration/vibration.dart';
 import '../../../Models/HelpRequestResponse.dart';
 import '../../../controller/SeakerLocation/seakerLocationsController.dart';
 import '../../../controller/SocketService/socket_service.dart';
@@ -15,6 +19,7 @@ import '../../../controller/UserController/userController.dart';
 import '../../../controller/networkService/networkService.dart';
 import '../../../utils/app_constant.dart';
 import '../../utils/auth_service.dart';
+import '../notifications/notifications_controller.dart';
 
 class SeakerHomeController extends GetxController {
 
@@ -378,6 +383,7 @@ class SeakerHomeController extends GetxController {
 
   Future<void> _handleHelpRequestAccepted(dynamic data) async {
     try {
+      stopVibration();
       Logger.log("🔥 [SEEKER] Processing help request accepted", type: "info");
       final requestData = data as Map<String, dynamic>;
       final helpRequest = requestData['helpRequest'] as Map<String, dynamic>?;
@@ -755,6 +761,7 @@ class SeakerHomeController extends GetxController {
   }
 
   void handleHelpRequestCancelled(dynamic data) {
+    stopVibration();
     try {
       final cancelledRequestId = data['_id']?.toString() ?? data['id']?.toString() ?? '';
 
@@ -821,6 +828,7 @@ class SeakerHomeController extends GetxController {
   }
 
   void _resetHelpRequestState() {
+    stopVibration();
     Logger.log("🔄 [SEEKER] Resetting help request state", type: "info");
     
     // Get help request ID before clearing it
@@ -849,6 +857,64 @@ class SeakerHomeController extends GetxController {
       }
     }
   }
+
+
+  bool _isVibrating = false;
+  AudioPlayer? _audioPlayer;
+
+  Future<void> emergencyVibration() async {
+    _isVibrating = true;
+
+    final notificationsController = Get.find<NotificationsController>();
+    final soundEnabled = notificationsController.isSoundEnabled.value;
+    final notificationsEnabled = notificationsController.isNotificationsEnabled.value;
+
+    // Play audio only if sound is enabled
+    if (soundEnabled && notificationsEnabled) {
+      _audioPlayer = AudioPlayer();
+      await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer!.play(AssetSource('mp3/preview.mp3'));
+    }
+
+    if (Platform.isAndroid) {
+      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      if (hasVibrator && notificationsEnabled) {
+        await Vibration.vibrate(
+          pattern: [0, 200, 100, 200, 100, 200, 100, 200],
+          intensities: [255, 255, 255, 255],
+          repeat: 0,
+        );
+      }
+    } else if (Platform.isIOS) {
+      while (_isVibrating) {
+        if (!notificationsEnabled) break; // stop if notifications disabled
+
+        await HapticFeedback.heavyImpact();
+        await Vibration.vibrate(duration: 100);
+        await Future.delayed(const Duration(milliseconds: 80));
+        if (!_isVibrating) break;
+
+        await Vibration.vibrate(duration: 100);
+        await HapticFeedback.heavyImpact();
+        await Future.delayed(const Duration(milliseconds: 80));
+        if (!_isVibrating) break;
+
+        await HapticFeedback.heavyImpact();
+        await Vibration.vibrate(duration: 100);
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+    }
+  }
+
+
+  void stopVibration() {
+    _isVibrating = false;
+    Vibration.cancel(); // stops Android vibration immediately
+    _audioPlayer?.stop();
+    _audioPlayer?.dispose();
+    _audioPlayer = null;
+  }
+
 
   Future<void> helpRequest(BuildContext context, double latitude, double longitude) async {
     // Initialize socket service if null
@@ -1017,6 +1083,7 @@ class SeakerHomeController extends GetxController {
   }
 
   Future<void> cancelHelpRequest() async {
+    stopVibration();
     if (currentHelpRequestId.value.isEmpty) {
       Logger.log("⚠️ No active request to cancel", type: "warning");
       Get.snackbar(
