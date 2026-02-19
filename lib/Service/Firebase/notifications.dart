@@ -514,6 +514,24 @@ class NotificationService {
     }
   }
 
+  /// Returns the FCM token, waiting up to [maxWait] if needed.
+  /// Useful for login flow where token must be ready before sending request.
+  static Future<String?> waitForFcmToken({Duration? maxWait}) async {
+    final duration = maxWait ?? const Duration(seconds: 5);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < duration) {
+      final token = await PrefsHelper.getString(AppConstants.fcmToken);
+      if (token != null) {
+        return token;
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    debugPrint('⚠️ FCM token not available after waiting');
+    return null;
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // PREFERENCES
   // ───────────────────────────────────────────────────────────────────────────

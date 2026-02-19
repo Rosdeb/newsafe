@@ -34,12 +34,19 @@ class SigInController extends GetxController {
     }
 
     isLoading.value = true;
-    final fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
+
+    // Wait for FCM token to be available (from native iOS or Firebase)
+    String? fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
+
+    // If no token found, wait up to 5 seconds for it to arrive
+    if (fcmToken == null) {
+      fcmToken = await NotificationService.waitForFcmToken();
+    }
 
     final body = {
       'email': emails,
       'password': passwords,
-      'fcmToken':fcmToken,
+      'fcmToken': fcmToken ?? '',
     };
 
     try {
@@ -55,6 +62,7 @@ class SigInController extends GetxController {
           final token        = responseBody['accessToken']  as String?;
           final refreshToken = responseBody['refreshToken'] as String?;
           final user         = responseBody['user']         as Map<String, dynamic>?;
+          Logger.log("Fcm Token: ${user?['fcmTokem']}", type: "error");
 
           if (token == null || user == null) {
             Logger.log(" Missing token or user in response", type: "error");
