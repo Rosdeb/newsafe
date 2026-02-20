@@ -208,17 +208,26 @@ class _ProfileState extends State<Profile> {
             children: [
 
               Obx(() {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(50),
-                  child: CachedNetworkImage(
-                    imageUrl: controller.profileImage.value,
-                    cacheKey: controller.profileImage.value.split('?').first,
-                    fit: BoxFit.cover,
-                    height: 75,
-                    width: 75,
-                    httpHeaders: const {"Accept": "image/*"},
-                    placeholder: (_, __) => const CupertinoActivityIndicator(),
-                    errorWidget: (_, __, ___) => const Icon(Icons.error),
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                      color: Colors.yellowAccent,
+                      width: 1,
+                    )
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: CachedNetworkImage(
+                      imageUrl: controller.profileImage.value,
+                      cacheKey: controller.profileImage.value.split('?').first,
+                      fit: BoxFit.cover,
+                      height: 75,
+                      width: 75,
+                      httpHeaders: const {"Accept": "image/*"},
+                      placeholder: (_, __) => const CupertinoActivityIndicator(),
+                      errorWidget: (_, __, ___) => const Icon(Icons.error),
+                    ),
                   ),
                 );
               }),

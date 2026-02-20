@@ -76,7 +76,7 @@ Any disputes will be handled under the jurisdiction of local courts.
               fontWeight: FontWeight.w500,
               color: AppColors.color2Box,
             ),
-            BannerAds(),
+           // BannerAds(),
           ],
         ),
       ),

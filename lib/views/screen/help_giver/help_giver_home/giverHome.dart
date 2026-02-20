@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1226,19 +1227,16 @@ class _SeakerHomeState extends State<Giverhome>
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(50),
-                child: controller1.profileImage.value.isNotEmpty
-                    ? Image.network(
-                        "${controller1.profileImage.value}",
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.asset(
-                        "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      ),
+                child:  CachedNetworkImage(
+                  imageUrl: controller1.profileImage.value,
+                  cacheKey: controller1.profileImage.value.split('?').first,
+                  fit: BoxFit.cover,
+                  height: 50,
+                  width: 50,
+                  httpHeaders: const {"Accept": "image/*"},
+                  placeholder: (_, __) => const CupertinoActivityIndicator(),
+                  errorWidget: (_, __, ___) => const Icon(Icons.error),
+                ),
               ),
             ),
           ),

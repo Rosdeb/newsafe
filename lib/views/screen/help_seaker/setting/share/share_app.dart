@@ -116,10 +116,10 @@ class ShareApp extends StatelessWidget {
 
 
              const SizedBox(height: 10,),
-             const Padding(
-                padding:  EdgeInsets.symmetric(horizontal: 18.0),
-                child: BannerAds(),
-              ),
+             // const Padding(
+             //    padding:  EdgeInsets.symmetric(horizontal: 18.0),
+             //    child: BannerAds(),
+             //  ),
             ],
           ),
         ),

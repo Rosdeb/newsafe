@@ -190,10 +190,10 @@ class UserPreferrence extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20,),
-                const Padding(
-                  padding:  EdgeInsets.symmetric(horizontal: 18.0),
-                  child: BannerAds(),
-                ),
+                // const Padding(
+                //   padding:  EdgeInsets.symmetric(horizontal: 18.0),
+                //   child: BannerAds(),
+                // ),
 
               //  _buildLanguageTabs(isTablet,context),
 
