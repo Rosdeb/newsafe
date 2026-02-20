@@ -15,6 +15,7 @@ class InputSignUpPage extends StatelessWidget {
 
   final SignUpController controller = Get.put(SignUpController());
   final controller1 = Get.put(CountryController());
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -176,7 +177,8 @@ class InputSignUpPage extends StatelessWidget {
           controller1.selectedCountryCode.value = selected.phoneCode;
 
           // Optional: Auto-fill the code into the text field
-          controller.phoneController.text = "+${selected.phoneCode} ";
+          //controller.phoneController.text = "+${selected.phoneCode} ";
+
         }
       },
       child: Obx(() {
@@ -219,16 +221,14 @@ class InputSignUpPage extends StatelessWidget {
                         controller1.selectedCountryName.value = selected.name;
                         controller1.selectedCountryFlag.value = selected.flagEmoji;
                         controller1.selectedCountryCode.value = selected.phoneCode;
-                        //controller.phonecontroller.text = "+${selected.phoneCode} ";
+                        controller.phoneController.text = "+${selected.phoneCode} ";
                       }
                     },
                     child: Row(
                       children: [
-                        Text(
-                          hasSelection
+                        Text(hasSelection
                               ? "+${controller1.selectedCountryCode.value}"
-                              : "Select".tr,
-                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                              : "Select".tr,style: const TextStyle(color: Colors.white, fontSize: 16),
                         ),
                         const SizedBox(width: 1),
                         const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 22),

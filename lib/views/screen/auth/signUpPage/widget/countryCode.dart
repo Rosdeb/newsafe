@@ -9,26 +9,33 @@ import '../../base/countices.dart';
 class CountryPage extends StatelessWidget {
   CountryPage({super.key});
 
-  final controller = Get.put(CountryController());
+  final CountryController controller = Get.put(CountryController());
 
   @override
   Widget build(BuildContext context) {
     controller.init();
+
+    // Ensure controller is cleaned up when page is disposed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Optional: Add any post-frame setup if needed
+    });
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0.0,
-        title: Text('Choose a country'.tr),
+        title: Text('Choose a country'.tr,style:const TextStyle(
+          color: Colors.white
+        ),),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Column(
         children: [
-          // ✅ Search box
+
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(

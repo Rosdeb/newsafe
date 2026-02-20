@@ -63,7 +63,7 @@ class _SigninScreenState extends State<SigninScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                SizedBox(height: size.height * 0.026),
+                SizedBox(height: size.height * 0.060),
                 SvgPicture.asset(AppIcons.miniSafeRadar),
                 SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                 AnimatedAppText(
@@ -161,12 +161,11 @@ class _SigninScreenState extends State<SigninScreen> {
                   child: Obx(()=>GradientButton(
                     isLoading: controller.isLoading.value,
                     text: 'Sign in'.tr.toUpperCase(),
-                    onTap: ()async{
-                      await controller.loginUser(
+                    onTap: (){
+                       controller.loginUser(
                           context,
                           controller.emailController.text.toString(),
                           controller.passwordController.text.toString());
-
                     },
                   ),)
                 ),

@@ -22,6 +22,7 @@ class SignUpScreen extends StatelessWidget {
 
   final SignUpController controller = Get.put(SignUpController());
 
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -45,7 +46,7 @@ class SignUpScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(height: size.height * 0.08),
+            SizedBox(height: size.height * 0.060),
             SvgPicture.asset(AppIcons.miniSafeRadar),
             SizedBox(height: MediaQuery.of(context).size.height * 0.02),
             Align(

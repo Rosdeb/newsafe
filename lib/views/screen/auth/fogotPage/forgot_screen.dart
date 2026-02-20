@@ -88,7 +88,7 @@ class ForgotScreen extends StatelessWidget {
                 child: Obx((){
                   return GradientButton(
                     isLoading: controller.isForgot.value,
-                    text: "Send reset link".tr.toUpperCase(),
+                    text: "Send reset otp".tr.toUpperCase(),
                     onTap: ()async {
 
                       controller.forgotPassword(context, controller.forgotEmail.text.toString());

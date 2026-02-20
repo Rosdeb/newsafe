@@ -45,7 +45,10 @@ class CountryController extends GetxController {
 
   void setCountry(BuildContext context, Country country) {
     selectedCountryName.value = country.name;
-    Get.back(result: country);
+    selectedCountryFlag.value = country.flagEmoji;
+    //selectedCountryCode.value = '+${country.phoneCode}';
+    // Use Navigator.pop instead of Get.back to avoid snackbar issues
+    Navigator.of(context).pop(country);
   }
 
   @override

@@ -118,11 +118,11 @@ class SigInController extends GetxController {
           final data    = jsonDecode(response.body) as Map<String, dynamic>;
           final message = data["message"] ?? "Login failed. Please try again.";
           Logger.log("Login failed: $message", type: "error");
-          Get.snackbar(
-            'Login Failed',
-            message,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.shade100,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.red.withValues(alpha: 0.80),
+              content: Text('Invalid credentials'),
+            ),
           );
         } on Exception catch (e) {
           Logger.log("Error response (${response.statusCode}): ${response.body}", type: "error");
