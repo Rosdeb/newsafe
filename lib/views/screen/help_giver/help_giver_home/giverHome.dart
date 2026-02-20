@@ -12,6 +12,7 @@ import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
+import '../../../../controller/SocketService/socket_service.dart';
 import '../../../../controller/UserController/userController.dart';
 import '../../../../controller/bottom_nav/bottomNavController.dart';
 import '../../../../controller/notifications/notifications_controller.dart';
@@ -20,7 +21,6 @@ import '../../../../utils/app_constant.dart';
 import '../../../base/AppText/appText.dart';
 import '../../map_seeker/map_seeker_enhanced.dart';
 
-
 class Giverhome extends StatefulWidget {
   Giverhome({super.key});
 
@@ -28,7 +28,8 @@ class Giverhome extends StatefulWidget {
   State<Giverhome> createState() => _SeakerHomeState();
 }
 
-class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMixin {
+class _SeakerHomeState extends State<Giverhome>
+    with SingleTickerProviderStateMixin {
   late final GiverHomeController controller;
   late final UserController userController;
   late final ProfileController controller1;
@@ -36,7 +37,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
   late AnimationController _blinkController;
   late Animation<double> _blinkAnimation;
   final navController = Get.find<BottomNavController>();
-  final NotificationsController notificationsController = Get.find<NotificationsController>();
+  final NotificationsController notificationsController =
+      Get.find<NotificationsController>();
 
   @override
   void initState() {
@@ -47,18 +49,19 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
     controller1 = Get.put(ProfileController());
     locationController = Get.put(SeakerLocationsController());
 
+    if (Get.isRegistered<SocketService>()) {
+      final socketService = Get.find<SocketService>();
+      socketService.updateRole('giver');
+    }
+
     _blinkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
 
     _blinkAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _blinkController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
     );
-
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.initSocket();
@@ -69,7 +72,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
   @override
   void dispose() {
     _blinkController.dispose();
-    if (controller.socketService != null && controller.socketService!.isConnected.value) {
+    if (controller.socketService != null &&
+        controller.socketService!.isConnected.value) {
       controller.socketService!.socket.disconnect();
       controller.socketService!.isConnected.value = false;
       Logger.log("🔌 Socket disconnected because page disposed", type: "info");
@@ -137,13 +141,13 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       children: [
         helpGiver(),
         SizedBox(height: size.height * 0.02),
-        Obx((){
-          if(controller.helperStatus.value){
+        Obx(() {
+          if (controller.helperStatus.value) {
             return Column(
               children: [
                 IosTapEffect(
                   onTap: () {
-                   // controller.emergencyMode.value = 1;
+                    // controller.emergencyMode.value = 1;
                   },
                   child: AnimatedBuilder(
                     animation: _blinkAnimation,
@@ -204,7 +208,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                   child: Column(
                     children: [
                       const SizedBox(height: 15),
-                      SvgPicture.asset("assets/icon/tabler_heart-handshake.svg"),
+                      SvgPicture.asset(
+                        "assets/icon/tabler_heart-handshake.svg",
+                      ),
                       const SizedBox(height: 15),
                       const AppText(
                         "No emergency requests right now",
@@ -224,12 +230,10 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                 ),
               ],
             );
-          }else{
+          } else {
             return const SizedBox();
           }
         }),
-
-
       ],
     );
   }
@@ -257,26 +261,26 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
               ),
             ],
           ),
-          Obx(()=>Transform.scale(
-            scale: 0.8,
-            child: CupertinoSwitch(
-              value: controller.helperStatus.value,
-              onChanged: (v) async {
-                controller.helperStatus.value = v;
-                try {
-                  await controller.updateAvailability(v);
-                }on Exception catch (e) {
-                  controller.helperStatus.value = !v;
-                }
-              },
-              activeColor: AppColors.colorYellow,
-              trackColor: Colors.grey.shade300,
-              thumbColor: Colors.white,
-              inactiveThumbColor: Colors.white,
+          Obx(
+            () => Transform.scale(
+              scale: 0.8,
+              child: CupertinoSwitch(
+                value: controller.helperStatus.value,
+                onChanged: (v) async {
+                  controller.helperStatus.value = v;
+                  try {
+                    await controller.updateAvailability(v);
+                  } on Exception catch (e) {
+                    controller.helperStatus.value = !v;
+                  }
+                },
+                activeColor: AppColors.colorYellow,
+                trackColor: Colors.grey.shade300,
+                thumbColor: Colors.white,
+                inactiveThumbColor: Colors.white,
+              ),
             ),
           ),
-          ),
-
         ],
       ),
     );
@@ -383,7 +387,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
 
             return emergencyRequestCard(
               name: seeker?['name'] ?? 'Someone',
-              image: seeker?['profileImage'] ?? 'https://img.freepik.com/free-photo/portrait-smiling-indian-person-posing-front-camera_482257-122324.jpg?semt=ais_hybrid&w=740&q=80',
+              image:
+                  seeker?['profileImage'] ??
+                  'https://img.freepik.com/free-photo/portrait-smiling-indian-person-posing-front-camera_482257-122324.jpg?semt=ais_hybrid&w=740&q=80',
               km: request['distance']?.toString() ?? 'Calculating...',
               eta: request['eta']?.toString() ?? 'Calculating...',
               id: requestId,
@@ -391,8 +397,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
             );
           },
         ),
-
-
       ],
     );
   }
@@ -408,7 +412,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
     // Get the actual seeker data from request
     final seeker = request['seeker'] as Map<String, dynamic>?;
     final actualName = seeker?['name']?.toString() ?? 'Someone';
-    final actualImage = seeker?['profileImage']?.toString() ?? 'https://img.freepik.com/free-photo/portrait-smiling-indian-person-posing-front-camera_482257-122324.jpg?semt=ais_hybrid&w=740&q=80';
+    final actualImage =
+        seeker?['profileImage']?.toString() ??
+        'https://img.freepik.com/free-photo/portrait-smiling-indian-person-posing-front-camera_482257-122324.jpg?semt=ais_hybrid&w=740&q=80';
 
     // Get actual distance and eta from request
     final actualDistance = request['distance']?.toString() ?? 'Calculating...';
@@ -427,11 +433,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
         color: const Color(0xFFFFF7C8),
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -495,8 +497,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 16, color: Colors.black54),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: Colors.black54,
+                        ),
                         const SizedBox(width: 4),
                         AppText(
                           actualDistance,
@@ -504,8 +509,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                           color: Colors.black54,
                         ),
                         const SizedBox(width: 12),
-                        const Icon(Icons.timer_outlined,
-                            size: 16, color: Colors.black54),
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: Colors.black54,
+                        ),
                         const SizedBox(width: 4),
                         AppText(
                           "ETA $actualEta",
@@ -536,7 +544,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
             children: [
               Expanded(
                 child: IosTapEffect(
-                  onTap: ()async {
+                  onTap: () async {
                     controller.acceptHelpRequest(id);
                   },
                   child: Container(
@@ -566,7 +574,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
               const SizedBox(width: 12),
               Expanded(
                 child: IosTapEffect(
-                  onTap: ()async {
+                  onTap: () async {
                     controller.declineHelpRequest(id);
                   },
                   child: Container(
@@ -657,11 +665,10 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       } else {
         return "${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago";
       }
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       return "Recently";
     }
   }
-
 
   Widget helpComing(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -732,7 +739,10 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
               child: Column(
                 children: [
                   GradientButtons(
-                    gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                    gradientColors: const [
+                      Color(0xFFD93A3A),
+                      Color(0xFFE94A4A),
+                    ],
                     onTap: () {},
                     text: "Cancel Request",
                     icon: Icons.cancel_outlined,
@@ -753,13 +763,16 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       // If there's an accepted request, show the seeker info
       final seeker = acceptedRequest['seeker'] as Map<String, dynamic>?;
       final seekerName = seeker?['name']?.toString() ?? 'Someone';
-      final seekerImage = seeker?['profileImage']?.toString() ??
+      final seekerImage =
+          seeker?['profileImage']?.toString() ??
           'https://img.freepik.com/free-photo/portrait-smiling-indian-person-posing-front-camera_482257-122324.jpg';
-      final distance = acceptedRequest['distance']?.toString() ?? 'Calculating...';
+      final distance =
+          acceptedRequest['distance']?.toString() ?? 'Calculating...';
       final eta = acceptedRequest['eta']?.toString() ?? 'Calculating...';
       final requestId = acceptedRequest['_id']?.toString() ?? '';
 
-      final seekerLocation = acceptedRequest['location']?['coordinates'] as List<dynamic>?;
+      final seekerLocation =
+          acceptedRequest['location']?['coordinates'] as List<dynamic>?;
       LatLng? seekerLatLng;
 
       if (seekerLocation != null && seekerLocation.length == 2) {
@@ -803,7 +816,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                             color: Colors.white.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(50),
                           ),
-                          child: const Icon(Icons.person, size: 40, color: Colors.white),
+                          child: const Icon(
+                            Icons.person,
+                            size: 40,
+                            color: Colors.white,
+                          ),
                         );
                       },
                     ),
@@ -832,7 +849,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.location_on, size: 16, color: Colors.white),
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                                 const SizedBox(width: 4),
                                 AppText(
                                   distance,
@@ -841,7 +862,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                                   color: AppColors.colorWhite,
                                 ),
                                 const SizedBox(width: 12),
-                                const Icon(Icons.timer, size: 16, color: Colors.white),
+                                const Icon(
+                                  Icons.timer,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                                 const SizedBox(width: 4),
                                 AppText(
                                   "ETA $eta",
@@ -880,7 +905,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                 GradientButtons(
                   onTap: () {
                     controller.markWorkDone(requestId);
-
                   },
                   text: "Work is done",
                   icon: Icons.check,
@@ -895,7 +919,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 const SizedBox(height: 8),
 
                 Row(
@@ -934,7 +957,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: AppText(
@@ -978,12 +1005,15 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                         children: [
                           // Map Widget - FIXED: Use locationController instead of controller
                           Obx(() {
-                            final giverPos = locationController.currentPosition.value;
+                            final giverPos =
+                                locationController.currentPosition.value;
 
                             if (giverPos == null || seekerLatLng == null) {
                               return const SizedBox(
                                 height: 200,
-                                child: Center(child: CircularProgressIndicator()),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                               );
                             }
 
@@ -995,15 +1025,26 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                             final Set<Marker> markers = {
                               Marker(
                                 markerId: const MarkerId("giver_location"),
-                                position: LatLng(giverPos.latitude, giverPos.longitude),
-                                infoWindow: const InfoWindow(title: "You (Helper)"),
-                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                                position: LatLng(
+                                  giverPos.latitude,
+                                  giverPos.longitude,
+                                ),
+                                infoWindow: const InfoWindow(
+                                  title: "You (Helper)",
+                                ),
+                                icon: BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueGreen,
+                                ),
                               ),
                               Marker(
                                 markerId: const MarkerId("seeker_location"),
                                 position: seekerLatLng!,
-                                infoWindow: InfoWindow(title: seekerName ?? "Seeker"),
-                                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                                infoWindow: InfoWindow(
+                                  title: seekerName ?? "Seeker",
+                                ),
+                                icon: BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueRed,
+                                ),
                               ),
                             };
 
@@ -1012,17 +1053,18 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: GoogleMap(
-                                  initialCameraPosition:cameraPosition,
+                                  initialCameraPosition: cameraPosition,
                                   markers: markers,
                                   onTap: (LatLng tappedPosition) {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>const UniversalMapViewEnhanced(
-                                          // giverLocation: LatLng(giverPos.latitude, giverPos.longitude),
-                                          // seekerLocation: seekerLatLng!,
-                                          // seekerName: seekerName,
-                                        ),
+                                        builder: (context) =>
+                                            const UniversalMapViewEnhanced(
+                                              // giverLocation: LatLng(giverPos.latitude, giverPos.longitude),
+                                              // seekerLocation: seekerLatLng!,
+                                              // seekerName: seekerName,
+                                            ),
                                       ),
                                     );
                                   },
@@ -1053,7 +1095,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                                 height: 32,
                                 width: 83,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFDE047).withOpacity(0.80),
+                                  color: const Color(
+                                    0xFFFDE047,
+                                  ).withOpacity(0.80),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(16),
                                     bottomRight: Radius.circular(8),
@@ -1117,7 +1161,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                                 ),
                                 const SizedBox(height: 4),
                                 AppText(
-                                  locationController.currentPosition.value == null
+                                  locationController.currentPosition.value ==
+                                          null
                                       ? "--/--/----"
                                       : "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
                                   fontSize: 14,
@@ -1137,7 +1182,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                           child: GradientButtons(
                             onTap: () {
                               controller.markWorkDone(requestId);
-                              Logger.log("hello it click",type: "info");
+                              Logger.log("hello it click", type: "info");
                             },
                             text: "Done",
                             icon: Icons.check,
@@ -1149,16 +1194,18 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                             onTap: () {
                               controller.leaveHelpRequestRoom(requestId);
                             },
-                            gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                            gradientColors: const [
+                              Color(0xFFD93A3A),
+                              Color(0xFFE94A4A),
+                            ],
                             text: "Cancel",
                             icon: Icons.cancel_outlined,
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
-
               ],
             ),
           ),
@@ -1172,35 +1219,34 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       backgroundColor: AppColors.iconBg.withOpacity(0.01),
       child: Row(
         children: [
-          Obx(() =>Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.colorYellow, width: 2),
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-
-                    child: controller1.profileImage.value.isNotEmpty
-                        ? Image.network(
-                     "${AppConstants.BASE_URL}/${controller1.profileImage.value}",
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    ):Image.asset(
-                      "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),),
-
+          Obx(() => Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.colorYellow, width: 2),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: controller1.profileImage.value.isNotEmpty
+                    ? Image.network(
+                        "${controller1.profileImage.value}",
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        "assets/image/8164f733772cbb414dbcbe72a6effd38ed037858.jpg",
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+            ),
+          ),
 
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               Obx(() {
                 return AppText(
                   controller1.firstName.value,
@@ -1214,7 +1260,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
 
               Row(
                 children: [
-                  Obx(() => AppText(
+                  Obx(
+                    () => AppText(
                       "Help ${userController.userRole}",
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
@@ -1223,21 +1270,23 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                   ),
                   const SizedBox(width: 5),
                   IosTapEffect(
-                    onTap: () {
-                    },
+                    onTap: () {},
                     child: SvgPicture.asset(
                       "assets/icon/material-symbols-light_change-circle.svg",
                     ),
                   ),
                 ],
               ),
-
             ],
           ),
           const Spacer(),
           IosTapEffect(
             onTap: () {
-              navController.notification(2);
+              if (userController.userRole == 'both') {
+                Get.to(SeakerNotifications());
+              } else {
+                navController.notification(2);
+              }
             },
             child: SizedBox(
               height: 50,
@@ -1245,7 +1294,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-
                   Positioned(
                     top: 4,
                     child: SvgPicture.asset(
@@ -1258,7 +1306,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                   Positioned(
                     right: -2,
                     top: 0,
-                    child:Obx(() {
+                    child: Obx(() {
                       final unreadCount = notificationsController.unreadCount;
 
                       if (unreadCount <= 0) {
@@ -1289,8 +1337,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
                           ),
                         ),
                       );
-                    }
-                    ),
+                    }),
                   ),
                 ],
               ),
@@ -1327,9 +1374,9 @@ class _BannerAdsState extends State<BannerAds> {
   void _loadAd() async {
     try {
       final AnchoredAdaptiveBannerAdSize? size =
-      await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-        MediaQuery.of(context).size.width.truncate(),
-      );
+          await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+            MediaQuery.of(context).size.width.truncate(),
+          );
 
       if (size == null || !mounted) {
         debugPrint('Unable to get adaptive banner size');
@@ -1363,7 +1410,7 @@ class _BannerAdsState extends State<BannerAds> {
           },
         ),
       )..load();
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       debugPrint('Error loading banner ad: $e');
       if (mounted) {
         setState(() {

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -95,58 +96,56 @@ class _EditProfileState extends State<EditProfile> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-
                         // In your EditProfile widget, update the profile image section:
-
-                        Obx(() => IosTapEffect(
-                          onTap: () {
-                            controllers.pickProfileImage();
-                          },
-                          child: Container(
-                            height: 100,
-                            width: 100,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(50),
-                              color: AppColors.colorYellow,
-                              border: Border.all(
+                        Obx(
+                          () => IosTapEffect(
+                            onTap: () {
+                              controllers.pickProfileImage();
+                            },
+                            child: Container(
+                              height: 100,
+                              width: 100,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(50),
                                 color: AppColors.colorYellow,
-                                width: 2,
+                                border: Border.all(
+                                  color: AppColors.colorYellow,
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(50),
-                              child: controllers.selectedProfileImage.value != null
-                                  ? Image.file(
-                                controllers.selectedProfileImage.value!,
-                                fit: BoxFit.cover,
-                              )
-                                  : controllers.profileImageUrl.value.isNotEmpty
-                                  ? Image.network(
-                                controllers.profileImageUrl.value,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    "assets/icon/user.png",
-                                    fit: BoxFit.cover,
-                                  );
-                                },
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.colorYellow,
-                                      strokeWidth: 3,
-                                    ),
-                                  );
-                                },
-                              )
-                                  : Image.asset(
-                                "assets/icon/user.png",
-                                fit: BoxFit.cover,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(50),
+                                child:
+                                    controllers.selectedProfileImage.value !=
+                                        null
+                                    ? Image.file(
+                                        controllers.selectedProfileImage.value!,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : controllers
+                                          .profileImageUrl
+                                          .value
+                                          .isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: controllers.profileImageUrl.value,
+                                        cacheKey: controllers.profileImageUrl.value.split('?').first,
+                                        fit: BoxFit.cover,
+                                        httpHeaders: const {
+                                          "Accept": "image/*",
+                                        },
+                                        placeholder: (_, __) =>
+                                            const CupertinoActivityIndicator(),
+                                        errorWidget: (_, __, ___) =>
+                                            const Icon(Icons.error),
+                                      )
+                                    : Image.asset(
+                                        "assets/icon/user.png",
+                                        fit: BoxFit.cover,
+                                      ),
                               ),
                             ),
                           ),
-                        )),
+                        ),
 
                         SizedBox(width: size.height * 0.02),
                         Expanded(
@@ -201,26 +200,25 @@ class _EditProfileState extends State<EditProfile> {
                 child: Row(
                   children: [
                     Expanded(
-                      child:  AppTextField(
-                          textColor: Colors.black,
-                          fillColor: Colors.transparent,
-                          keyboardType: TextInputType.emailAddress,
-                          controller: controllers.nameController,
-                          hint: "First name",
-                        ),
+                      child: AppTextField(
+                        textColor: Colors.black,
+                        fillColor: Colors.transparent,
+                        keyboardType: TextInputType.emailAddress,
+                        controller: controllers.nameController,
+                        hint: "First name",
                       ),
+                    ),
 
                     const SizedBox(width: 10),
                     Expanded(
                       child: AppTextField(
-                          textColor: Colors.black,
-                          fillColor: Colors.transparent,
-                          keyboardType: TextInputType.emailAddress,
-                          controller: controllers.lastnameController,
-                          hint: "Last name",
-                        ),
+                        textColor: Colors.black,
+                        fillColor: Colors.transparent,
+                        keyboardType: TextInputType.emailAddress,
+                        controller: controllers.lastnameController,
+                        hint: "Last name",
+                      ),
                     ),
-
                   ],
                 ),
               ),
@@ -307,7 +305,7 @@ class _EditProfileState extends State<EditProfile> {
                                   controllers.selectedIndex.value--;
                                 }
                               },
-                              child:const Icon(
+                              child: const Icon(
                                 Icons.arrow_forward_ios_sharp,
                                 size: 16,
                               ),
@@ -384,7 +382,6 @@ class _EditProfileState extends State<EditProfile> {
                 ),
               ),
 
-
               SizedBox(height: size.height * 0.02),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18.0),
@@ -397,7 +394,10 @@ class _EditProfileState extends State<EditProfile> {
                   decoration: BoxDecoration(
                     color: AppColors.iconBg.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(width: 1.2, color: AppColors.colorYellow),
+                    border: Border.all(
+                      width: 1.2,
+                      color: AppColors.colorYellow,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,13 +478,18 @@ class _EditProfileState extends State<EditProfile> {
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                child:Obx(()=>GradientButton(
-                  isLoading: controllers.save.value,
-                  text: 'Save & update'.toUpperCase(),
-                  onTap: ()async{
-                    controllers.updateProfileHttp(context, profileImage: controllers.selectedProfileImage.value, );
-                  },
-                ),)
+                child: Obx(
+                  () => GradientButton(
+                    isLoading: controllers.save.value,
+                    text: 'Save & update'.toUpperCase(),
+                    onTap: () async {
+                      controllers.updateProfileHttp(
+                        context,
+                        profileImage: controllers.selectedProfileImage.value,
+                      );
+                    },
+                  ),
+                ),
               ),
 
               SizedBox(height: size.height * 0.02),

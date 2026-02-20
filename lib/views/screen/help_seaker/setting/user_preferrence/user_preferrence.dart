@@ -133,12 +133,10 @@ class UserPreferrence extends StatelessWidget {
                                 onChanged: notificationsController.isNotificationsEnabled.value
                                     ? (value) {
                                   notificationsController.toggleSound(value);
-                                  // 🔥 নতুন লাইন: Sound অফ হলে Vibration অফ হবে
                                   if (!value) {
                                     notificationsController.toggleVibration(false);
                                   }
-                                }
-                                    : null,
+                                }: null,
                                 activeColor: AppColors.colorYellow,
                                 trackColor: Colors.grey.shade300,
                                 thumbColor: Colors.white,

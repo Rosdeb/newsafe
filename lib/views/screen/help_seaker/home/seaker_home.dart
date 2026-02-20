@@ -17,6 +17,7 @@ import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifica
 import 'package:vibration/vibration.dart';
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../../../controller/SeakerHome/seakerHomeController.dart';
+import '../../../../controller/SocketService/socket_service.dart';
 import '../../../../controller/UserController/userController.dart';
 import '../../../../controller/profile/profile.dart';
 import '../../../base/AppText/appText.dart';
@@ -48,7 +49,10 @@ class _SeakerHomeState extends State<SeakerHome>
     locationController = Get.put(SeakerLocationsController());
     userController = Get.find<UserController>();
     controller1 = Get.put(ProfileController());
-
+    if (Get.isRegistered<SocketService>()) {
+      final socketService = Get.find<SocketService>();
+      socketService.updateRole('seeker');
+    }
     _blinkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -137,8 +141,7 @@ class _SeakerHomeState extends State<SeakerHome>
         SizedBox(height: size.height * 0.02),
 
         IosTapEffect(
-          onTap: ()async {
-
+          onTap: () async {
             //<------> controller.toggleMode(); <------>//
             controller.helpRequest(
               context,
@@ -166,8 +169,9 @@ class _SeakerHomeState extends State<SeakerHome>
             // HapticFeedback.vibrate();
             // HapticFeedback.heavyImpact();
 
-            Logger.log("click help request:${locationController.currentPosition.value!.latitude.toString()}");
-
+            Logger.log(
+              "click help request:${locationController.currentPosition.value!.latitude.toString()}",
+            );
           },
           child: AnimatedBuilder(
             animation: _blinkAnimation,
@@ -262,54 +266,54 @@ class _SeakerHomeState extends State<SeakerHome>
             //controller.toggleMode();
           },
           child: AnimatedBuilder(
-          animation: _blinkAnimation,
-          builder: (context, child) {
-            return Container(
-              height: 300,
-              width: 300,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFFEE3B5),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(10),
+            animation: _blinkAnimation,
+            builder: (context, child) {
+              return Container(
+                height: 300,
+                width: 300,
+                padding: const EdgeInsets.all(24),
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFFFD7F2C),
+                  color: Color(0xFFFEE3B5),
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFFFD9346),
+                    color: Color(0xFFFD7F2C),
                   ),
-                  child: Opacity(
-                    opacity: _blinkAnimation.value,
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AppText(
-                            "SENDING",
-                            fontSize: 34,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.colorWhite,
-                          ),
-                          AppText(
-                            "Request..",
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.colorWhite,
-                          ),
-                        ],
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFFD9346),
+                    ),
+                    child: Opacity(
+                      opacity: _blinkAnimation.value,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AppText(
+                              "SENDING",
+                              fontSize: 34,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.colorWhite,
+                            ),
+                            AppText(
+                              "Request..",
+                              fontSize: 22,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.colorWhite,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            },
           ),
         ),
 
@@ -835,7 +839,8 @@ class _SeakerHomeState extends State<SeakerHome>
       backgroundColor: AppColors.iconBg.withOpacity(0.01),
       child: Row(
         children: [
-          Obx(() => Container(
+          Obx(
+            () => Container(
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.colorYellow, width: 2),
                 borderRadius: BorderRadius.circular(50),

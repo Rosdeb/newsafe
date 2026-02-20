@@ -196,7 +196,6 @@ class SocketService extends GetxService {
     // Common events for both roles
     socket.on('helpRequestAccepted', (data) {
       Logger.log("❤️ HELP REQUEST ACCEPTED: $data", type: "success");
-      // This will be handled by the respective controllers
     });
 
     socket.on('message', (data) {
@@ -204,11 +203,10 @@ class SocketService extends GetxService {
     });
 
     socket.on('error', (data) {
-      Logger.log("❌ Error: $data", type: "error");
+      Logger.log(" Error: $data", type: "error");
       Get.snackbar("Error", data.toString());
     });
 
-    // Role-specific events
     if (userRole.value == 'giver' || userRole.value == 'both') {
       _setupGiverListeners();
     }
@@ -221,11 +219,10 @@ class SocketService extends GetxService {
   void _setupGiverListeners() {
     socket.on('giver_newHelpRequest', (data) {
       Logger.log("🆘 NEW HELP REQUEST for Giver: $data", type: "info");
-      // This will be handled by GiverHomeController
     });
 
     socket.on('giver_helpRequestDeclined', (data) {
-      Logger.log("❌ Help request declined confirmation: $data", type: "info");
+      Logger.log(" Help request declined confirmation: $data", type: "info");
     });
 
     socket.on('giver_receiveLocationUpdate', (data) {
@@ -289,7 +286,7 @@ class SocketService extends GetxService {
         return;
       }
 
-      //⚠️ CRITICAL: According to backend spec, payload should ONLY contain latitude & longitude
+      // CRITICAL: According to backend spec, payload should ONLY contain latitude & longitude
       // Server identifies the help request from the room the socket is in
       final locationData = {
         'latitude': latitude,
@@ -317,18 +314,18 @@ class SocketService extends GetxService {
 
       Logger.log("🚪 Attempting to join room: $roomId", type: "info");
 
-      // 🔥 FIX: Use regular emit instead of emitWithAck since server doesn't support acks
+      // FIX: Use regular emit instead of emitWithAck since server doesn't support ack
       // Remove the emitWithAck and use regular emit
       socket.emit('joinRoom', roomId);
       currentRoom = roomId;
 
-      // 🔥 Wait a short moment for the emit to complete (but not for ack)
+      // Wait a short moment for the emit to complete (but not for ack)
       await Future.delayed(const Duration(milliseconds: 300));
 
       Logger.log("📤 Room join request sent: $roomId", type: "info");
 
     } catch (e) {
-      Logger.log("❌ Error joining room: $e", type: "error");
+      Logger.log(" Error joining room: $e", type: "error");
       // Don't rethrow - just log and continue
     }
   }
@@ -344,12 +341,12 @@ class SocketService extends GetxService {
   void updateRole(String newRole) {
     if (userRole.value != newRole) {
       userRole.value = newRole;
-      _setupRoleBasedListeners(); // Re-setup listeners for new role
+      _setupRoleBasedListeners();
       Logger.log("🔄 User role updated to: $newRole", type: "info");
     }
   }
 
-  /// Start monitoring connection health to detect potential ping timeout issues
+  // Start monitoring connection health to detect potential ping timeout issues
   void _startConnectionHealthMonitoring() {
     _connectionHealthTimer?.cancel();
     _lastPingTime = DateTime.now();

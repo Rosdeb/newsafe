@@ -149,6 +149,7 @@
     <application
         android:label="saferader"
         android:name="${applicationName}"
+        android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         tools:replace="android:label">

@@ -117,10 +117,10 @@ class Distancesetting extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 25,),
-              const Padding(
-                padding:  EdgeInsets.symmetric(horizontal: 18.0),
-                child: BannerAds(),
-              ),
+              // const Padding(
+              //   padding:  EdgeInsets.symmetric(horizontal: 18.0),
+              //   child: BannerAds(),
+              // ),
             ],
           ),
         ),

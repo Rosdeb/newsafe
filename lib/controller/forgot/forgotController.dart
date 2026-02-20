@@ -160,9 +160,8 @@ class ForgotController extends GetxController {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (builder) => SuccessMessageScreen(title: "OTP Verification Successful",details: "You can now reset your password",buttonText: "go to password reset",onTap: (){
+              builder: (builder) => SuccessMessageScreen(title: "OTP Verification Successful",details: "You can now reset your password",buttonText: "Go To Login Screen",onTap: (){
                 Navigator.push(context, MaterialPageRoute(builder: (builder)=>SigninScreen()));
-
               },),
 
             ),

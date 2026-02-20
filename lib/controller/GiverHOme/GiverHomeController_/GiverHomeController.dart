@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:saferader/controller/UserController/userController.dart';
 import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
 import '../../../utils/app_constant.dart';
@@ -14,6 +15,7 @@ class GiverHomeController extends GetxController {
   RxInt emergencyMode = 0.obs;
   RxList<Map<String, dynamic>> pendingHelpRequests = <Map<String, dynamic>>[].obs;
   Rxn<Map<String, dynamic>> acceptedHelpRequest = Rxn<Map<String, dynamic>>();
+  final UserController userController = Get.find<UserController>();
   Rxn<Position> seekerPosition = Rxn<Position>();
   SocketService? _socketService;
   SocketService? get socketService => _socketService;
@@ -92,7 +94,7 @@ class GiverHomeController extends GetxController {
 
 
       ever(locationController.currentPosition, (position) {
-        if (position != null) { // ✅ শুধু নিজের লোকেশন চেক করুন
+        if (position != null) {
           _updateDistanceAndEta();
         }
       });
@@ -177,6 +179,8 @@ class GiverHomeController extends GetxController {
 
     socketService?.socket.on('helpRequestAccepted', (data) {
       if (!Get.isRegistered<GiverHomeController>()) return;
+      final userRole = userController.userRole.value;
+         if (userRole != 'giver' && userRole != 'both') return;
       Logger.log("❤️ HELP REQUEST ACCEPTED RECEIVED: $data", type: "success");
       _handleHelpRequestAccepted(data);
     });

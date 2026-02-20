@@ -22,7 +22,6 @@ import '../../utils/auth_service.dart';
 import '../notifications/notifications_controller.dart';
 
 class SeakerHomeController extends GetxController {
-
   final userController = Get.find<UserController>();
   RxBool isSearching = false.obs;
   RxBool isLoading1 = false.obs;
@@ -39,7 +38,8 @@ class SeakerHomeController extends GetxController {
   RxString eta = 'Calculating...'.obs;
 
   Rxn<Map<String, dynamic>> activeHelpRequest = Rxn<Map<String, dynamic>>();
-  RxList<Map<String, dynamic>> incomingHelpRequests = <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> incomingHelpRequests =
+      <Map<String, dynamic>>[].obs;
   RxString currentHelpRequestId = ''.obs;
   Timer? _reconnectTimer;
   int _reconnectAttempts = 0;
@@ -68,10 +68,7 @@ class SeakerHomeController extends GetxController {
     loadUserData();
     fetchUserProfile();
     fetchProfileImage();
-
   }
-
-
 
   Future<void> fetchUserProfile() async {
     try {
@@ -91,11 +88,16 @@ class SeakerHomeController extends GetxController {
         final imageUrl = user['profileImage']?.toString() ?? '';
         if (imageUrl.isNotEmpty) {
           profileImage11.value = imageUrl;
-          Logger.log("✅ Profile image loaded from API: $imageUrl", type: "info");
+          Logger.log(
+            "✅ Profile image loaded from API: $imageUrl",
+            type: "info",
+          );
         }
-
       } else {
-        Logger.log("⚠ Failed to fetch profile: ${response.statusCode}", type: "warning");
+        Logger.log(
+          "⚠ Failed to fetch profile: ${response.statusCode}",
+          type: "warning",
+        );
       }
     } catch (e) {
       Logger.log(" Error fetching profile image: $e", type: "error");
@@ -116,7 +118,10 @@ class SeakerHomeController extends GetxController {
         final body = json.decode(response.body) as Map<String, dynamic>;
         final user = (body['data'] ?? body) as Map<String, dynamic>;
         Logger.log("👤 User keys: ${user.keys.toList()}", type: "info");
-        Logger.log(" profileImage value: ${user['profileImage']}", type: "info");
+        Logger.log(
+          " profileImage value: ${user['profileImage']}",
+          type: "info",
+        );
 
         final imageUrl = user['profileImage']?.toString() ?? '';
         if (imageUrl.isNotEmpty) {
@@ -130,7 +135,6 @@ class SeakerHomeController extends GetxController {
       Logger.log("Error fetching profile image: $e", type: "error");
     }
   }
-
 
   void _setupLocationListener() {
     try {
@@ -148,7 +152,6 @@ class SeakerHomeController extends GetxController {
       Logger.log("❌ Error setting up location listener: $e", type: "error");
     }
   }
-
 
   void _updateDistanceAndEta() {
     try {
@@ -178,7 +181,6 @@ class SeakerHomeController extends GetxController {
     }
   }
 
-
   Future<void> _attemptReconnect() async {
     if (isReconnecting.value || _reconnectAttempts >= _maxReconnectAttempts) {
       if (_reconnectAttempts >= _maxReconnectAttempts) {
@@ -196,7 +198,10 @@ class SeakerHomeController extends GetxController {
     isReconnecting.value = true;
     _reconnectAttempts++;
 
-    Logger.log("🔄 Reconnection attempt $_reconnectAttempts/$_maxReconnectAttempts", type: "warning");
+    Logger.log(
+      "🔄 Reconnection attempt $_reconnectAttempts/$_maxReconnectAttempts",
+      type: "warning",
+    );
 
     try {
       final networkController = Get.find<NetworkController>();
@@ -210,7 +215,10 @@ class SeakerHomeController extends GetxController {
       await initSocket();
 
       if (socketService?.isConnected.value == true) {
-        Logger.log("✅ Reconnection successful (socket connected)", type: "success");
+        Logger.log(
+          "✅ Reconnection successful (socket connected)",
+          type: "success",
+        );
         _reconnectAttempts = 0;
         isReconnecting.value = false;
       } else {
@@ -265,20 +273,20 @@ class SeakerHomeController extends GetxController {
 
       // Initialize socket
       Logger.log("🔄 Initializing socket for role: $role", type: "info");
-      socketService = await Get.putAsync(() => SocketService().init(token, role: role));
+      socketService = await Get.putAsync(
+        () => SocketService().init(token, role: role),
+      );
 
       if (socketService != null) {
         _setupSocketListeners();
         isSocketInitialized.value = true;
         Logger.log("✅ Socket initialized successfully", type: "success");
       }
-
     } catch (e) {
       Logger.log(" Error initializing socket: $e", type: "error");
       isSocketInitialized.value = false;
     }
   }
-
 
   void removeAllListeners() {
     socketService?.socket.off('newHelpRequest');
@@ -297,7 +305,10 @@ class SeakerHomeController extends GetxController {
       Logger.log("✅ [SEEKER] Socket reconnected", type: "success");
       if (currentHelpRequestId.value.isNotEmpty) {
         socketService!.joinRoom(currentHelpRequestId.value);
-        Logger.log("🚪 Rejoined room after reconnect: ${currentHelpRequestId.value}", type: "info");
+        Logger.log(
+          "🚪 Rejoined room after reconnect: ${currentHelpRequestId.value}",
+          type: "info",
+        );
         _startAutoLocationSharing();
       }
     });
@@ -308,7 +319,10 @@ class SeakerHomeController extends GetxController {
 
       // Ensure socket is connected
       if (socketService?.isConnected.value != true) {
-        Logger.log("⚠️ [SEEKER] Socket not connected, waiting...", type: "warning");
+        Logger.log(
+          "⚠️ [SEEKER] Socket not connected, waiting...",
+          type: "warning",
+        );
         await Future.delayed(const Duration(seconds: 1));
       }
       final currentRole = userController.userRole.value;
@@ -356,6 +370,30 @@ class SeakerHomeController extends GetxController {
       }
     });
 
+    // socketService!.socket.on('giver_newHelpRequest', (data) {
+    //   if (!Get.isRegistered<SeakerHomeController>()) return;
+    //
+    //   final userRole = userController.userRole.value;
+    //
+    //   // Check if user can act as giver
+    //   final canActAsGiver = userRole == "giver" || userRole == "both";
+    //
+    //   if (canActAsGiver) {
+    //     try {
+    //       final requestData = data as Map<String, dynamic>;
+    //       incomingHelpRequests.add(requestData);
+    //       incomingHelpRequests.refresh();
+    //       emergencyMode.value = 1;
+    //
+    //       Logger.log(
+    //         "✅ Added giver request. Total: ${incomingHelpRequests.length}",
+    //         type: "success",
+    //       );
+    //     } on Exception catch (e) {
+    //       Logger.log("❌ Error processing giver request: $e", type: "error");
+    //     }
+    //   }
+    // });
 
     socketService!.socket.on('disconnect', (_) {
       Logger.log("⚠️ [SEEKER] Socket disconnected", type: "warning");
@@ -373,7 +411,6 @@ class SeakerHomeController extends GetxController {
       // Start reconnection attempts
       _scheduleReconnect();
     });
-
   }
 
   Future<void> _handleHelpRequestAccepted(dynamic data) async {
@@ -382,7 +419,8 @@ class SeakerHomeController extends GetxController {
       Logger.log("🔥 [SEEKER] Processing help request accepted", type: "info");
       final requestData = data as Map<String, dynamic>;
       final helpRequest = requestData['helpRequest'] as Map<String, dynamic>?;
-      final giverLocation = requestData['giverLocation'] as Map<String, dynamic>?;
+      final giverLocation =
+          requestData['giverLocation'] as Map<String, dynamic>?;
 
       if (helpRequest == null) {
         Logger.log(" [SEEKER] No helpRequest in data", type: "error");
@@ -413,7 +451,10 @@ class SeakerHomeController extends GetxController {
       if (socketService != null && socketService!.isConnected.value) {
         Logger.log("🚪 [SEEKER] Joining room: $helpRequestId", type: "info");
         await socketService!.joinRoom(helpRequestId);
-        Logger.log("✅ [SEEKER] Successfully joined room: $helpRequestId", type: "success");
+        Logger.log(
+          "✅ [SEEKER] Successfully joined room: $helpRequestId",
+          type: "success",
+        );
       }
 
       // Initialize giver position if provided
@@ -434,7 +475,10 @@ class SeakerHomeController extends GetxController {
             altitudeAccuracy: 0,
             headingAccuracy: 0,
           );
-          Logger.log("📍 [SEEKER] Giver position set: ($lat, $lng)", type: "success");
+          Logger.log(
+            "📍 [SEEKER] Giver position set: ($lat, $lng)",
+            type: "success",
+          );
           _updateDistanceAndEta();
         }
       }
@@ -443,9 +487,11 @@ class SeakerHomeController extends GetxController {
       await _startAutoLocationSharing();
 
       Logger.log("✅ [SEEKER] Help request fully processed", type: "success");
-
     } catch (e, stack) {
-      Logger.log(" [SEEKER] Error in _handleHelpRequestAccepted: $e\nStack: $stack", type: "error");
+      Logger.log(
+        " [SEEKER] Error in _handleHelpRequestAccepted: $e\nStack: $stack",
+        type: "error",
+      );
     }
   }
 
@@ -476,8 +522,10 @@ class SeakerHomeController extends GetxController {
       giverPosition.value = null;
       currentHelpRequestId.value = '';
       isSharingLocation.value = false;
-      Logger.log("✅ [SEEKER] Help request marked as completed", type: "success");
-
+      Logger.log(
+        "✅ [SEEKER] Help request marked as completed",
+        type: "success",
+      );
     } on Exception catch (e, stackTrace) {
       Logger.log(" [SEEKER] Error: $e", type: "error");
       Logger.log("Stack: $stackTrace", type: "error");
@@ -490,20 +538,28 @@ class SeakerHomeController extends GetxController {
     // 🔥 Guard: ইতিমধ্যে sharing চলছে কিনা চেক করুন
     if (locationController.isSharingLocation.value &&
         locationController.liveLocation.value &&
-        locationController.currentHelpRequestId.value == currentHelpRequestId.value) {
-      Logger.log("ℹ️ [SEEKER] Location sharing already active — skipping restart", type: "info");
+        locationController.currentHelpRequestId.value ==
+            currentHelpRequestId.value) {
+      Logger.log(
+        "ℹ️ [SEEKER] Location sharing already active — skipping restart",
+        type: "info",
+      );
       return;
     }
 
     try {
       Logger.log("📍 [SEEKER] Starting auto location sharing", type: "info");
 
-      if (locationController.currentHelpRequestId.value.isEmpty && currentHelpRequestId.value.isNotEmpty) {
+      if (locationController.currentHelpRequestId.value.isEmpty &&
+          currentHelpRequestId.value.isNotEmpty) {
         locationController.setHelpRequestId(currentHelpRequestId.value);
       }
 
       if (locationController.currentHelpRequestId.value.isEmpty) {
-        Logger.log(" [SEEKER] No help request ID for location sharing", type: "error");
+        Logger.log(
+          " [SEEKER] No help request ID for location sharing",
+          type: "error",
+        );
         return;
       }
 
@@ -516,19 +572,30 @@ class SeakerHomeController extends GetxController {
       isSharingLocation.value = true;
 
       if (socketService?.isConnected.value != true) {
-        Logger.log("⚠️ [SEEKER] Socket not connected - location updates may not work", type: "warning");
+        Logger.log(
+          "⚠️ [SEEKER] Socket not connected - location updates may not work",
+          type: "warning",
+        );
       }
 
-      Logger.log("✅ [SEEKER] Location sharing started for request: ${locationController.currentHelpRequestId.value}", type: "success");
-
+      Logger.log(
+        "✅ [SEEKER] Location sharing started for request: ${locationController.currentHelpRequestId.value}",
+        type: "success",
+      );
     } catch (e) {
-      Logger.log(" [SEEKER] Error starting location sharing: $e", type: "error");
+      Logger.log(
+        " [SEEKER] Error starting location sharing: $e",
+        type: "error",
+      );
     }
   }
 
   void _handleLocationUpdate(dynamic data) {
     try {
-      Logger.log("🔥 [SEEKER] RAW location update received from server", type: "info");
+      Logger.log(
+        "🔥 [SEEKER] RAW location update received from server",
+        type: "info",
+      );
       Logger.log("   Data type: ${data.runtimeType}", type: "debug");
       Logger.log("   Data: $data", type: "debug");
 
@@ -538,56 +605,85 @@ class SeakerHomeController extends GetxController {
         try {
           locationData = jsonDecode(data) as Map<String, dynamic>;
         } catch (e) {
-          Logger.log(" [SEEKER] Failed to parse JSON string: $e", type: "error");
+          Logger.log(
+            " [SEEKER] Failed to parse JSON string: $e",
+            type: "error",
+          );
           return;
         }
       } else if (data is Map) {
         locationData = Map<String, dynamic>.from(data);
       } else {
-        Logger.log(" [SEEKER] Unknown data format: ${data.runtimeType}", type: "error");
+        Logger.log(
+          " [SEEKER] Unknown data format: ${data.runtimeType}",
+          type: "error",
+        );
         return;
       }
 
       // 🔥 FIXED: Removed 'userId' from helpRequestId extraction
-      final helpRequestId = locationData['helpRequestId']?.toString() ??
+      final helpRequestId =
+          locationData['helpRequestId']?.toString() ??
           locationData['requestId']?.toString() ??
-          locationData['room_id']?.toString() ?? // আপনি চাইলে এটিও যোগ করতে পারেন
+          locationData['room_id']
+              ?.toString() ?? // আপনি চাইলে এটিও যোগ করতে পারেন
           '';
 
       Logger.log("📍 [SEEKER] Parsed location data", type: "info");
       Logger.log("   HelpRequestId: $helpRequestId", type: "debug");
-      Logger.log("   Current RequestID: ${currentHelpRequestId.value}", type: "debug");
+      Logger.log(
+        "   Current RequestID: ${currentHelpRequestId.value}",
+        type: "debug",
+      );
 
       // Check if this is for our current request
-      if (helpRequestId.isNotEmpty && helpRequestId != currentHelpRequestId.value) {
-        Logger.log("⚠️ [SEEKER] Ignoring - different request ID", type: "warning");
-        Logger.log("   Received: $helpRequestId, Expected: ${currentHelpRequestId.value}", type: "warning");
+      if (helpRequestId.isNotEmpty &&
+          helpRequestId != currentHelpRequestId.value) {
+        Logger.log(
+          "⚠️ [SEEKER] Ignoring - different request ID",
+          type: "warning",
+        );
+        Logger.log(
+          "   Received: $helpRequestId, Expected: ${currentHelpRequestId.value}",
+          type: "warning",
+        );
         return;
       }
 
       // Extract latitude/longitude
-      dynamic latitudeRaw = locationData['latitude'] ??
+      dynamic latitudeRaw =
+          locationData['latitude'] ??
           locationData['lat'] ??
           locationData['Latitude'] ??
           locationData['Lat'];
 
-      dynamic longitudeRaw = locationData['longitude'] ??
+      dynamic longitudeRaw =
+          locationData['longitude'] ??
           locationData['lng'] ??
           locationData['Longitude'] ??
           locationData['Lng'];
 
-      Logger.log("   Lat raw: $latitudeRaw, Lng raw: $longitudeRaw", type: "debug");
+      Logger.log(
+        "   Lat raw: $latitudeRaw, Lng raw: $longitudeRaw",
+        type: "debug",
+      );
 
       double? latitude = _safeToDouble(latitudeRaw);
       double? longitude = _safeToDouble(longitudeRaw);
 
       if (latitude == null || longitude == null) {
-        Logger.log(" [SEEKER] Could not parse latitude/longitude", type: "error");
+        Logger.log(
+          " [SEEKER] Could not parse latitude/longitude",
+          type: "error",
+        );
         return;
       }
 
       // Validate coordinates
-      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      if (latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180) {
         Logger.log(" [SEEKER] Invalid coordinate ranges", type: "error");
         return;
       }
@@ -606,14 +702,16 @@ class SeakerHomeController extends GetxController {
         headingAccuracy: 0,
       );
 
-      Logger.log("✅ [SEEKER] GIVER POSITION UPDATED: ($latitude, $longitude)", type: "success");
+      Logger.log(
+        "✅ [SEEKER] GIVER POSITION UPDATED: ($latitude, $longitude)",
+        type: "success",
+      );
 
       // Update distance and ETA
       _updateDistanceAndEta();
 
       // Update UI
       update();
-
     } catch (e, stackTrace) {
       Logger.log(" [SEEKER] ERROR in _handleLocationUpdate: $e", type: "error");
       Logger.log("   Error type: ${e.runtimeType}", type: "error");
@@ -647,7 +745,8 @@ class SeakerHomeController extends GetxController {
 
     // Fallback to location from active request
     if (activeHelpRequest.value != null) {
-      final helper = activeHelpRequest.value!['helper'] as Map<String, dynamic>?;
+      final helper =
+          activeHelpRequest.value!['helper'] as Map<String, dynamic>?;
       final location = helper?['location'] as Map<String, dynamic>?;
       final coordinates = location?['coordinates'] as List<dynamic>?;
 
@@ -667,7 +766,8 @@ class SeakerHomeController extends GetxController {
 
     // Fallback to location from active request
     if (activeHelpRequest.value != null) {
-      final helper = activeHelpRequest.value!['helper'] as Map<String, dynamic>?;
+      final helper =
+          activeHelpRequest.value!['helper'] as Map<String, dynamic>?;
       final location = helper?['location'] as Map<String, dynamic>?;
       final coordinates = location?['coordinates'] as List<dynamic>?;
 
@@ -686,22 +786,26 @@ class SeakerHomeController extends GetxController {
   }
 
   double? get seekerLatitude {
-    final seekerLocation = activeHelpRequest.value?['seekerLocation'] as Map<String, dynamic>?;
+    final seekerLocation =
+        activeHelpRequest.value?['seekerLocation'] as Map<String, dynamic>?;
     return seekerLocation?['latitude']?.toDouble();
   }
 
   double? get seekerLongitude {
-    final seekerLocation = activeHelpRequest.value?['seekerLocation'] as Map<String, dynamic>?;
+    final seekerLocation =
+        activeHelpRequest.value?['seekerLocation'] as Map<String, dynamic>?;
     return seekerLocation?['longitude']?.toDouble();
   }
 
   double? get helperLatitude {
-    final giverLocation = activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
+    final giverLocation =
+        activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
     return giverLocation?['latitude']?.toDouble();
   }
 
   double? get helperLongitude {
-    final giverLocation = activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
+    final giverLocation =
+        activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
     return giverLocation?['longitude']?.toDouble();
   }
 
@@ -716,7 +820,8 @@ class SeakerHomeController extends GetxController {
   }
 
   String get seekerName {
-    final seekerLocation = activeHelpRequest.value?['seekerLocation'] as Map<String, dynamic>?;
+    final seekerLocation =
+        activeHelpRequest.value?['seekerLocation'] as Map<String, dynamic>?;
     final user = seekerLocation?['user'] as Map<String, dynamic>?;
     return user?['name']?.toString() ?? 'Seeker';
   }
@@ -750,7 +855,7 @@ class SeakerHomeController extends GetxController {
       final locationController = Get.find<SeakerLocationsController>();
       locationController.stopLocationSharing();
       Logger.log("📍 Stopped location sharing", type: "info");
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       Logger.log("❌ Error stopping location: $e", type: "error");
     }
   }
@@ -758,9 +863,11 @@ class SeakerHomeController extends GetxController {
   void handleHelpRequestCancelled(dynamic data) {
     stopVibration();
     try {
-      final cancelledRequestId = data['_id']?.toString() ?? data['id']?.toString() ?? '';
+      final cancelledRequestId =
+          data['_id']?.toString() ?? data['id']?.toString() ?? '';
 
-      if (cancelledRequestId.isNotEmpty && currentHelpRequestId.value.isNotEmpty) {
+      if (cancelledRequestId.isNotEmpty &&
+          currentHelpRequestId.value.isNotEmpty) {
         if (cancelledRequestId == currentHelpRequestId.value) {
           Logger.log("✅ Cancellation for our request", type: "success");
           _resetHelpRequestState();
@@ -768,8 +875,7 @@ class SeakerHomeController extends GetxController {
       } else {
         _resetHelpRequestState();
       }
-
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       Logger.log(" Error handling cancellation: $e", type: "error");
       _resetHelpRequestState();
     }
@@ -787,7 +893,10 @@ class SeakerHomeController extends GetxController {
     }
 
     try {
-      Logger.log("📤 [SEEKER] Accepting help request: $helpRequestId", type: "info");
+      Logger.log(
+        "📤 [SEEKER] Accepting help request: $helpRequestId",
+        type: "info",
+      );
 
       // ⚠️ CRITICAL: According to backend spec, emit just the helpRequestId string, NOT an object
       socketService!.socket.emit('acceptHelpRequest', helpRequestId);
@@ -795,15 +904,20 @@ class SeakerHomeController extends GetxController {
 
       currentHelpRequestId.value = helpRequestId;
 
-
       final locationController = Get.find<SeakerLocationsController>();
       locationController.setHelpRequestId(helpRequestId);
-      Logger.log("✅ [SEEKER] Help request ID set in location controller", type: "success");
+      Logger.log(
+        "✅ [SEEKER] Help request ID set in location controller",
+        type: "success",
+      );
 
       Logger.log("🚪 [SEEKER] Joining room: $helpRequestId", type: "info");
       socketService!.joinRoom(helpRequestId);
       await Future.delayed(const Duration(milliseconds: 500));
-      Logger.log("✅ [SEEKER] Room join completed (with delay)", type: "success");
+      Logger.log(
+        "✅ [SEEKER] Room join completed (with delay)",
+        type: "success",
+      );
 
       helperStatus.value = true;
       emergencyMode.value = 2;
@@ -815,8 +929,6 @@ class SeakerHomeController extends GetxController {
       incomingHelpRequests.refresh();
 
       Logger.log("✅ [SEEKER] Help request accepted", type: "success");
-
-
     } on Exception catch (e) {
       Logger.log(" [SEEKER] Error accepting: $e", type: "error");
     }
@@ -825,10 +937,10 @@ class SeakerHomeController extends GetxController {
   void _resetHelpRequestState() {
     stopVibration();
     Logger.log("🔄 [SEEKER] Resetting help request state", type: "info");
-    
+
     // Get help request ID before clearing it
     final helpRequestId = currentHelpRequestId.value;
-    
+
     helperStatus.value = false;
     emergencyMode.value = 0;
     isSearching.value = false;
@@ -846,13 +958,15 @@ class SeakerHomeController extends GetxController {
     if (socketService != null && helpRequestId.isNotEmpty) {
       try {
         socketService!.leaveRoom(helpRequestId);
-        Logger.log("🚪 [SEEKER] Left socket room: $helpRequestId", type: "info");
+        Logger.log(
+          "🚪 [SEEKER] Left socket room: $helpRequestId",
+          type: "info",
+        );
       } catch (e) {
         Logger.log("⚠️ Error leaving socket room: $e", type: "warning");
       }
     }
   }
-
 
   bool _isVibrating = false;
   AudioPlayer? _audioPlayer;
@@ -862,7 +976,8 @@ class SeakerHomeController extends GetxController {
 
     final notificationsController = Get.find<NotificationsController>();
     final soundEnabled = notificationsController.isSoundEnabled.value;
-    final notificationsEnabled = notificationsController.isNotificationsEnabled.value;
+    final notificationsEnabled =
+        notificationsController.isNotificationsEnabled.value;
 
     // Play audio only if sound is enabled
     if (soundEnabled && notificationsEnabled) {
@@ -901,7 +1016,6 @@ class SeakerHomeController extends GetxController {
     }
   }
 
-
   void stopVibration() {
     _isVibrating = false;
     Vibration.cancel();
@@ -910,8 +1024,11 @@ class SeakerHomeController extends GetxController {
     _audioPlayer = null;
   }
 
-
-  Future<void> helpRequest(BuildContext context, double latitude, double longitude) async {
+  Future<void> helpRequest(
+    BuildContext context,
+    double latitude,
+    double longitude,
+  ) async {
     // Initialize socket service if null
     if (socketService == null) {
       Logger.log(" Socket service is null, initializing...", type: "warning");
@@ -933,14 +1050,24 @@ class SeakerHomeController extends GetxController {
     if (socketService!.isConnected.value) {
       Logger.log("✅ Socket already connected", type: "success");
     } else {
-      Logger.log("⏳ Waiting for socket connection (max $maxAttempts attempts)...", type: "info");
+      Logger.log(
+        "⏳ Waiting for socket connection (max $maxAttempts attempts)...",
+        type: "info",
+      );
 
-      while (socketService!.isConnected.value != true && waitAttempts < maxAttempts) {
-        Logger.log("⏳ Socket connection attempt ${waitAttempts + 1}/$maxAttempts...", type: "info");
+      while (socketService!.isConnected.value != true &&
+          waitAttempts < maxAttempts) {
+        Logger.log(
+          "⏳ Socket connection attempt ${waitAttempts + 1}/$maxAttempts...",
+          type: "info",
+        );
 
         // Check again in case connection happened while waiting
         if (socketService!.isConnected.value) {
-          Logger.log("✅ Socket connected on attempt ${waitAttempts + 1}", type: "success");
+          Logger.log(
+            "✅ Socket connected on attempt ${waitAttempts + 1}",
+            type: "success",
+          );
           break;
         }
 
@@ -950,7 +1077,10 @@ class SeakerHomeController extends GetxController {
     }
 
     if (socketService!.isConnected.value != true) {
-      Logger.log(" Socket still not connected after $maxAttempts attempts", type: "error");
+      Logger.log(
+        " Socket still not connected after $maxAttempts attempts",
+        type: "error",
+      );
 
       // Try one more time to initialize
       await initSocket();
@@ -958,18 +1088,27 @@ class SeakerHomeController extends GetxController {
       // Wait a bit more after reinitialization
       waitAttempts = 0;
       while (socketService!.isConnected.value != true && waitAttempts < 10) {
-        Logger.log("⏳ Final retry connection attempt ${waitAttempts + 1}/10...", type: "info");
+        Logger.log(
+          "⏳ Final retry connection attempt ${waitAttempts + 1}/10...",
+          type: "info",
+        );
         await Future.delayed(const Duration(milliseconds: delayMs));
         waitAttempts++;
       }
 
       if (socketService!.isConnected.value != true) {
-        Logger.log(" Socket still not connected after all attempts", type: "error");
+        Logger.log(
+          " Socket still not connected after all attempts",
+          type: "error",
+        );
         return;
       }
     }
 
-    Logger.log("✅ Continuing with help request, socket is connected", type: "success");
+    Logger.log(
+      "✅ Continuing with help request, socket is connected",
+      type: "success",
+    );
 
     final networkController = Get.find<NetworkController>();
 
@@ -984,18 +1123,19 @@ class SeakerHomeController extends GetxController {
     try {
       Logger.log("📤 Sending help request", type: "info");
 
-      final response = await ApiService.post('/api/help-requests', body: {
-        'latitude': latitude,
-        'longitude': longitude,
-      }).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException(
-            'Help request timeout after 30 seconds. The server may be slow or unreachable.',
+      final response =
+          await ApiService.post(
+            '/api/help-requests',
+            body: {'latitude': latitude, 'longitude': longitude},
+          ).timeout(
             const Duration(seconds: 30),
+            onTimeout: () {
+              throw TimeoutException(
+                'Help request timeout after 30 seconds. The server may be slow or unreachable.',
+                const Duration(seconds: 30),
+              );
+            },
           );
-        },
-      );
 
       Logger.log("📥 Response: ${response.body}", type: "info");
 
@@ -1008,13 +1148,19 @@ class SeakerHomeController extends GetxController {
         final helpRequest = HelpRequestResponse.fromJson(jsonData);
         final helpRequestId = helpRequest.data.id;
 
-        Logger.log("🆕 [SEEKER] Help Request Created: $helpRequestId", type: "success");
+        Logger.log(
+          "🆕 [SEEKER] Help Request Created: $helpRequestId",
+          type: "success",
+        );
 
         currentHelpRequestId.value = helpRequestId;
 
         final locationController = Get.find<SeakerLocationsController>();
         locationController.setHelpRequestId(helpRequestId);
-        Logger.log("✅ [SEEKER] Help request ID set in location controller", type: "success");
+        Logger.log(
+          "✅ [SEEKER] Help request ID set in location controller",
+          type: "success",
+        );
 
         // 🔥 ROOM JOIN REMOVED HERE — only join after acceptance
         updateNearbyStats(
@@ -1023,7 +1169,6 @@ class SeakerHomeController extends GetxController {
         );
 
         Logger.log("⏳ [SEEKER] Waiting for helper...", type: "info");
-
       } else {
         final errorData = jsonDecode(response.body);
         final message = errorData["message"] ?? "Request failed";
@@ -1090,13 +1235,19 @@ class SeakerHomeController extends GetxController {
     }
 
     final helpRequestId = currentHelpRequestId.value;
-    Logger.log("🛑 [SEEKER] Attempting to cancel help request: $helpRequestId", type: "info");
+    Logger.log(
+      "🛑 [SEEKER] Attempting to cancel help request: $helpRequestId",
+      type: "info",
+    );
 
     try {
       final result = await _attemptCancelRequest();
 
       if (result['success']) {
-        Logger.log("✅ [SEEKER] Help request cancelled successfully", type: "success");
+        Logger.log(
+          "✅ [SEEKER] Help request cancelled successfully",
+          type: "success",
+        );
         _resetHelpRequestState();
         Get.snackbar(
           "Request Cancelled",
@@ -1111,12 +1262,18 @@ class SeakerHomeController extends GetxController {
         final bool refreshSuccess = await AuthService.refreshToken();
 
         if (refreshSuccess) {
-          Logger.log("✅ Token refreshed successfully, retrying cancel request...", type: "info");
+          Logger.log(
+            "✅ Token refreshed successfully, retrying cancel request...",
+            type: "info",
+          );
 
           final retryResult = await _attemptCancelRequest();
 
           if (retryResult['success']) {
-            Logger.log("✅ [SEEKER] Help request cancelled after token refresh", type: "success");
+            Logger.log(
+              "✅ [SEEKER] Help request cancelled after token refresh",
+              type: "success",
+            );
             _resetHelpRequestState();
             Get.snackbar(
               "Request Cancelled",
@@ -1126,7 +1283,9 @@ class SeakerHomeController extends GetxController {
               backgroundColor: Get.theme.colorScheme.secondary,
             );
           } else {
-            final message = retryResult['message'] ?? 'Failed to cancel after token refresh';
+            final message =
+                retryResult['message'] ??
+                'Failed to cancel after token refresh';
             Logger.log("❌ Retry failed: $message", type: "error");
             Get.snackbar(
               "Cancel Failed",
@@ -1151,10 +1310,15 @@ class SeakerHomeController extends GetxController {
       } else {
         final message = result['message'] ?? 'Failed to cancel request';
         Logger.log("❌ Cancel failed: $message", type: "error");
-        
+
         // Check if it's a timeout or network error - still reset state locally
-        if (result['statusCode'] == 0 || message.contains('timeout') || message.contains('Network')) {
-          Logger.log("⚠️ Network/timeout error - resetting state locally", type: "warning");
+        if (result['statusCode'] == 0 ||
+            message.contains('timeout') ||
+            message.contains('Network')) {
+          Logger.log(
+            "⚠️ Network/timeout error - resetting state locally",
+            type: "warning",
+          );
           _resetHelpRequestState();
           Get.snackbar(
             "Connection Issue",
@@ -1196,37 +1360,49 @@ class SeakerHomeController extends GetxController {
 
   Future<Map<String, dynamic>> _attemptCancelRequest() async {
     try {
-      Logger.log("📤 Cancelling help request: ${currentHelpRequestId.value}", type: "info");
-
-      final response = await ApiService.post('/api/help-requests/${currentHelpRequestId.value}/cancel').timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException(
-            'Cancel request timeout after 30 seconds. The server may be slow or unreachable.',
-            const Duration(seconds: 30),
-          );
-        },
+      Logger.log(
+        "📤 Cancelling help request: ${currentHelpRequestId.value}",
+        type: "info",
       );
 
-      Logger.log("📥 Cancel response status: ${response.statusCode}", type: "info");
+      final response =
+          await ApiService.post(
+            '/api/help-requests/${currentHelpRequestId.value}/cancel',
+          ).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw TimeoutException(
+                'Cancel request timeout after 30 seconds. The server may be slow or unreachable.',
+                const Duration(seconds: 30),
+              );
+            },
+          );
+
+      Logger.log(
+        "📥 Cancel response status: ${response.statusCode}",
+        type: "info",
+      );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         Logger.log("✅ Help request cancelled successfully", type: "success");
-        return {
-          'success': true,
-          'statusCode': response.statusCode,
-        };
+        return {'success': true, 'statusCode': response.statusCode};
       } else {
         // Try to parse error message
         String errorMessage = 'Unknown error';
         try {
           final errorData = jsonDecode(response.body);
-          errorMessage = errorData['message'] ?? errorData['error'] ?? 'Failed to cancel request';
+          errorMessage =
+              errorData['message'] ??
+              errorData['error'] ??
+              'Failed to cancel request';
         } catch (e) {
           errorMessage = 'Server returned status ${response.statusCode}';
         }
-        
-        Logger.log("❌ Cancel request failed: $errorMessage (Status: ${response.statusCode})", type: "error");
+
+        Logger.log(
+          "❌ Cancel request failed: $errorMessage (Status: ${response.statusCode})",
+          type: "error",
+        );
         return {
           'success': false,
           'statusCode': response.statusCode,
@@ -1238,7 +1414,8 @@ class SeakerHomeController extends GetxController {
       return {
         'success': false,
         'statusCode': 0,
-        'message': 'Request timeout. Please check your connection and try again.',
+        'message':
+            'Request timeout. Please check your connection and try again.',
       };
     } on http.ClientException catch (e) {
       Logger.log("🌐 Network error during cancel: ${e.message}", type: "error");
@@ -1255,7 +1432,10 @@ class SeakerHomeController extends GetxController {
         'message': 'Invalid server response. Please try again.',
       };
     } catch (e) {
-      Logger.log("❌ Unexpected error in _attemptCancelRequest: $e", type: "error");
+      Logger.log(
+        "❌ Unexpected error in _attemptCancelRequest: $e",
+        type: "error",
+      );
       return {
         'success': false,
         'statusCode': 0,
@@ -1265,18 +1445,21 @@ class SeakerHomeController extends GetxController {
   }
 
   String get helperName {
-    final giverLocation = activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
+    final giverLocation =
+        activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
     final user = giverLocation?['user'] as Map<String, dynamic>?;
     return user?['name']?.toString() ?? 'Helper';
   }
 
   String get address {
-    final giverLocation = activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
+    final giverLocation =
+        activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
     return giverLocation?['address']?.toString() ?? 'Address unavailable';
   }
 
   String get lastUpdated {
-    final giverLocation = activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
+    final giverLocation =
+        activeHelpRequest.value?['giverLocation'] as Map<String, dynamic>?;
     return giverLocation?['lastUpdated']?.toString() ?? 'Just now';
   }
 
@@ -1293,7 +1476,10 @@ class SeakerHomeController extends GetxController {
     Logger.log("📍 Position Info:", type: "info");
     Logger.log("- giverPosition: $giverPosition", type: "info");
     if (giverPosition.value != null) {
-      Logger.log("- giverPosition LatLng: (${giverPosition.value!.latitude}, ${giverPosition.value!.longitude})", type: "info");
+      Logger.log(
+        "- giverPosition LatLng: (${giverPosition.value!.latitude}, ${giverPosition.value!.longitude})",
+        type: "info",
+      );
     }
 
     Logger.log("🎯 Getter Values:", type: "info");
@@ -1317,7 +1503,10 @@ class SeakerHomeController extends GetxController {
             final location = helper['location'] as Map<String, dynamic>?;
             Logger.log("- Location exists: ${location != null}", type: "info");
             if (location != null) {
-              Logger.log("- Location Keys: ${location.keys.toList()}", type: "info");
+              Logger.log(
+                "- Location Keys: ${location.keys.toList()}",
+                type: "info",
+              );
               if (location.containsKey('coordinates')) {
                 final coords = location['coordinates'] as List<dynamic>?;
                 Logger.log("- Coordinates: $coords", type: "info");
@@ -1331,7 +1520,10 @@ class SeakerHomeController extends GetxController {
         final giverLoc = req['giverLocation'] as Map<String, dynamic>?;
         Logger.log("- giverLocation exists: ${giverLoc != null}", type: "info");
         if (giverLoc != null) {
-          Logger.log("- giverLocation Keys: ${giverLoc.keys.toList()}", type: "info");
+          Logger.log(
+            "- giverLocation Keys: ${giverLoc.keys.toList()}",
+            type: "info",
+          );
         }
       }
     } else {
@@ -1339,15 +1531,20 @@ class SeakerHomeController extends GetxController {
     }
 
     Logger.log("📡 Socket Info:", type: "info");
-    Logger.log("- socketService exists: ${socketService != null}", type: "info");
+    Logger.log(
+      "- socketService exists: ${socketService != null}",
+      type: "info",
+    );
     Logger.log("- isSocketInitialized: $isSocketInitialized", type: "info");
     if (socketService != null) {
-      Logger.log("- socket connected: ${socketService!.isConnected.value}", type: "info");
+      Logger.log(
+        "- socket connected: ${socketService!.isConnected.value}",
+        type: "info",
+      );
     }
 
     Logger.log("=== END DEBUG ===", type: "info");
   }
-
 
   RxString userName = ''.obs;
   RxString profileImage = ''.obs;
@@ -1360,25 +1557,26 @@ class SeakerHomeController extends GetxController {
     try {
       final userBox = await Hive.openBox('userProfileBox');
 
-      final name  = userBox.get('name');
-      final id    = userBox.get('_id');
-      final role  = userBox.get('role');
-      final image = userBox.get('profileImage'); // ✅ was 'image', now 'profileImage'
+      final name = userBox.get('name');
+      final id = userBox.get('_id');
+      final role = userBox.get('role');
+      final image = userBox.get(
+        'profileImage',
+      ); // ✅ was 'image', now 'profileImage'
 
-      userName.value     = name  ?? '';
-      userId.value       = id    ?? '';
-      userRole.value     = role  ?? '';
+      userName.value = name ?? '';
+      userId.value = id ?? '';
+      userRole.value = role ?? '';
       profileImage.value = image ?? '';
 
       if (name != null && name.toString().trim().isNotEmpty) {
         final parts = name.toString().trim().split(" ");
         firstName.value = parts.first;
-        lastName.value  = parts.length > 1 ? parts.sublist(1).join(" ") : '';
+        lastName.value = parts.length > 1 ? parts.sublist(1).join(" ") : '';
       }
 
       // ✅ Fetch fresh profile image from API
       await _fetchProfileImage();
-
     } on Exception catch (e) {
       Logger.log("❌ Error loading user data: $e", type: "error");
       userName.value = 'Error loading';

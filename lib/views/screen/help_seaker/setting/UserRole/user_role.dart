@@ -73,7 +73,11 @@ class UserRole extends StatelessWidget {
                       value: controller.helpSeeker,
                       onChanged:null,
                     ),
-
+                    LabeledSwitch(
+                      title: "Both",
+                      value: controller.both,
+                      onChanged:null,
+                    ),
 
                   ],
                 ),

@@ -1,4 +1,4 @@
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -93,21 +93,25 @@ class _ProfileState extends State<Profile> {
                           Row(
                             children: [
                               Expanded(
-                                child: Obx(() => ProfileInfoBox(
-                                  title: "First name",
-                                  value: controller.firstName.value.isNotEmpty
-                                      ? controller.firstName.value
-                                      : 'N/A',
-                                )),
+                                child: Obx(
+                                  () => ProfileInfoBox(
+                                    title: "First name",
+                                    value: controller.firstName.value.isNotEmpty
+                                        ? controller.firstName.value
+                                        : 'N/A',
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Obx(() => ProfileInfoBox(
-                                  title: "Last name",
-                                  value: controller.lastName.value.isNotEmpty
-                                      ? controller.lastName.value
-                                      : 'N/A',
-                                )),
+                                child: Obx(
+                                  () => ProfileInfoBox(
+                                    title: "Last name",
+                                    value: controller.lastName.value.isNotEmpty
+                                        ? controller.lastName.value
+                                        : 'N/A',
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -115,40 +119,49 @@ class _ProfileState extends State<Profile> {
                           SizedBox(height: size.height * 0.02),
 
                           // Email Field
-                          Obx(() => ProfileInfoBox(
-                            title: "Email address",
-                            value: controller.emails.value.isNotEmpty
-                                ? controller.emails.value
-                                : 'N/A',
-                          )),
+                          Obx(
+                            () => ProfileInfoBox(
+                              title: "Email address",
+                              value: controller.emails.value.isNotEmpty
+                                  ? controller.emails.value
+                                  : 'N/A',
+                            ),
+                          ),
 
                           SizedBox(height: size.height * 0.02),
 
                           // Phone Field
-                          Obx(() => ProfileInfoBox(
-                            title: "Phone number",
-                            value: controller.phones.value.isNotEmpty
-                                ? controller.phones.value
-                                : 'N/A',
-                          )),
+                          Obx(
+                            () => ProfileInfoBox(
+                              title: "Phone number",
+                              value: controller.phones.value.isNotEmpty
+                                  ? controller.phones.value
+                                  : 'N/A',
+                            ),
+                          ),
 
                           SizedBox(height: size.height * 0.02),
 
                           // Gender & DOB Row
                           Row(
                             children: [
-                              Expanded(
-                                child: _buildGenderBox(),
-                              ),
+                              Expanded(child: _buildGenderBox()),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Obx(() => ProfileInfoBox(
-                                  title: "Date of Birth",
-                                  value: controller.dateOfBirth.value.isNotEmpty &&
-                                      controller.dateOfBirth.value != 'Not provided'
-                                      ? controller.dateOfBirth.value
-                                      : 'N/A',
-                                )),
+                                child: Obx(
+                                  () => ProfileInfoBox(
+                                    title: "Date of Birth",
+                                    value:
+                                        controller
+                                                .dateOfBirth
+                                                .value
+                                                .isNotEmpty &&
+                                            controller.dateOfBirth.value !=
+                                                'Not provided'
+                                        ? controller.dateOfBirth.value
+                                        : 'N/A',
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -193,13 +206,20 @@ class _ProfileState extends State<Profile> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile Image
+
               Obx(() {
-                return CircleAvatar(
-                  radius: 50,
-                  backgroundImage: controller.profileImage.value.isNotEmpty
-                      ? NetworkImage(controller.profileImage.value)
-                      : const AssetImage('assets/default_user.png') as ImageProvider,
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: CachedNetworkImage(
+                    imageUrl: controller.profileImage.value,
+                    cacheKey: controller.profileImage.value.split('?').first,
+                    fit: BoxFit.cover,
+                    height: 75,
+                    width: 75,
+                    httpHeaders: const {"Accept": "image/*"},
+                    placeholder: (_, __) => const CupertinoActivityIndicator(),
+                    errorWidget: (_, __, ___) => const Icon(Icons.error),
+                  ),
                 );
               }),
 
@@ -211,67 +231,74 @@ class _ProfileState extends State<Profile> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Obx(() => AppText(
-                      controller.firstName.value.isNotEmpty ||
-                          controller.lastName.value.isNotEmpty
-                          ? "${controller.firstName.value} ${controller.lastName.value}".trim()
-                          : "No Name",
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
-                      color: AppColors.color2Box,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    )),
+                    Obx(
+                      () => AppText(
+                        controller.firstName.value.isNotEmpty ||
+                                controller.lastName.value.isNotEmpty
+                            ? "${controller.firstName.value} ${controller.lastName.value}"
+                                  .trim()
+                            : "No Name",
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: AppColors.color2Box,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
 
                     SizedBox(height: size.height * 0.008),
 
-                    Obx(() => Row(
-                      children: [
-                        const Icon(
-                          CupertinoIcons.mail_solid,
-                          size: 14,
-                          color: AppColors.colorYellow,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: AppText(
-                            controller.emails.value.isNotEmpty
-                                ? controller.emails.value
-                                : 'No Email',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.color2Box,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    Obx(
+                      () => Row(
+                        children: [
+                          const Icon(
+                            CupertinoIcons.mail_solid,
+                            size: 14,
+                            color: AppColors.colorYellow,
                           ),
-                        ),
-                      ],
-                    )),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: AppText(
+                              controller.emails.value.isNotEmpty
+                                  ? controller.emails.value
+                                  : 'No Email',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.color2Box,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                     SizedBox(height: size.height * 0.005),
 
-                    Obx(() => Row(
-                      children: [
-                        const Icon(
-                          CupertinoIcons.phone_fill,
-                          size: 14,
-                          color: AppColors.colorYellow,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: AppText(
-                            controller.phones.value.isNotEmpty
-                                ? controller.phones.value
-                                : 'No Phone',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.color2Box,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    Obx(
+                      () => Row(
+                        children: [
+                          const Icon(
+                            CupertinoIcons.phone_fill,
+                            size: 14,
+                            color: AppColors.colorYellow,
                           ),
-                        ),
-                      ],
-                    )),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: AppText(
+                              controller.phones.value.isNotEmpty
+                                  ? controller.phones.value
+                                  : 'No Phone',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.color2Box,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -285,9 +312,7 @@ class _ProfileState extends State<Profile> {
             onTap: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => EditProfile(),
-                ),
+                MaterialPageRoute(builder: (context) => EditProfile()),
               );
               await controller.refreshProfile();
             },
@@ -334,11 +359,7 @@ class _ProfileState extends State<Profile> {
       height: 100,
       width: 100,
       color: AppColors.colorYellow.withOpacity(0.3),
-      child: const Icon(
-        Icons.person,
-        size: 50,
-        color: AppColors.color2Box,
-      ),
+      child: const Icon(Icons.person, size: 50, color: AppColors.color2Box),
     );
   }
 
@@ -377,14 +398,16 @@ class _ProfileState extends State<Profile> {
           Row(
             children: [
               Expanded(
-                child: Obx(() => AppText(
-                  controller.genders.value.isNotEmpty
-                      ? controller.genders.value
-                      : 'N/A',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.color2Box,
-                )),
+                child: Obx(
+                  () => AppText(
+                    controller.genders.value.isNotEmpty
+                        ? controller.genders.value
+                        : 'N/A',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.color2Box,
+                  ),
+                ),
               ),
               const Icon(
                 Icons.arrow_forward_ios_sharp,
@@ -418,7 +441,7 @@ class _ProfileState extends State<Profile> {
           ),
           SizedBox(height: size.height * 0.008),
           Obx(
-                () => TextField(
+            () => TextField(
               controller: controller.password,
               obscureText: controller.passShowHide.value,
               autocorrect: false,
