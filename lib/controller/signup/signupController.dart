@@ -41,8 +41,10 @@ class SignUpController extends GetxController{
     selectedIndex.value = index;
     if(index==0){
       selectedRole.value = 'seeker';
-    }else{
+    }else if (index==1){
       selectedRole.value = 'giver';
+    }else{
+      selectedRole.value = 'both';
     }
   }
 

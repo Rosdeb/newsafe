@@ -1,4 +1,3 @@
-// lib/controller/location_sharing_controller.dart
 import 'dart:async';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';

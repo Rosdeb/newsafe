@@ -22,8 +22,10 @@ class BottomMenuWrappers extends StatelessWidget {
       return SeakerHome();
     } else if (role == "giver") {
       return Giverhome();
+    }else if (role=="both"){
+      return Bothhome();
     }else {
-      return SeakerHome(); // fallback
+      return SeakerHome();
     }
   }
 

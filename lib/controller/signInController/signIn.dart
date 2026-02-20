@@ -62,7 +62,7 @@ class SigInController extends GetxController {
           final token        = responseBody['accessToken']  as String?;
           final refreshToken = responseBody['refreshToken'] as String?;
           final user         = responseBody['user']         as Map<String, dynamic>?;
-          Logger.log("Fcm Token: ${user?['fcmTokem']}", type: "error");
+          Logger.log("Fcm Token: ${user?['fcmToken']}", type: "error");
 
           if (token == null || user == null) {
             Logger.log(" Missing token or user in response", type: "error");

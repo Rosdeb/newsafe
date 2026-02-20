@@ -27,6 +27,11 @@ class SimpleAnimatedContainersListsss extends StatelessWidget {
       "title": "Help Giver",
       "subtitle": "Connect with helpers in your area",
       "role":"giver"
+    },{
+      "icon": AppIcons.flat_handshake,
+      "title": "Both",
+      "subtitle": "Seek help and support others at the same time",
+      "role":"both"
     },
   ];
 

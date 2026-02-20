@@ -365,12 +365,7 @@ class SeakerNotifications extends StatelessWidget {
             stops: [0.0046, 0.5005, 0.9964],
           ),
         ),
-        child:RefreshIndicator(
-          onRefresh: () async => notificationsController.fetchNotifications(context: context),
-          backgroundColor: AppColors.colorYellow,
-          displacement: 60.0,
-          edgeOffset: 60.0,
-          child: Padding(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18.0),
           child: Column(
             children: [
@@ -432,24 +427,23 @@ class SeakerNotifications extends StatelessWidget {
 
                   // EMPTY STATE with RefreshIndicator
                   if (notificationsController.notifications.isEmpty) {
-                    return  SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: MediaQuery.of(context).size.height - 200,
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                               EmptyHistoryBox(
-                                title: "No notification yet",
-                                subtitle: "Your notification will appear here",
-                                iconPath: "assets/icon/notifications.svg",
-                                height: 200,
-                              ),
-                               SizedBox(height: 20),
-
-                            ],
-                          ),
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height - 200,
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            EmptyHistoryBox(
+                              title: "No notification yet",
+                              subtitle: "Your notification will appear here",
+                              iconPath: "assets/icon/notifications.svg",
+                              height: 200,
+                            ),
+                            SizedBox(height: 20),
+                          ],
                         ),
+                      ),
                     );
                   }
 
@@ -467,7 +461,7 @@ class SeakerNotifications extends StatelessWidget {
                         itemCount: notificationsController.notifications.length,
                         itemBuilder: (_, index) {
                           final notification =
-                          notificationsController.notifications[index];
+                              notificationsController.notifications[index];
                           return Dismissible(
                             key: Key(notification.id),
                             background: Container(
@@ -486,11 +480,14 @@ class SeakerNotifications extends StatelessWidget {
                             direction: DismissDirection.endToStart,
                             onDismissed: (direction) {
                               notificationsController.deleteNotification(
-                                  notification.id);
+                                notification.id,
+                              );
                             },
                             child: GestureDetector(
                               onTap: () {
-                                notificationsController.markAsRead(notification.id);
+                                notificationsController.markAsRead(
+                                  notification.id,
+                                );
                                 _showNotificationDetails(context, notification);
                               },
                               child: SeakernotificationItem(
@@ -516,7 +513,7 @@ class SeakerNotifications extends StatelessWidget {
                       itemCount: notificationsController.notifications.length,
                       itemBuilder: (_, index) {
                         final notification =
-                        notificationsController.notifications[index];
+                            notificationsController.notifications[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Dismissible(
@@ -537,11 +534,14 @@ class SeakerNotifications extends StatelessWidget {
                             direction: DismissDirection.endToStart,
                             onDismissed: (direction) {
                               notificationsController.deleteNotification(
-                                  notification.id);
+                                notification.id,
+                              );
                             },
                             child: GestureDetector(
                               onTap: () {
-                                notificationsController.markAsRead(notification.id);
+                                notificationsController.markAsRead(
+                                  notification.id,
+                                );
                                 _showNotificationDetails(context, notification);
                               },
                               child: CustomBox(
@@ -564,21 +564,20 @@ class SeakerNotifications extends StatelessWidget {
               ),
             ],
           ),
-      )
         ),
       ),
     );
   }
 
   void _showNotificationDetails(
-      BuildContext context, NotificationItemModel notification) {
+    BuildContext context,
+    NotificationItemModel notification,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black54,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(notification.title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -597,18 +596,12 @@ class SeakerNotifications extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               _formatTimestamp(notification.timestamp),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Close'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Close')),
         ],
       ),
     );
@@ -662,7 +655,7 @@ class GradientButtons extends StatelessWidget {
             begin: const Alignment(0, 0),
             end: const Alignment(0.0, 0.0),
             colors:
-            gradientColors ?? const [Color(0xFF0DB17B), Color(0xFF06996B)],
+                gradientColors ?? const [Color(0xFF0DB17B), Color(0xFF06996B)],
           ),
         ),
         child: Center(

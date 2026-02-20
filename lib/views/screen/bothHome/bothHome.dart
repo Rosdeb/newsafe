@@ -15,6 +15,7 @@ import '../../../utils/app_color.dart';
 import '../../base/AppText/appText.dart';
 import '../../base/Ios_effect/iosTapEffect.dart';
 import '../help_seaker/locations/seaker_location.dart';
+
 class Bothhome extends StatefulWidget {
   Bothhome({super.key});
 
@@ -23,19 +24,17 @@ class Bothhome extends StatefulWidget {
 }
 
 class _BothhomeState extends State<Bothhome> {
-
   UserController userController = Get.find<UserController>();
   BothHomeController controller = Get.put(BothHomeController());
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:Container(
-        padding:const EdgeInsets.symmetric(horizontal: 16),
+      body: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         width: double.infinity,
         height: double.infinity,
-        decoration:const BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.centerRight,
             end: Alignment.centerLeft,
@@ -44,59 +43,86 @@ class _BothhomeState extends State<Bothhome> {
           ),
         ),
         child: Column(
-        children: [
-          const SizedBox(height: 70),
-          homeHeader(),
+          children: [
+            const SizedBox(height: 70),
+            homeHeader(),
 
-          const SizedBox(height: 70),
+            const SizedBox(height: 70),
 
-          IosTapEffect(
-             onTap: (){
-               if (Get.isRegistered<SeakerHomeController>()) {
-                 Get.delete<SeakerHomeController>();
-               }
-               if (Get.isRegistered<SeakerLocationsController>()) {
-                 Get.delete<SeakerLocationsController>();
-               }
+            IosTapEffect(
+              onTap: () {
+                if (Get.isRegistered<SeakerHomeController>()) {
+                  Get.delete<SeakerHomeController>();
+                }
+                if (Get.isRegistered<SeakerLocationsController>()) {
+                  Get.delete<SeakerLocationsController>();
+                }
 
-               Navigator.push(context, MaterialPageRoute(builder: (context) => SeakerHome()));
-
-             },
-             child:  CustomBox(
-                 padding: const EdgeInsets.symmetric(vertical: 20),
-                 child: Column(
-              children: [
-                 AppText("Help Seeker".tr, fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black),
-                 AppText("If you need help click here".tr, fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.color2Box.withOpacity(0.50)),
-              ],
-                       )),
-           ),
-
-          const SizedBox(height: 20,),
-
-          IosTapEffect(
-            onTap: (){
-              if (Get.isRegistered<GiverHomeController>()) {
-                Get.delete<GiverHomeController>();
-              }
-              if (Get.isRegistered<SeakerLocationsController>()) {
-                Get.delete<SeakerLocationsController>();
-              }
-
-              Navigator.push(context, MaterialPageRoute(builder: (context)=>Giverhome()));
-            },
-            child:  CustomBox(
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SeakerHome()),
+                );
+              },
+              child: CustomBox(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Column(
-              children: [
-                AppText("Help Giver".tr, fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black),
-                 AppText("If you want to help click here".tr, fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.color2Box.withOpacity(0.50)),
-              ],
-            )),
-          ),
-        ],
+                  children: [
+                    AppText(
+                      "Help Seeker".tr,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                    AppText(
+                      "If you need help click here".tr,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.color2Box.withOpacity(0.50),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            IosTapEffect(
+              onTap: () {
+                if (Get.isRegistered<GiverHomeController>()) {
+                  Get.delete<GiverHomeController>();
+                }
+                if (Get.isRegistered<SeakerLocationsController>()) {
+                  Get.delete<SeakerLocationsController>();
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Giverhome()),
+                );
+              },
+              child: CustomBox(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  children: [
+                    AppText(
+                      "Help Giver".tr,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                    AppText(
+                      "If you want to help click here".tr,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.color2Box.withOpacity(0.50),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      )
     );
   }
 
@@ -132,22 +158,31 @@ class _BothhomeState extends State<Bothhome> {
               Row(
                 children: [
                   Obx(
-                        () => AppText(
-                      (userController.userRole.value == 'seeker' ? "Help Seeker" : "Help Giver").tr,
+                    () => AppText(
+                      (userController.userRole.value == 'seeker'
+                              ? "Help Seeker"
+                              : userController.userRole.value == 'giver'
+                              ? "Help Giver"
+                              : "Both Role")
+                          .tr,
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: AppColors.color2Box,
                     ),
                   ),
                   const SizedBox(width: 5),
-                  IosTapEffect(
-                    onTap: (){
-
-                    },
-                    child: SvgPicture.asset(
-                      "assets/icon/material-symbols-light_change-circle.svg",
-                    ),
-                  ),
+                  // IosTapEffect(
+                  //   onTap: () {
+                  //     final userController = Get.find<UserController>();
+                  //     final currentRole = userController.userRole.value;
+                  //     if (currentRole == 'both') {
+                  //       Get.bottomSheet(RoleSwitchModal());
+                  //     }
+                  //   },
+                  //   child: SvgPicture.asset(
+                  //     "assets/icon/material-symbols-light_change-circle.svg",
+                  //   ),
+                  // ),
                 ],
               ),
             ],
@@ -166,11 +201,11 @@ class _BothhomeState extends State<Bothhome> {
                     child: Container(
                       height: 16,
                       width: 16,
-                      decoration:const BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.red,
                       ),
-                      child:const Center(
+                      child: const Center(
                         child: AppText(
                           "1",
                           fontSize: 14,

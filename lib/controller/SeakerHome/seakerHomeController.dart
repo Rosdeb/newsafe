@@ -182,7 +182,7 @@ class SeakerHomeController extends GetxController {
   Future<void> _attemptReconnect() async {
     if (isReconnecting.value || _reconnectAttempts >= _maxReconnectAttempts) {
       if (_reconnectAttempts >= _maxReconnectAttempts) {
-        Logger.log("❌ Max reconnection attempts reached", type: "error");
+        Logger.log(" Max reconnection attempts reached", type: "error");
         Get.snackbar(
           "Connection Error",
           "Unable to connect to server. Please restart the app.",
@@ -207,21 +207,19 @@ class SeakerHomeController extends GetxController {
         return;
       }
 
-      // 🔥 শুধু initSocket() করুন — কোনো room join বা location sharing এখানে করবেন না
       await initSocket();
 
       if (socketService?.isConnected.value == true) {
         Logger.log("✅ Reconnection successful (socket connected)", type: "success");
         _reconnectAttempts = 0;
         isReconnecting.value = false;
-        // ❌ এখানে joinRoom() বা _startAutoLocationSharing() কল করবেন না
       } else {
         Logger.log("❌ Reconnection failed, scheduling retry", type: "warning");
         isReconnecting.value = false;
         _scheduleReconnect();
       }
     } catch (e) {
-      Logger.log("❌ Reconnection error: $e", type: "error");
+      Logger.log(" Reconnection error: $e", type: "error");
       isReconnecting.value = false;
       _scheduleReconnect();
     }
@@ -252,7 +250,7 @@ class SeakerHomeController extends GetxController {
     try {
       final token = await TokenService().getToken();
       if (token == null || token.isEmpty) {
-        Logger.log("❌ No token available for socket", type: "error");
+        Logger.log(" No token available for socket", type: "error");
         return;
       }
 
@@ -276,7 +274,7 @@ class SeakerHomeController extends GetxController {
       }
 
     } catch (e) {
-      Logger.log("❌ Error initializing socket: $e", type: "error");
+      Logger.log(" Error initializing socket: $e", type: "error");
       isSocketInitialized.value = false;
     }
   }
@@ -298,11 +296,8 @@ class SeakerHomeController extends GetxController {
     socketService!.socket.on('connect', (_) {
       Logger.log("✅ [SEEKER] Socket reconnected", type: "success");
       if (currentHelpRequestId.value.isNotEmpty) {
-        // 🔥 Room জয়েন করুন
         socketService!.joinRoom(currentHelpRequestId.value);
         Logger.log("🚪 Rejoined room after reconnect: ${currentHelpRequestId.value}", type: "info");
-
-        // 🔥 লোকেশন শেয়ারিং রিস্টার্ট করুন
         _startAutoLocationSharing();
       }
     });
@@ -356,7 +351,7 @@ class SeakerHomeController extends GetxController {
 
           Logger.log("✅ Added request. Total: ${incomingHelpRequests.length}", type: "success");
         }on Exception catch (e) {
-          Logger.log("❌ Error processing request: $e", type: "error");
+          Logger.log(" Error processing request: $e", type: "error");
         }
       }
     });
@@ -371,7 +366,7 @@ class SeakerHomeController extends GetxController {
       }
 
       socketService!.socket.on('connect_error', (error) {
-        Logger.log("❌ [SEEKER] Connection error: $error", type: "error");
+        Logger.log(" [SEEKER] Connection error: $error", type: "error");
         _scheduleReconnect();
       });
 
@@ -390,13 +385,13 @@ class SeakerHomeController extends GetxController {
       final giverLocation = requestData['giverLocation'] as Map<String, dynamic>?;
 
       if (helpRequest == null) {
-        Logger.log("❌ [SEEKER] No helpRequest in data", type: "error");
+        Logger.log(" [SEEKER] No helpRequest in data", type: "error");
         return;
       }
 
       final helpRequestId = helpRequest['_id']?.toString() ?? '';
       if (helpRequestId.isEmpty) {
-        Logger.log("❌ [SEEKER] Empty help request ID", type: "error");
+        Logger.log(" [SEEKER] Empty help request ID", type: "error");
         return;
       }
 
@@ -450,7 +445,7 @@ class SeakerHomeController extends GetxController {
       Logger.log("✅ [SEEKER] Help request fully processed", type: "success");
 
     } catch (e, stack) {
-      Logger.log("❌ [SEEKER] Error in _handleHelpRequestAccepted: $e\nStack: $stack", type: "error");
+      Logger.log(" [SEEKER] Error in _handleHelpRequestAccepted: $e\nStack: $stack", type: "error");
     }
   }
 
@@ -484,7 +479,7 @@ class SeakerHomeController extends GetxController {
       Logger.log("✅ [SEEKER] Help request marked as completed", type: "success");
 
     } on Exception catch (e, stackTrace) {
-      Logger.log("❌ [SEEKER] Error: $e", type: "error");
+      Logger.log(" [SEEKER] Error: $e", type: "error");
       Logger.log("Stack: $stackTrace", type: "error");
     }
   }
@@ -508,7 +503,7 @@ class SeakerHomeController extends GetxController {
       }
 
       if (locationController.currentHelpRequestId.value.isEmpty) {
-        Logger.log("❌ [SEEKER] No help request ID for location sharing", type: "error");
+        Logger.log(" [SEEKER] No help request ID for location sharing", type: "error");
         return;
       }
 
@@ -527,7 +522,7 @@ class SeakerHomeController extends GetxController {
       Logger.log("✅ [SEEKER] Location sharing started for request: ${locationController.currentHelpRequestId.value}", type: "success");
 
     } catch (e) {
-      Logger.log("❌ [SEEKER] Error starting location sharing: $e", type: "error");
+      Logger.log(" [SEEKER] Error starting location sharing: $e", type: "error");
     }
   }
 
@@ -543,13 +538,13 @@ class SeakerHomeController extends GetxController {
         try {
           locationData = jsonDecode(data) as Map<String, dynamic>;
         } catch (e) {
-          Logger.log("❌ [SEEKER] Failed to parse JSON string: $e", type: "error");
+          Logger.log(" [SEEKER] Failed to parse JSON string: $e", type: "error");
           return;
         }
       } else if (data is Map) {
         locationData = Map<String, dynamic>.from(data);
       } else {
-        Logger.log("❌ [SEEKER] Unknown data format: ${data.runtimeType}", type: "error");
+        Logger.log(" [SEEKER] Unknown data format: ${data.runtimeType}", type: "error");
         return;
       }
 
@@ -587,13 +582,13 @@ class SeakerHomeController extends GetxController {
       double? longitude = _safeToDouble(longitudeRaw);
 
       if (latitude == null || longitude == null) {
-        Logger.log("❌ [SEEKER] Could not parse latitude/longitude", type: "error");
+        Logger.log(" [SEEKER] Could not parse latitude/longitude", type: "error");
         return;
       }
 
       // Validate coordinates
       if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-        Logger.log("❌ [SEEKER] Invalid coordinate ranges", type: "error");
+        Logger.log(" [SEEKER] Invalid coordinate ranges", type: "error");
         return;
       }
 
@@ -620,7 +615,7 @@ class SeakerHomeController extends GetxController {
       update();
 
     } catch (e, stackTrace) {
-      Logger.log("❌ [SEEKER] ERROR in _handleLocationUpdate: $e", type: "error");
+      Logger.log(" [SEEKER] ERROR in _handleLocationUpdate: $e", type: "error");
       Logger.log("   Error type: ${e.runtimeType}", type: "error");
       Logger.log("   Stack trace: $stackTrace", type: "error");
       Logger.log("   Data received: $data", type: "debug");
@@ -775,19 +770,19 @@ class SeakerHomeController extends GetxController {
       }
 
     }on Exception catch (e) {
-      Logger.log("❌ Error handling cancellation: $e", type: "error");
+      Logger.log(" Error handling cancellation: $e", type: "error");
       _resetHelpRequestState();
     }
   }
 
   Future<void> acceptHelpRequest(String helpRequestId) async {
     if (socketService == null || !isSocketInitialized.value) {
-      Logger.log("❌ [SEEKER] Socket not initialized", type: "error");
+      Logger.log(" [SEEKER] Socket not initialized", type: "error");
       return;
     }
 
     if (socketService?.isConnected.value != true) {
-      Logger.log("❌ [SEEKER] Socket not connected", type: "error");
+      Logger.log(" [SEEKER] Socket not connected", type: "error");
       return;
     }
 
@@ -823,7 +818,7 @@ class SeakerHomeController extends GetxController {
 
 
     } on Exception catch (e) {
-      Logger.log("❌ [SEEKER] Error accepting: $e", type: "error");
+      Logger.log(" [SEEKER] Error accepting: $e", type: "error");
     }
   }
 
@@ -887,7 +882,7 @@ class SeakerHomeController extends GetxController {
       }
     } else if (Platform.isIOS) {
       while (_isVibrating) {
-        if (!notificationsEnabled) break; // stop if notifications disabled
+        if (!notificationsEnabled) break;
 
         await HapticFeedback.heavyImpact();
         await Vibration.vibrate(duration: 100);
@@ -909,7 +904,7 @@ class SeakerHomeController extends GetxController {
 
   void stopVibration() {
     _isVibrating = false;
-    Vibration.cancel(); // stops Android vibration immediately
+    Vibration.cancel();
     _audioPlayer?.stop();
     _audioPlayer?.dispose();
     _audioPlayer = null;
@@ -919,13 +914,13 @@ class SeakerHomeController extends GetxController {
   Future<void> helpRequest(BuildContext context, double latitude, double longitude) async {
     // Initialize socket service if null
     if (socketService == null) {
-      Logger.log("❌ Socket service is null, initializing...", type: "warning");
+      Logger.log(" Socket service is null, initializing...", type: "warning");
       await initSocket();
     }
 
     // Ensure the socket service is initialized
     if (socketService == null) {
-      Logger.log("❌ Unable to initialize socket service", type: "error");
+      Logger.log(" Unable to initialize socket service", type: "error");
       return;
     }
 
@@ -955,7 +950,7 @@ class SeakerHomeController extends GetxController {
     }
 
     if (socketService!.isConnected.value != true) {
-      Logger.log("❌ Socket still not connected after $maxAttempts attempts", type: "error");
+      Logger.log(" Socket still not connected after $maxAttempts attempts", type: "error");
 
       // Try one more time to initialize
       await initSocket();
@@ -969,7 +964,7 @@ class SeakerHomeController extends GetxController {
       }
 
       if (socketService!.isConnected.value != true) {
-        Logger.log("❌ Socket still not connected after all attempts", type: "error");
+        Logger.log(" Socket still not connected after all attempts", type: "error");
         return;
       }
     }
@@ -1022,7 +1017,6 @@ class SeakerHomeController extends GetxController {
         Logger.log("✅ [SEEKER] Help request ID set in location controller", type: "success");
 
         // 🔥 ROOM JOIN REMOVED HERE — only join after acceptance
-
         updateNearbyStats(
           helpRequest.nearbyStats.km1,
           helpRequest.nearbyStats.km2,

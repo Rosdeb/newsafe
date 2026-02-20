@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:saferader/controller/SocketService/socket_service.dart';
 import 'package:saferader/utils/logger.dart';
 
 import '../../utils/token_service.dart';
@@ -54,10 +55,11 @@ class SettingController extends GetxController{
       }
       await Hive.box('userProfileBox').clear();
       await TokenService().clearAll();
+
       Logger.log("✅ User logged out successfully", type: "success");
 
     }on Exception catch (e) {
-      Logger.log("❌ Error during logout: $e", type: "error");
+      Logger.log(" Error during logout: $e", type: "error");
     }
   }
 

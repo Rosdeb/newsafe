@@ -40,4 +40,6 @@ class BothHomeController extends GetxController{
     }
   }
 
+
+
 }

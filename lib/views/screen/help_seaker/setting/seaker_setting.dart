@@ -303,8 +303,10 @@ class LogoutDialog {
                 Row(
                   children: [
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () => Get.back(),
+                      child: IosTapEffect(
+                        onTap: (){
+                          Navigator.pop(context);
+                        },
                         child: Container(
                           height: 44,
                           alignment: Alignment.center,
@@ -318,7 +320,7 @@ class LogoutDialog {
                           ),
                           child: Text(
                             "Cancel".tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppColors.color2Box,
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
