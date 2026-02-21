@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:saferader/controller/UserController/userController.dart';
 import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
+import 'package:socket_io_client/socket_io_client.dart';
 import 'package:vibration/vibration.dart';
 import '../../../utils/app_constant.dart';
 import '../../../utils/token_service.dart';
@@ -19,12 +20,15 @@ import '../../notifications/notifications_controller.dart';
 
 class GiverHomeController extends GetxController {
   RxInt emergencyMode = 0.obs;
-  RxList<Map<String, dynamic>> pendingHelpRequests = <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> pendingHelpRequests =
+      <Map<String, dynamic>>[].obs;
   Rxn<Map<String, dynamic>> acceptedHelpRequest = Rxn<Map<String, dynamic>>();
   final UserController userController = Get.find<UserController>();
   Rxn<Position> seekerPosition = Rxn<Position>();
   SocketService? _socketService;
+
   SocketService? get socketService => _socketService;
+
   Position? get currentPosition {
     try {
       final locationController = Get.find<SeakerLocationsController>();
@@ -39,13 +43,12 @@ class GiverHomeController extends GetxController {
       return seekerPosition.value!.latitude;
     }
 
-
     if (acceptedHelpRequest.value != null) {
-      final location = acceptedHelpRequest.value!['location'] as Map<String, dynamic>?;
+      final location =
+          acceptedHelpRequest.value!['location'] as Map<String, dynamic>?;
       final coordinates = location?['coordinates'] as List<dynamic>?;
 
       if (coordinates != null && coordinates.length >= 2) {
-
         return (coordinates[1] as num).toDouble();
       }
     }
@@ -58,13 +61,12 @@ class GiverHomeController extends GetxController {
       return seekerPosition.value!.longitude;
     }
 
-
     if (acceptedHelpRequest.value != null) {
-      final location = acceptedHelpRequest.value!['location'] as Map<String, dynamic>?;
+      final location =
+          acceptedHelpRequest.value!['location'] as Map<String, dynamic>?;
       final coordinates = location?['coordinates'] as List<dynamic>?;
 
       if (coordinates != null && coordinates.length >= 2) {
-
         return (coordinates[0] as num).toDouble();
       }
     }
@@ -83,7 +85,8 @@ class GiverHomeController extends GetxController {
   }
 
   String get seekerName {
-    final seeker = acceptedHelpRequest.value?['seeker'] as Map<String, dynamic>?;
+    final seeker =
+        acceptedHelpRequest.value?['seeker'] as Map<String, dynamic>?;
     return seeker?['name']?.toString() ?? 'Seeker';
   }
 
@@ -94,10 +97,69 @@ class GiverHomeController extends GetxController {
     //initSocket();
   }
 
+  // Notification থেকে help request inject করার method
+  void injectHelpRequestFromNotification(
+    Map<String, dynamic> notificationData,
+  ) {
+    try {
+      Logger.log("📬 Injecting help request from notification", type: "info");
+
+      // Notification data থেকে request object তৈরি করো
+      final requestId = notificationData['requestId']?.toString();
+
+      if (requestId == null) {
+        Logger.log(" No requestId in notification data", type: "error");
+        return;
+      }
+
+      // Already pending তে আছে কিনা check করো
+      final alreadyExists = pendingHelpRequests.any(
+        (req) => req['_id'] == requestId,
+      );
+
+      if (!alreadyExists) {
+        // Notification data থেকে request object বানাও
+        final helpRequest = {
+          '_id': requestId,
+          'seeker': {
+            'name': notificationData['seekerName'] ?? 'Someone',
+            'profileImage': notificationData['seekerImage'] ?? '',
+            '_id': notificationData['seekerId'] ?? '',
+          },
+          'location': {
+            'type': 'Point',
+            'coordinates': [
+              double.tryParse(notificationData['longitude'] ?? '0') ?? 0.0,
+              double.tryParse(notificationData['latitude'] ?? '0') ?? 0.0,
+            ],
+          },
+          'distance': notificationData['distance'] ?? 'Calculating...',
+          'eta': notificationData['eta'] ?? 'Calculating...',
+          'createdAt': DateTime.now().toIso8601String(),
+        };
+
+        pendingHelpRequests.add(helpRequest);
+        emergencyMode.value = 1; // sendMode দেখাবে
+
+        // Socket connect না থাকলে init করো
+        if (_socketService == null || !_socketService!.isConnected.value) {
+          initSocket();
+        }
+
+        Logger.log(
+          "✅ Help request injected from notification: $requestId",
+          type: "success",
+        );
+        emergencyVibration();
+      }
+    } catch (e) {
+      Logger.log("❌ Error injecting help request: $e", type: "error");
+    }
+  }
+
   void _setupLocationListener() {
     try {
       final locationController = Get.find<SeakerLocationsController>();
-
 
       ever(locationController.currentPosition, (position) {
         if (position != null) {
@@ -115,7 +177,7 @@ class GiverHomeController extends GetxController {
     try {
       final token = await TokenService().getToken();
       if (token == null || token.isEmpty) {
-        Logger.log("❌ No token available for giver socket", type: "error");
+        Logger.log(" No token available for giver socket", type: "error");
         return;
       }
 
@@ -134,31 +196,74 @@ class GiverHomeController extends GetxController {
         // await Get.delete<SocketService>(force: true);
       }
 
-      _socketService = await Get.putAsync(() => SocketService().init(token, role: role));
+      _socketService = await Get.putAsync(
+        () => SocketService().init(token, role: role),
+        permanent: true,
+      );
 
       if (_socketService != null) {
         _removeAllListeners();
         _setupSocketListeners();
+        _socketService!.socket.onDisconnect((_){
+          Logger.log("⚡ Socket disconnected! Will reconnect...", type: "warning");
+          Future.delayed(const Duration(seconds: 3), () {
+            if (Get.isRegistered<GiverHomeController>()) {
+              _reconnectSocket();
+            }
+          });
+        });
+
         Logger.log("✅ Giver socket connected and ready", type: "success");
         Logger.log("🔍 Socket ID: ${_socketService!.socket.id}", type: "debug");
-        Logger.log("🔍 Socket connected: ${_socketService!.isConnected.value}", type: "debug");
+        Logger.log("🔍 Socket connected: ${_socketService!.isConnected.value}", type: "debug",);
 
-        // 🔥 NEW: Log all socket events for debugging
+        _socketService!.socket.onConnect((_) {
+          Logger.log("✅ Socket reconnected!", type: "success");
+          _rejoinCurrentRoomAfterReconnect();
+        });
+
         _socketService!.socket.onAny((event, data) {
-          Logger.log("🎯 [GIVER] Socket event received: $event", type: "debug");
+          Logger.log("[GIVER] Socket event received: $event", type: "debug");
           if (event == 'giver_receiveLocationUpdate') {
-            Logger.log("   ⚠️⚠️⚠️ This is the location update event!", type: "warning");
+            Logger.log(" This is the location update event!", type: "warning",);
           }
         });
       }
+    }catch (e) {
+      Logger.log(" Error initializing giver socket: $e", type: "error");
+    }
+  }
 
+  Future<void> _reconnectSocket() async {
+    try {
+      if (_socketService != null && !_socketService!.isConnected.value) {
+        Logger.log("🔄 Attempting socket reconnect...", type: "info");
+        _socketService!.socket.connect();
+      }
     } catch (e) {
-      Logger.log("❌ Error initializing giver socket: $e", type: "error");
-      Get.snackbar(
-        "Connection Error",
-        "Failed to connect to server",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Logger.log(" Reconnect error: $e", type: "error");
+    }
+  }
+
+  void _rejoinCurrentRoomAfterReconnect() {
+    final acceptedRequest = acceptedHelpRequest.value;
+    if (acceptedRequest != null) {
+      final requestId = acceptedRequest['_id']?.toString();
+      if (requestId != null) {
+        Logger.log("🚪 Rejoining room after reconnect: $requestId", type: "info");
+        Future.delayed(const Duration(milliseconds: 500), () {
+          socketService?.joinRoom(requestId);
+
+          try {
+            final locationController = Get.find<SeakerLocationsController>();
+            if (!locationController.isSharingLocation.value) {
+              locationController.startLocationSharing();
+            }
+          } catch (e) {
+            Logger.log(" Error resuming location: $e", type: "error");
+          }
+        });
+      }
     }
   }
 
@@ -176,7 +281,6 @@ class GiverHomeController extends GetxController {
 
     Logger.log("🎧 [GIVER] Setting up socket listeners", type: "info");
 
-
     socketService?.socket.on('giver_newHelpRequest', (data) {
       if (!Get.isRegistered<GiverHomeController>()) return;
       Logger.log("🆘 NEW HELP REQUEST RECEIVED: $data", type: "info");
@@ -186,15 +290,17 @@ class GiverHomeController extends GetxController {
     socketService?.socket.on('helpRequestAccepted', (data) {
       if (!Get.isRegistered<GiverHomeController>()) return;
       final userRole = userController.userRole.value;
-         if (userRole != 'giver' && userRole != 'both') return;
+      if (userRole != 'giver' && userRole != 'both') return;
       Logger.log("❤️ HELP REQUEST ACCEPTED RECEIVED: $data", type: "success");
       _handleHelpRequestAccepted(data);
     });
 
-
     socketService?.socket.on('giver_receiveLocationUpdate', (data) {
       if (!Get.isRegistered<GiverHomeController>()) return;
-      Logger.log("📍📍📍 [GIVER] SEEKER LOCATION UPDATE RECEIVED!", type: "success");
+      Logger.log(
+        "📍📍📍 [GIVER] SEEKER LOCATION UPDATE RECEIVED!",
+        type: "success",
+      );
       Logger.log("   Raw data: $data", type: "debug");
       Logger.log("   Data type: ${data.runtimeType}", type: "debug");
       handleSeekerLocationUpdate(data);
@@ -231,60 +337,92 @@ class GiverHomeController extends GetxController {
         try {
           locationData = jsonDecode(data) as Map<String, dynamic>;
         } catch (e) {
-          Logger.log("❌ [GIVER] Failed to parse JSON string: $e", type: "error");
+          Logger.log(
+            "❌ [GIVER] Failed to parse JSON string: $e",
+            type: "error",
+          );
           return;
         }
       } else if (data is Map) {
         locationData = Map<String, dynamic>.from(data);
       } else {
-        Logger.log("❌ [GIVER] Unknown data format: ${data.runtimeType}", type: "error");
-        Logger.log("   Expected: String or Map, Got: ${data.runtimeType}", type: "error");
+        Logger.log(
+          "❌ [GIVER] Unknown data format: ${data.runtimeType}",
+          type: "error",
+        );
+        Logger.log(
+          "   Expected: String or Map, Got: ${data.runtimeType}",
+          type: "error",
+        );
         return;
       }
 
       // Log all keys for debugging
-      Logger.log("📊 [GIVER] Location Data Keys: ${locationData.keys.toList()}", type: "debug");
+      Logger.log(
+        "📊 [GIVER] Location Data Keys: ${locationData.keys.toList()}",
+        type: "debug",
+      );
 
       // Extract latitude/longitude - handle different formats
       dynamic latitudeRaw;
       dynamic longitudeRaw;
 
       // Try different possible key names
-      latitudeRaw = locationData['latitude'] ??
+      latitudeRaw =
+          locationData['latitude'] ??
           locationData['lat'] ??
           locationData['Latitude'] ??
           locationData['Lat'];
 
-      longitudeRaw = locationData['longitude'] ??
+      longitudeRaw =
+          locationData['longitude'] ??
           locationData['lng'] ??
           locationData['Longitude'] ??
           locationData['Lng'];
 
       Logger.log("📍 [GIVER] Raw values extracted", type: "debug");
-      Logger.log("   Lat: $latitudeRaw (${latitudeRaw.runtimeType})", type: "debug");
-      Logger.log("   Lng: $longitudeRaw (${longitudeRaw.runtimeType})", type: "debug");
+      Logger.log(
+        "   Lat: $latitudeRaw (${latitudeRaw.runtimeType})",
+        type: "debug",
+      );
+      Logger.log(
+        "   Lng: $longitudeRaw (${longitudeRaw.runtimeType})",
+        type: "debug",
+      );
 
       // Convert to double safely
       double? latitude = _safeToDouble(latitudeRaw);
       double? longitude = _safeToDouble(longitudeRaw);
 
       if (latitude == null || longitude == null) {
-        Logger.log("❌ [GIVER] Could not parse latitude/longitude", type: "error");
+        Logger.log(
+          "❌ [GIVER] Could not parse latitude/longitude",
+          type: "error",
+        );
         Logger.log("   Latitude raw: $latitudeRaw", type: "error");
         Logger.log("   Longitude raw: $longitudeRaw", type: "error");
-        Logger.log("   Available keys: ${locationData.keys.toList()}", type: "debug");
+        Logger.log(
+          "   Available keys: ${locationData.keys.toList()}",
+          type: "debug",
+        );
         return;
       }
 
       // Validate coordinate ranges
-      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      if (latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180) {
         Logger.log("❌ [GIVER] Invalid coordinate ranges", type: "error");
         Logger.log("   Lat: $latitude (valid: -90 to 90)", type: "error");
         Logger.log("   Lng: $longitude (valid: -180 to 180)", type: "error");
         return;
       }
 
-      Logger.log("✅ [GIVER] Parsed location: ($latitude, $longitude)", type: "success");
+      Logger.log(
+        "✅ [GIVER] Parsed location: ($latitude, $longitude)",
+        type: "success",
+      );
 
       // Update seeker's position
       seekerPosition.value = Position(
@@ -300,13 +438,18 @@ class GiverHomeController extends GetxController {
         headingAccuracy: 0,
       );
 
-      Logger.log("✅ [GIVER] SEEKER POSITION UPDATED: ($latitude, $longitude)", type: "success");
+      Logger.log(
+        "✅ [GIVER] SEEKER POSITION UPDATED: ($latitude, $longitude)",
+        type: "success",
+      );
 
       // Update distance and ETA
       _updateDistanceAndEta();
-
     } catch (e, stackTrace) {
-      Logger.log("❌ [GIVER] ERROR in handleSeekerLocationUpdate: $e", type: "error");
+      Logger.log(
+        "❌ [GIVER] ERROR in handleSeekerLocationUpdate: $e",
+        type: "error",
+      );
       Logger.log("   Error type: ${e.runtimeType}", type: "error");
       Logger.log("   Stack trace: $stackTrace", type: "error");
       Logger.log("   Data received: $data", type: "debug");
@@ -335,7 +478,9 @@ class GiverHomeController extends GetxController {
       final myPos = currentPosition; // Getter ব্যবহার করছি
       final seekerPos = seekerPosition.value;
 
-      if (myPos != null && seekerPos != null && acceptedHelpRequest.value != null) {
+      if (myPos != null &&
+          seekerPos != null &&
+          acceptedHelpRequest.value != null) {
         final distance = Geolocator.distanceBetween(
           myPos.latitude,
           myPos.longitude,
@@ -344,8 +489,11 @@ class GiverHomeController extends GetxController {
         );
 
         // Update the accepted request with new distance
-        final updatedRequest = Map<String, dynamic>.from(acceptedHelpRequest.value!);
-        updatedRequest['distance'] = '${(distance / 1000).toStringAsFixed(2)} km';
+        final updatedRequest = Map<String, dynamic>.from(
+          acceptedHelpRequest.value!,
+        );
+        updatedRequest['distance'] =
+            '${(distance / 1000).toStringAsFixed(2)} km';
 
         // Calculate ETA (assuming average speed of 30 km/h)
         final etaMinutes = (distance / 1000) / 30 * 60;
@@ -353,7 +501,10 @@ class GiverHomeController extends GetxController {
 
         acceptedHelpRequest.value = updatedRequest;
 
-        Logger.log("📊 Distance: ${updatedRequest['distance']}, ETA: ${updatedRequest['eta']}", type: "info");
+        Logger.log(
+          "📊 Distance: ${updatedRequest['distance']}, ETA: ${updatedRequest['eta']}",
+          type: "info",
+        );
       }
     } catch (e) {
       Logger.log("❌ Error updating distance/ETA: $e", type: "error");
@@ -363,7 +514,9 @@ class GiverHomeController extends GetxController {
   Future<void> acceptHelpRequest(String requestId) async {
     try {
       stopVibration();
-      final requestIndex = pendingHelpRequests.indexWhere((req) => req['_id'] == requestId);
+      final requestIndex = pendingHelpRequests.indexWhere(
+        (req) => req['_id'] == requestId,
+      );
       if (requestIndex == -1) {
         Logger.log("[GIVER] Request not found: $requestId", type: "error");
         return;
@@ -385,7 +538,10 @@ class GiverHomeController extends GetxController {
       SeakerLocationsController locationController;
       if (Get.isRegistered<SeakerLocationsController>()) {
         locationController = Get.find<SeakerLocationsController>();
-        Logger.log("✅ [GIVER] Using existing location controller", type: "info");
+        Logger.log(
+          "✅ [GIVER] Using existing location controller",
+          type: "info",
+        );
       } else {
         locationController = Get.put(SeakerLocationsController());
         Logger.log("✅ [GIVER] Created new location controller", type: "info");
@@ -400,24 +556,36 @@ class GiverHomeController extends GetxController {
       await Future.delayed(const Duration(milliseconds: 800));
 
       // 🔥 STEP 2: Set new request ID
-      Logger.log("🆔 [GIVER] Step 2: Setting request ID: $requestId", type: "info");
+      Logger.log(
+        "🆔 [GIVER] Step 2: Setting request ID: $requestId",
+        type: "info",
+      );
       locationController.setHelpRequestId(requestId);
       locationController.forceSocketRefresh();
 
       await Future.delayed(const Duration(milliseconds: 300));
 
       // 🔥 STEP 3: Reset flag
-      Logger.log("🔄 [GIVER] Step 3: Resetting first location flag...", type: "info");
+      Logger.log(
+        "🔄 [GIVER] Step 3: Resetting first location flag...",
+        type: "info",
+      );
       locationController.resetFirstLocationFlag();
 
       // 🔥 STEP 4: Start location sharing flag FIRST
-      Logger.log("🚀 [GIVER] Step 4: Starting location sharing flag...", type: "info");
+      Logger.log(
+        "🚀 [GIVER] Step 4: Starting location sharing flag...",
+        type: "info",
+      );
       locationController.startLocationSharing();
 
       await Future.delayed(const Duration(milliseconds: 200));
 
       // 🔥 STEP 5: Start live location stream
-      Logger.log("📍 [GIVER] Step 5: Starting FRESH live location stream...", type: "info");
+      Logger.log(
+        "📍 [GIVER] Step 5: Starting FRESH live location stream...",
+        type: "info",
+      );
       await locationController.startLiveLocation();
 
       // 🔥 Wait for first position
@@ -425,14 +593,20 @@ class GiverHomeController extends GetxController {
 
       // 🔥 STEP 6: Get initial position if needed
       if (locationController.currentPosition.value == null) {
-        Logger.log("📍 [GIVER] Step 6: Getting initial position...", type: "info");
+        Logger.log(
+          "📍 [GIVER] Step 6: Getting initial position...",
+          type: "info",
+        );
         await locationController.getUserLocationOnce();
         await Future.delayed(const Duration(milliseconds: 500));
       }
 
       // 🔥 STEP 7: Force immediate share
       if (locationController.currentPosition.value != null) {
-        Logger.log("📤 [GIVER] Step 7: Forcing immediate location share...", type: "info");
+        Logger.log(
+          "📤 [GIVER] Step 7: Forcing immediate location share...",
+          type: "info",
+        );
         locationController.shareCurrentLocation();
 
         // 🔥 Send one more time after 2 seconds
@@ -447,11 +621,26 @@ class GiverHomeController extends GetxController {
       await Future.delayed(const Duration(milliseconds: 500));
 
       Logger.log("=== VERIFICATION ===", type: "info");
-      Logger.log("✓ Sharing: ${locationController.isSharingLocation.value}", type: "info");
-      Logger.log("✓ Live: ${locationController.liveLocation.value}", type: "info");
-      Logger.log("✓ HelpID: ${locationController.currentHelpRequestId.value}", type: "info");
-      Logger.log("✓ Position: ${locationController.currentPosition.value != null}", type: "info");
-      Logger.log("✓ Socket: ${locationController.getActiveSocket() != null}", type: "info");
+      Logger.log(
+        "✓ Sharing: ${locationController.isSharingLocation.value}",
+        type: "info",
+      );
+      Logger.log(
+        "✓ Live: ${locationController.liveLocation.value}",
+        type: "info",
+      );
+      Logger.log(
+        "✓ HelpID: ${locationController.currentHelpRequestId.value}",
+        type: "info",
+      );
+      Logger.log(
+        "✓ Position: ${locationController.currentPosition.value != null}",
+        type: "info",
+      );
+      Logger.log(
+        "✓ Socket: ${locationController.getActiveSocket() != null}",
+        type: "info",
+      );
 
       final status = locationController.getLocationSharingStatus();
       Logger.log("✓ Status: $status", type: "info");
@@ -460,21 +649,23 @@ class GiverHomeController extends GetxController {
       if (locationController.isSharingLocation.value &&
           locationController.liveLocation.value &&
           locationController.currentPosition.value != null) {
-        Logger.log("✅✅ [GIVER] Location sharing FULLY ACTIVE!", type: "success");
-
+        Logger.log(
+          "✅✅ [GIVER] Location sharing FULLY ACTIVE!",
+          type: "success",
+        );
       } else {
-        Logger.log("[GIVER] Location sharing partially active", type: "warning");
+        Logger.log(
+          "[GIVER] Location sharing partially active",
+          type: "warning",
+        );
         if (locationController.currentPosition.value != null) {
           Logger.log("🔄 [GIVER] Final recovery attempt...", type: "warning");
           locationController.shareCurrentLocation();
         }
-
       }
-
     } catch (e, stackTrace) {
       Logger.log(" [GIVER] Error: $e", type: "error");
       Logger.log("Stack: $stackTrace", type: "error");
-
     }
   }
 
@@ -483,7 +674,6 @@ class GiverHomeController extends GetxController {
       stopVibration();
       Logger.log("📤 Declining help request: $requestId", type: "info");
       socketService?.declineHelpRequest(requestId);
-
 
       pendingHelpRequests.removeWhere((req) => req['_id'] == requestId);
 
@@ -500,7 +690,10 @@ class GiverHomeController extends GetxController {
 
   void cancelAcceptedRequest(String requestId) {
     try {
-      Logger.log("📤 [GIVER] Cancelling accepted request: $requestId", type: "info");
+      Logger.log(
+        "📤 [GIVER] Cancelling accepted request: $requestId",
+        type: "info",
+      );
 
       // 🔥 FIX: Stop location sharing FIRST
       final locationController = Get.find<SeakerLocationsController>();
@@ -515,19 +708,16 @@ class GiverHomeController extends GetxController {
       socketService?.leaveRoom(requestId);
       socketService?.socket.emit('cancelAcceptedRequest', requestId);
 
-      Logger.log("✅ [GIVER] Cancelled accepted request", type: "success");
+      Logger.log("[GIVER] Cancelled accepted request", type: "success");
       Get.snackbar("Cancelled", "You've cancelled helping this person");
-
     } on Exception catch (e, stackTrace) {
-      Logger.log("❌ [GIVER] Error cancelling: $e", type: "error");
+      Logger.log("[GIVER] Error cancelling: $e", type: "error");
     }
   }
 
   void leaveHelpRequestRoom(String helpRequestId) {
     try {
       Logger.log("🚪 [GIVER] Leaving room: $helpRequestId", type: "info");
-
-      // 🔥 FIX: Stop location sharing FIRST
       final locationController = Get.find<SeakerLocationsController>();
       locationController.stopLocationSharing();
       locationController.clearHelpRequestId();
@@ -541,9 +731,9 @@ class GiverHomeController extends GetxController {
         socketService!.socket.emit('leaveHelpRequestRoom', helpRequestId);
       }
 
-      Logger.log("✅ [GIVER] Left room successfully", type: "success");
+      Logger.log("[GIVER] Left room successfully", type: "success");
     } catch (e) {
-      Logger.log("❌ [GIVER] Error leaving room: $e", type: "error");
+      Logger.log("[GIVER] Error leaving room: $e", type: "error");
     }
   }
 
@@ -551,7 +741,7 @@ class GiverHomeController extends GetxController {
     try {
       Logger.log("📤 [GIVER] Marking work as done: $requestId", type: "info");
 
-      // 🔥 FIX: Stop location sharing FIRST
+      // FIX: Stop location sharing FIRST
       final locationController = Get.find<SeakerLocationsController>();
       locationController.stopLocationSharing();
       locationController.clearHelpRequestId();
@@ -569,7 +759,6 @@ class GiverHomeController extends GetxController {
       }
 
       Logger.log("✅ [GIVER] Work marked as done", type: "success");
-
     } on Exception catch (e, stackTrace) {
       Logger.log("❌ [GIVER] Error marking work done: $e", type: "error");
     }
@@ -585,14 +774,16 @@ class GiverHomeController extends GetxController {
       pendingHelpRequests.add(request);
       emergencyMode.value = 1;
       emergencyVibration();
-      Logger.log("✅ Help request added. Total pending: ${pendingHelpRequests.length}", type: "success");
+      Logger.log(
+        "✅ Help request added. Total pending: ${pendingHelpRequests.length}",
+        type: "success",
+      );
       // Optional: Show notification or update UI
       // Get.snackbar(
       //   "New Help Request",
       //   "${request['seeker']?['name'] ?? 'Someone'} needs help!",
       //   snackPosition: SnackPosition.TOP,
       // );
-
     } catch (e) {
       Logger.log(" Error handling new help request: $e", type: "error");
     }
@@ -605,8 +796,10 @@ class GiverHomeController extends GetxController {
       // Remove from pending requests if it's there
       pendingHelpRequests.removeWhere((req) => req['_id'] == requestId);
 
-      Logger.log("✅ Request accepted and removed from pending list", type: "success");
-
+      Logger.log(
+        "✅ Request accepted and removed from pending list",
+        type: "success",
+      );
     } catch (e) {
       Logger.log("❌ Error handling accepted request: $e", type: "error");
     }
@@ -633,7 +826,6 @@ class GiverHomeController extends GetxController {
       }
 
       Logger.log("✅ Cancelled request removed from list", type: "success");
-
     } catch (e) {
       Logger.log("❌ Error handling cancelled request: $e", type: "error");
     }
@@ -654,7 +846,6 @@ class GiverHomeController extends GetxController {
       }
 
       Logger.log("✅ Completed request removed from list", type: "success");
-
     } catch (e) {
       Logger.log("❌ Error handling completed request: $e", type: "error");
     }
@@ -666,8 +857,9 @@ class GiverHomeController extends GetxController {
     try {
       Logger.log("📤 Updating availability → $isAvailable", type: "info");
 
-      final availabilityResponse = await ApiService.put('/api/users/me/availability',
-        body: {'isAvailable': isAvailable}
+      final availabilityResponse = await ApiService.put(
+        '/api/users/me/availability',
+        body: {'isAvailable': isAvailable},
       ).timeout(const Duration(seconds: 10));
 
       if (availabilityResponse.statusCode != 200) {
@@ -697,11 +889,12 @@ class GiverHomeController extends GetxController {
 
       if (currentPos != null) {
         // Update location on server
-        final locationResponse = await ApiService.put('/api/users/me/location',
+        final locationResponse = await ApiService.put(
+          '/api/users/me/location',
           body: {
             'latitude': currentPos.latitude,
             'longitude': currentPos.longitude,
-          }
+          },
         ).timeout(const Duration(seconds: 10));
 
         if (locationResponse.statusCode == 200) {
@@ -712,7 +905,6 @@ class GiverHomeController extends GetxController {
       // Start location sharing (but don't require socket connection)
       locationController.startLocationSharing();
       Logger.log("📡 Location sharing enabled", type: "success");
-
     } catch (e) {
       Logger.log("❌ Error updating availability: $e", type: "error");
     }
@@ -741,35 +933,71 @@ class GiverHomeController extends GetxController {
   void debugGiverConnection() {
     Logger.log("=== GIVER CONNECTION DEBUG ===", type: "info");
     Logger.log("📡 Socket Status:", type: "info");
-    Logger.log("  - Socket service exists: ${socketService != null}", type: "info");
-    Logger.log("  - Socket connected: ${socketService?.isConnected.value ?? false}", type: "info");
-    Logger.log("  - Socket ID: ${socketService?.socket.id ?? 'N/A'}", type: "info");
-    Logger.log("  - Current room: ${socketService?.currentRoom ?? 'Not in room'}", type: "info");
+    Logger.log(
+      "  - Socket service exists: ${socketService != null}",
+      type: "info",
+    );
+    Logger.log(
+      "  - Socket connected: ${socketService?.isConnected.value ?? false}",
+      type: "info",
+    );
+    Logger.log(
+      "  - Socket ID: ${socketService?.socket.id ?? 'N/A'}",
+      type: "info",
+    );
+    Logger.log(
+      "  - Current room: ${socketService?.currentRoom ?? 'Not in room'}",
+      type: "info",
+    );
 
     Logger.log("📍 Request Status:", type: "info");
-    Logger.log("  - Has accepted request: ${acceptedHelpRequest.value != null}", type: "info");
+    Logger.log(
+      "  - Has accepted request: ${acceptedHelpRequest.value != null}",
+      type: "info",
+    );
     if (acceptedHelpRequest.value != null) {
-      Logger.log("  - Request ID: ${acceptedHelpRequest.value?['_id']}", type: "info");
-      Logger.log("  - Seeker name: ${acceptedHelpRequest.value?['seeker']?['name']}", type: "info");
+      Logger.log(
+        "  - Request ID: ${acceptedHelpRequest.value?['_id']}",
+        type: "info",
+      );
+      Logger.log(
+        "  - Seeker name: ${acceptedHelpRequest.value?['seeker']?['name']}",
+        type: "info",
+      );
     }
 
     Logger.log("📊 Location Status:", type: "info");
-    Logger.log("  - Has seeker position: ${seekerPosition.value != null}", type: "info");
+    Logger.log(
+      "  - Has seeker position: ${seekerPosition.value != null}",
+      type: "info",
+    );
     if (seekerPosition.value != null) {
-      Logger.log("  - Seeker position: (${seekerPosition.value!.latitude}, ${seekerPosition.value!.longitude})", type: "info");
+      Logger.log(
+        "  - Seeker position: (${seekerPosition.value!.latitude}, ${seekerPosition.value!.longitude})",
+        type: "info",
+      );
     }
 
-    Logger.log("  - My position: ${currentPosition != null ? '(${currentPosition!.latitude}, ${currentPosition!.longitude})' : 'N/A'}", type: "info");
+    Logger.log(
+      "  - My position: ${currentPosition != null ? '(${currentPosition!.latitude}, ${currentPosition!.longitude})' : 'N/A'}",
+      type: "info",
+    );
 
     Logger.log("🎧 Testing event reception:", type: "info");
-    Logger.log("  - Listeners should be active for: giver_receiveLocationUpdate", type: "info");
+    Logger.log(
+      "  - Listeners should be active for: giver_receiveLocationUpdate",
+      type: "info",
+    );
 
     Logger.log("=== END DEBUG ===", type: "info");
 
     // Test if we can emit an event
     if (socketService?.isConnected.value == true) {
       Logger.log("📤 Sending test ping to server...", type: "info");
-      socketService!.socket.emit('ping', {'from': 'giver', 'timestamp': DateTime.now().toIso8601String()});
+      socketService!.socket.emit('ping', {
+        'from': 'giver',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
     }
   }
 
@@ -856,5 +1084,4 @@ class GiverHomeController extends GetxController {
       }
     }
   }
-
 }

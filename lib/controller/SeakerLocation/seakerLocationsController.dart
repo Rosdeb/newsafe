@@ -508,7 +508,7 @@ class SeakerLocationsController extends GetxController {
       final helpRequestId = _getHelpRequestId();
 
       if (helpRequestId == null || helpRequestId.isEmpty) {
-        Logger.log("❌ [SHARE] No help request ID", type: "warning");
+        Logger.log("[SHARE] No help request ID", type: "warning");
         _consecutiveFailures++;
         return;
       }
@@ -516,22 +516,22 @@ class SeakerLocationsController extends GetxController {
       final socketService = getActiveSocket();
 
       if (socketService == null) {
-        Logger.log("❌ [SHARE] No socket service", type: "error");
+        Logger.log("[SHARE] No socket service", type: "error");
         _consecutiveFailures++;
         isSocketConnected.value = false;
         return;
       }
 
       if (!socketService.isConnected.value) {
-        Logger.log("❌ [SHARE] Socket disconnected", type: "error");
+        Logger.log("[SHARE] Socket disconnected", type: "error");
         _consecutiveFailures++;
         isSocketConnected.value = false;
         return;
       }
 
-      // 🔥 NEW: Ensure we're in the correct room before sending location
+      //---> NEW: Ensure we're in the correct room before sending location <-----
       if (socketService.currentRoom != helpRequestId) {
-        Logger.log("⚠️ [SHARE] Not in correct room, joining: $helpRequestId", type: "warning");
+        Logger.log("⚠ [SHARE] Not in correct room, joining: $helpRequestId", type: "warning");
         socketService.joinRoom(helpRequestId);
         // Wait a bit for room to join before sending location
         Future.delayed(const Duration(milliseconds: 300)).then((_) {
@@ -560,25 +560,22 @@ class SeakerLocationsController extends GetxController {
 
     } catch (e, stackTrace) {
       _consecutiveFailures++;
-      Logger.log("❌ [SHARE] Error: $e", type: "error");
+      Logger.log("[SHARE] Error: $e", type: "error");
 
       if (_consecutiveFailures >= _maxConsecutiveFailures) {
-        Logger.log(
-            "⚠️ [SHARE] $_consecutiveFailures consecutive failures!",
-            type: "warning"
-        );
+        Logger.log(" [SHARE] $_consecutiveFailures consecutive failures!", type: "warning");
       }
     }
   }
 
   void forceLocationSharingStart() {
     if (currentHelpRequestId.value.isEmpty) {
-      Logger.log("❌ [LOCATION] Cannot force start: No help request ID", type: "error");
+      Logger.log(" [LOCATION] Cannot force start: No help request ID", type: "error");
       return;
     }
 
     if (currentPosition.value == null) {
-      Logger.log("❌ [LOCATION] Cannot force start: No position", type: "error");
+      Logger.log(" [LOCATION] Cannot force start: No position", type: "error");
       return;
     }
 
@@ -626,7 +623,7 @@ class SeakerLocationsController extends GetxController {
     return true;
   }
 
-  // 🔥 FIXED: Complete cleanup in stopLocationSharing
+  //----> FIXED: Complete cleanup in stopLocationSharing
 
   void _autoShareLocation(Position newPosition) {
     if (!isSharingLocation.value) return;
@@ -722,7 +719,7 @@ class SeakerLocationsController extends GetxController {
         Logger.log("📍 Auto location sharing enabled", type: "success");
       }
     } catch (e) {
-      Logger.log("❌ Error enabling auto sharing: $e", type: "error");
+      Logger.log("Error enabling auto sharing: $e", type: "error");
     }
   }
 

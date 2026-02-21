@@ -12,6 +12,7 @@ import 'package:saferader/utils/logger.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
+import '../../../../Service/Firebase/notifications.dart';
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../../../controller/SocketService/socket_service.dart';
 import '../../../../controller/UserController/userController.dart';
@@ -29,8 +30,7 @@ class Giverhome extends StatefulWidget {
   State<Giverhome> createState() => _SeakerHomeState();
 }
 
-class _SeakerHomeState extends State<Giverhome>
-    with SingleTickerProviderStateMixin {
+class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMixin ,WidgetsBindingObserver{
   late final GiverHomeController controller;
   late final UserController userController;
   late final ProfileController controller1;
@@ -49,6 +49,8 @@ class _SeakerHomeState extends State<Giverhome>
     controller1 = Get.put(ProfileController());
     locationController = Get.put(SeakerLocationsController());
 
+    WidgetsBinding.instance.addObserver(this);
+
     if (Get.isRegistered<SocketService>()) {
       final socketService = Get.find<SocketService>();
       socketService.updateRole('giver');
@@ -66,11 +68,43 @@ class _SeakerHomeState extends State<Giverhome>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.initSocket();
       locationController.startLiveLocation();
+      NotificationService.processPendingNotification();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch(state) {
+      case AppLifecycleState.resumed:
+        Logger.log("🔆 App RESUMED", type: "info");
+        _onAppResumed();
+        break;
+
+      case AppLifecycleState.paused:
+        Logger.log("🌙 App PAUSED", type: "info");
+        _onAppPaused();
+        break;
+
+      case AppLifecycleState.inactive:
+        Logger.log("😴 App INACTIVE", type: "info");
+        break;
+
+      case AppLifecycleState.detached:
+        Logger.log("💀 App DETACHED", type: "info");
+        break;
+
+      default:
+        break;
+    }
+  }
+
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
     _blinkController.dispose();
     if (controller.socketService != null &&
         controller.socketService!.isConnected.value) {
@@ -763,7 +797,9 @@ class _SeakerHomeState extends State<Giverhome>
                   ),
                   const SizedBox(height: 10),
                   GradientButtons(
-                    onTap: () {},
+                    onTap: () {
+
+                    },
                     text: "Work is done",
                     icon: Icons.check,
                   ),
@@ -1358,6 +1394,50 @@ class _SeakerHomeState extends State<Giverhome>
       ),
     );
   }
+
+  void  _onAppResumed(){
+    if(controller.socketService == null || !controller.socketService!.isConnected.value){
+
+      Logger.log("Recconnecting soket on resume....",type: "info");
+      controller.initSocket().then((_){
+        _rejoinRoomIfNeeded();
+      });
+    }else{
+      _rejoinRoomIfNeeded();
+    }
+
+    NotificationService.processPendingNotification();
+
+  }
+  void _onAppPaused(){
+    Logger.log("📍 App paused - location sharing continues in background", type: "info");
+  }
+
+  void _rejoinRoomIfNeeded() {
+    final acceptedRequest = controller.acceptedHelpRequest.value;
+    if (acceptedRequest != null) {
+      final requestId = acceptedRequest['_id']?.toString();
+      if (requestId != null && requestId.isNotEmpty) {
+        Logger.log("🚪 Rejoining room: $requestId", type: "info");
+        controller.socketService?.joinRoom(requestId);
+      }
+    }
+  }
+
+  void _resumeLocationSharing(){
+    if (!locationController.liveLocation.value) {
+      locationController.startLiveLocation();
+    }
+
+    // Accepted request থাকলে location sharing চালু করো
+    if (controller.acceptedHelpRequest.value != null) {
+      if (!locationController.isSharingLocation.value) {
+        locationController.startLocationSharing();
+        Logger.log("📍 Location sharing resumed", type: "info");
+      }
+    }
+  }
+
 }
 
 class BannerAds extends StatefulWidget {

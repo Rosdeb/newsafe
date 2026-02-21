@@ -31,8 +31,7 @@ class SeakerHome extends StatefulWidget {
   State<SeakerHome> createState() => _SeakerHomeState();
 }
 
-class _SeakerHomeState extends State<SeakerHome>
-    with SingleTickerProviderStateMixin {
+class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateMixin , WidgetsBindingObserver{
   late final SeakerHomeController controller;
   final NotificationsController notificationsController =
       Get.find<NotificationsController>();
@@ -50,6 +49,8 @@ class _SeakerHomeState extends State<SeakerHome>
     locationController = Get.put(SeakerLocationsController());
     userController = Get.find<UserController>();
     controller1 = Get.put(ProfileController());
+    WidgetsBinding.instance.addObserver(this);
+
     if (Get.isRegistered<SocketService>()) {
       final socketService = Get.find<SocketService>();
       socketService.updateRole('seeker');
@@ -68,15 +69,31 @@ class _SeakerHomeState extends State<SeakerHome>
   }
 
   @override
-  void dispose() {
-    if (Get.isRegistered<SeakerLocationsController>()) {
-      locationController.stopLocationSharing();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        Logger.log("🔆 [SEEKER] App RESUMED", type: "info");
+        _onAppResumed();
+        break;
+
+      case AppLifecycleState.paused:
+        Logger.log("🌙 [SEEKER] App PAUSED", type: "info");
+        _onAppPaused();
+        break;
+
+      case AppLifecycleState.inactive:
+        Logger.log("😴 [SEEKER] App INACTIVE", type: "info");
+        break;
+
+      case AppLifecycleState.detached:
+        Logger.log("💀 [SEEKER] App DETACHED", type: "info");
+        break;
+
+      default:
+        break;
     }
-    if (Get.isRegistered<SeakerHomeController>()) {
-      controller.removeAllListeners();
-    }
-    controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -967,6 +984,67 @@ class _SeakerHomeState extends State<SeakerHome>
       ),
     );
   }
+
+  void _onAppResumed() {
+    // 1. Socket reconnect করো
+    if (controller.socketService == null ||
+        !controller.socketService!.isConnected.value) {
+      Logger.log("🔄 [SEEKER] Reconnecting socket on resume...", type: "info");
+      controller.initSocket().then((_) {
+        _rejoinRoomIfNeeded();
+      });
+    } else {
+      _rejoinRoomIfNeeded();
+    }
+
+    // 2. Live location চালু করো
+    if (!locationController.liveLocation.value) {
+      locationController.startLiveLocation();
+    }
+
+    // 3. Active request থাকলে location sharing resume করো
+    if (controller.hasActiveHelpRequest) {
+      if (!locationController.isSharingLocation.value) {
+        locationController.startLocationSharing();
+        Logger.log("📍 [SEEKER] Location sharing resumed", type: "info");
+      }
+    }
+  }
+
+  void _onAppPaused() {
+    // Active help request থাকলে location sharing background এ চালু রাখো
+    if (controller.hasActiveHelpRequest) {
+      Logger.log(
+        "📍 [SEEKER] Active request - location sharing continues in background",
+        type: "info",
+      );
+    }
+  }
+
+  void _rejoinRoomIfNeeded() {
+    final requestId = controller.currentHelpRequestId.value;
+    if (requestId.isNotEmpty) {
+      Logger.log("🚪 [SEEKER] Rejoining room: $requestId", type: "info");
+      controller.socketService?.joinRoom(requestId);
+    }
+  }
+
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    if (Get.isRegistered<SeakerLocationsController>()) {
+      locationController.stopLocationSharing();
+    }
+    if (Get.isRegistered<SeakerHomeController>()) {
+      controller.removeAllListeners();
+    }
+    controller.dispose();
+    super.dispose();
+  }
+
+
 }
 
 class BannerAds extends StatefulWidget {

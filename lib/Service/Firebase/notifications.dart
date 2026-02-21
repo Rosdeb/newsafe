@@ -370,15 +370,21 @@
 //   }
 // }
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import '../../utils/app_constant.dart';
+import '../../views/screen/bottom_nav/bottom_nav_wrappers.dart';
 import '../../views/screen/help_seaker/notifications/seaker_notifications.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -657,6 +663,57 @@ class NotificationService {
     await _createAndroidNotificationChannel();
   }
 
+  static void _navigateToNotificationsPage(Map<String, dynamic>? data) {
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint('⚠️ navigatorKey context is null');
+      return;
+    }
+
+    // data তে type check করো
+    final type = data?['type']?.toString();
+
+    if (type == 'new_help_request') {
+      // GiverHomeController এ help request inject করো
+      _injectHelpRequestToController(data!);
+      Get.offAll(() => BottomMenuWrappers());
+    } else {
+      // Normal notification page
+      Navigator.push(context, MaterialPageRoute(builder: (_) => SeakerNotifications()),);
+    }
+  }
+
+  // GiverHomeController এ data inject করার method
+  static void _injectHelpRequestToController(Map<String, dynamic> data) {
+    try {
+      if (!Get.isRegistered<GiverHomeController>()) {
+        debugPrint('GiverHomeController not registered yet');
+        // Controller না থাকলে pending data store করো
+        _pendingHelpRequestData = data;
+        return;
+      }
+
+      final controller = Get.find<GiverHomeController>();
+      controller.injectHelpRequestFromNotification(data);
+
+    } catch (e) {
+      debugPrint(' Error injecting help request: $e');
+    }
+  }
+
+
+
+// Pending data (controller ready হওয়ার আগে notification আসলে)
+  static Map<String, dynamic>? _pendingHelpRequestData;
+
+// Controller ready হলে pending data process করার জন্য
+  static void processPendingNotification() {
+    if (_pendingHelpRequestData != null) {
+      _injectHelpRequestToController(_pendingHelpRequestData!);
+      _pendingHelpRequestData = null;
+    }
+  }
+
   static Future<void> _createAndroidNotificationChannel() async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       _channelId,
@@ -774,20 +831,37 @@ class NotificationService {
   // ───────────────────────────────────────────────────────────────────────────
   static void _handleNotificationTap(NotificationResponse response) {
     debugPrint('📬 Local notification tapped. Payload: ${response.payload}');
-    _navigateToNotificationsPage(null);
-  }
 
-  static void _navigateToNotificationsPage(Map<String, dynamic>? data) {
-    final context = navigatorKey.currentContext;
-    if (context != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SeakerNotifications()),
-      );
+    // ✅ Payload parse করো
+    if (response.payload != null && response.payload!.isNotEmpty) {
+      try {
+        // Payload String থেকে Map বানাও
+        final payloadString = response.payload!;
+
+        // dart Map toString() format: {key: value, key2: value2}
+        // এটা JSON না, তাই আলাদাভাবে handle করতে হবে
+        // সবচেয়ে ভালো হলো payload এ JSON পাঠানো
+        final Map<String, dynamic> data = _parsePayload(payloadString);
+        _navigateToNotificationsPage(data);
+      } catch (e) {
+        debugPrint('❌ Payload parse error: $e');
+        _navigateToNotificationsPage(null);
+      }
     } else {
-      debugPrint('⚠️ navigatorKey context is null — cannot navigate');
+      _navigateToNotificationsPage(null);
     }
   }
+
+  static Map<String, dynamic> _parsePayload(String payload) {
+    try {
+      // JSON format হলে
+      return Map<String, dynamic>.from(jsonDecode(payload) as Map);
+    } catch (e) {
+      return {};
+    }
+  }
+
+
 
   // ───────────────────────────────────────────────────────────────────────────
   // GETTERS

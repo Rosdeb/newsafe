@@ -9,11 +9,11 @@ class AppConstants{
   //http://164.92.215.115:9443/
   //http://164.92.215.115:9548
   static String BASE_URL ="http://164.92.215.115:9548";
-  //static String BASE_URL ="https://mounts-accounts-minneapolis-hours.trycloudflare.com";
+  //static String BASE_URL ="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
   static String get Bennar_ad_Id=> dotenv.env['BANNER_ADS_ID'] ?? '';
 
-  //----===---> share preference Key <----====---//
+  //<----===---> share preference Key <----====---->//
   static String THEME ="theme";
   static const String fcmToken = 'fcm_token';
 
