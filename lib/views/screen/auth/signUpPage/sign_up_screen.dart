@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
@@ -14,6 +15,7 @@ import '../../../base/AppText/appText.dart';
 import '../../../base/Ios_effect/iosTapEffect.dart';
 import '../../../base/animationsWrapper/animations_wrapper.dart';
 import '../../bottom_nav/bottom_nav_wrappers.dart';
+import '../../help_seaker/setting/legal_terms/legal_terms.dart';
 import '../../welcome/welcome_sreen.dart';
 import '../base/countices.dart';
 import '../base/input_signup.dart';
@@ -135,6 +137,10 @@ class SignUpScreen extends StatelessWidget {
                           fontSize: 14,
                           color: AppColors.colorYellow,
                         ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            Get.to(() => LegalTerms());
+                          },
                       ),
                       TextSpan(
                         text: ' and'.tr,
@@ -151,6 +157,10 @@ class SignUpScreen extends StatelessWidget {
                           fontSize: 14,
                           color: AppColors.colorYellow,
                         ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = (){
+                          //Get.to(Term)
+                          }
                       ),
                     ],
                   ),

@@ -72,10 +72,10 @@ class HelpSetting extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                               color: Colors.black,
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               item['subtitle'],
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.normal,
                                 letterSpacing: 0,
@@ -89,10 +89,10 @@ class HelpSetting extends StatelessWidget {
                   },
                 ),
               ),
-              const Padding(
-                padding:  EdgeInsets.symmetric(horizontal: 18.0),
-                child: BannerAds(),
-              ),
+              // const Padding(
+              //   padding:  EdgeInsets.symmetric(horizontal: 18.0),
+              //   child: BannerAds(),
+              // ),
             ],
           ),
         ),

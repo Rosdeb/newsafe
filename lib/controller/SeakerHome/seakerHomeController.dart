@@ -1224,101 +1224,57 @@ class SeakerHomeController extends GetxController {
   Future<void> cancelHelpRequest() async {
     stopVibration();
     if (currentHelpRequestId.value.isEmpty) {
-      Logger.log("⚠️ No active request to cancel", type: "warning");
-      Get.snackbar(
-        "No Active Request",
-        "There is no active help request to cancel.",
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+      Logger.log("⚠ No active request to cancel", type: "warning");
       return;
     }
 
     final helpRequestId = currentHelpRequestId.value;
-    Logger.log(
-      "🛑 [SEEKER] Attempting to cancel help request: $helpRequestId",
-      type: "info",
-    );
+    Logger.log("🛑 [SEEKER] Attempting to cancel help request: $helpRequestId", type: "info",);
 
     try {
       final result = await _attemptCancelRequest();
 
       if (result['success']) {
-        Logger.log(
-          "✅ [SEEKER] Help request cancelled successfully",
-          type: "success",
-        );
+        Logger.log("✅ [SEEKER] Help request cancelled successfully", type: "success",);
         _resetHelpRequestState();
-        Get.snackbar(
-          "Request Cancelled",
-          "Your help request has been cancelled successfully.",
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 2),
-          backgroundColor: Get.theme.colorScheme.secondary,
-        );
+
       } else if (result['statusCode'] == 401) {
         Logger.log("🔄 Token expired (401), refreshing token...", type: "info");
 
         final bool refreshSuccess = await AuthService.refreshToken();
 
         if (refreshSuccess) {
-          Logger.log(
-            "✅ Token refreshed successfully, retrying cancel request...",
-            type: "info",
-          );
+          Logger.log("✅ Token refreshed successfully, retrying cancel request...", type: "info",);
 
           final retryResult = await _attemptCancelRequest();
 
           if (retryResult['success']) {
-            Logger.log(
-              "✅ [SEEKER] Help request cancelled after token refresh",
-              type: "success",
-            );
+            Logger.log("✅ [SEEKER] Help request cancelled after token refresh", type: "success",);
             _resetHelpRequestState();
-            Get.snackbar(
-              "Request Cancelled",
-              "Your help request has been cancelled successfully.",
-              snackPosition: SnackPosition.BOTTOM,
-              duration: const Duration(seconds: 2),
-              backgroundColor: Get.theme.colorScheme.secondary,
-            );
+
           } else {
             final message =
                 retryResult['message'] ??
                 'Failed to cancel after token refresh';
-            Logger.log("❌ Retry failed: $message", type: "error");
-            Get.snackbar(
-              "Cancel Failed",
-              message,
-              snackPosition: SnackPosition.BOTTOM,
-              duration: const Duration(seconds: 3),
-            );
-            // Still reset state even if API call failed (local cleanup)
+            Logger.log(" Retry failed: $message", type: "error");
+
             _resetHelpRequestState();
           }
         } else {
-          Logger.log("❌ Token refresh failed", type: "error");
-          Get.snackbar(
-            "Authentication Error",
-            "Unable to authenticate. Please try again.",
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 3),
-          );
+          Logger.log("Token refresh failed", type: "error");
+
           // Still reset state for local cleanup
           _resetHelpRequestState();
         }
       } else {
         final message = result['message'] ?? 'Failed to cancel request';
-        Logger.log("❌ Cancel failed: $message", type: "error");
+        Logger.log(" Cancel failed: $message", type: "error");
 
         // Check if it's a timeout or network error - still reset state locally
         if (result['statusCode'] == 0 ||
             message.contains('timeout') ||
             message.contains('Network')) {
-          Logger.log(
-            "⚠️ Network/timeout error - resetting state locally",
-            type: "warning",
-          );
+          Logger.log("⚠️ Network/timeout error - resetting state locally", type: "warning",);
           _resetHelpRequestState();
           Get.snackbar(
             "Connection Issue",
@@ -1327,17 +1283,11 @@ class SeakerHomeController extends GetxController {
             duration: const Duration(seconds: 4),
           );
         } else {
-          Get.snackbar(
-            "Cancel Failed",
-            message,
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 3),
-          );
+          Get.snackbar("Cancel Failed", message, snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 3),);
         }
       }
     } on TimeoutException catch (e) {
       Logger.log("⏰ Cancel request timeout: ${e.message}", type: "error");
-      // Reset state locally even on timeout
       _resetHelpRequestState();
       Get.snackbar(
         "Request Timeout",
@@ -1346,8 +1296,7 @@ class SeakerHomeController extends GetxController {
         duration: const Duration(seconds: 4),
       );
     } on Exception catch (e) {
-      Logger.log("❌ Unexpected error cancelling: $e", type: "error");
-      // Reset state locally for safety
+      Logger.log(" Unexpected error cancelling: $e", type: "error");
       _resetHelpRequestState();
       Get.snackbar(
         "Error",
@@ -1378,16 +1327,13 @@ class SeakerHomeController extends GetxController {
             },
           );
 
-      Logger.log(
-        "📥 Cancel response status: ${response.statusCode}",
-        type: "info",
-      );
+      Logger.log("📥 Cancel response status: ${response.statusCode}", type: "info");
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         Logger.log("✅ Help request cancelled successfully", type: "success");
         return {'success': true, 'statusCode': response.statusCode};
       } else {
-        // Try to parse error message
+
         String errorMessage = 'Unknown error';
         try {
           final errorData = jsonDecode(response.body);
@@ -1399,10 +1345,7 @@ class SeakerHomeController extends GetxController {
           errorMessage = 'Server returned status ${response.statusCode}';
         }
 
-        Logger.log(
-          "❌ Cancel request failed: $errorMessage (Status: ${response.statusCode})",
-          type: "error",
-        );
+        Logger.log("❌ Cancel request failed: $errorMessage (Status: ${response.statusCode})", type: "error",);
         return {
           'success': false,
           'statusCode': response.statusCode,
@@ -1531,16 +1474,10 @@ class SeakerHomeController extends GetxController {
     }
 
     Logger.log("📡 Socket Info:", type: "info");
-    Logger.log(
-      "- socketService exists: ${socketService != null}",
-      type: "info",
-    );
+    Logger.log("- socketService exists: ${socketService != null}", type: "info",);
     Logger.log("- isSocketInitialized: $isSocketInitialized", type: "info");
     if (socketService != null) {
-      Logger.log(
-        "- socket connected: ${socketService!.isConnected.value}",
-        type: "info",
-      );
+      Logger.log("- socket connected: ${socketService!.isConnected.value}", type: "info",);
     }
 
     Logger.log("=== END DEBUG ===", type: "info");
@@ -1562,7 +1499,7 @@ class SeakerHomeController extends GetxController {
       final role = userBox.get('role');
       final image = userBox.get(
         'profileImage',
-      ); // ✅ was 'image', now 'profileImage'
+      ); // was 'image', now 'profileImage'
 
       userName.value = name ?? '';
       userId.value = id ?? '';
@@ -1575,10 +1512,10 @@ class SeakerHomeController extends GetxController {
         lastName.value = parts.length > 1 ? parts.sublist(1).join(" ") : '';
       }
 
-      // ✅ Fetch fresh profile image from API
+      // Fetch fresh profile image from API
       await _fetchProfileImage();
     } on Exception catch (e) {
-      Logger.log("❌ Error loading user data: $e", type: "error");
+      Logger.log(" Error loading user data: $e", type: "error");
       userName.value = 'Error loading';
     }
   }

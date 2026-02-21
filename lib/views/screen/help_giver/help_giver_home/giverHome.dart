@@ -38,8 +38,7 @@ class _SeakerHomeState extends State<Giverhome>
   late AnimationController _blinkController;
   late Animation<double> _blinkAnimation;
   final navController = Get.find<BottomNavController>();
-  final NotificationsController notificationsController =
-      Get.find<NotificationsController>();
+  final NotificationsController notificationsController = Get.find<NotificationsController>();
 
   @override
   void initState() {
@@ -346,7 +345,19 @@ class _SeakerHomeState extends State<Giverhome>
         ),
         SizedBox(height: size.height * 0.02),
         IosTapEffect(
-          onTap: () {},
+          onTap: () {
+            final pendingIds = controller.pendingHelpRequests
+                .map((req) => req['_id']?.toString() ?? '')
+                .where((id) => id.isNotEmpty)
+                .toList();
+
+            for (final id in pendingIds) {
+              controller.declineHelpRequest(id);
+            }
+
+            // Reset mode
+            //controller.emergencyMode.value = 0;
+          },
           child: Container(
             height: 46,
             width: 140,
@@ -744,7 +755,9 @@ class _SeakerHomeState extends State<Giverhome>
                       Color(0xFFD93A3A),
                       Color(0xFFE94A4A),
                     ],
-                    onTap: () {},
+                    onTap: () {
+
+                    },
                     text: "Cancel Request",
                     icon: Icons.cancel_outlined,
                   ),

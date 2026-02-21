@@ -1,15 +1,21 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:saferader/controller/UserController/userController.dart';
 import 'package:saferader/utils/api_service.dart';
 import 'package:saferader/utils/logger.dart';
+import 'package:vibration/vibration.dart';
 import '../../../utils/app_constant.dart';
 import '../../../utils/token_service.dart';
 import '../../SeakerLocation/seakerLocationsController.dart';
 import '../../SocketService/socket_service.dart';
 import 'package:geolocator/geolocator.dart';
+
+import '../../notifications/notifications_controller.dart';
 
 class GiverHomeController extends GetxController {
   RxInt emergencyMode = 0.obs;
@@ -356,6 +362,7 @@ class GiverHomeController extends GetxController {
 
   Future<void> acceptHelpRequest(String requestId) async {
     try {
+      stopVibration();
       final requestIndex = pendingHelpRequests.indexWhere((req) => req['_id'] == requestId);
       if (requestIndex == -1) {
         Logger.log("[GIVER] Request not found: $requestId", type: "error");
@@ -453,12 +460,10 @@ class GiverHomeController extends GetxController {
       if (locationController.isSharingLocation.value &&
           locationController.liveLocation.value &&
           locationController.currentPosition.value != null) {
-        Logger.log("✅✅✅ [GIVER] Location sharing FULLY ACTIVE!", type: "success");
+        Logger.log("✅✅ [GIVER] Location sharing FULLY ACTIVE!", type: "success");
 
       } else {
-        Logger.log("⚠️ [GIVER] Location sharing partially active", type: "warning");
-
-        // One more recovery attempt
+        Logger.log("[GIVER] Location sharing partially active", type: "warning");
         if (locationController.currentPosition.value != null) {
           Logger.log("🔄 [GIVER] Final recovery attempt...", type: "warning");
           locationController.shareCurrentLocation();
@@ -467,7 +472,7 @@ class GiverHomeController extends GetxController {
       }
 
     } catch (e, stackTrace) {
-      Logger.log("❌ [GIVER] Error: $e", type: "error");
+      Logger.log(" [GIVER] Error: $e", type: "error");
       Logger.log("Stack: $stackTrace", type: "error");
 
     }
@@ -475,10 +480,11 @@ class GiverHomeController extends GetxController {
 
   void declineHelpRequest(String requestId) {
     try {
+      stopVibration();
       Logger.log("📤 Declining help request: $requestId", type: "info");
       socketService?.declineHelpRequest(requestId);
 
-      // Remove from pending list
+
       pendingHelpRequests.removeWhere((req) => req['_id'] == requestId);
 
       if (pendingHelpRequests.isEmpty && acceptedHelpRequest.value == null) {
@@ -486,9 +492,9 @@ class GiverHomeController extends GetxController {
         Logger.log("⚪ Emergency mode reset to 0", type: "info");
       }
 
-      Logger.log("✅ Request declined", type: "success");
+      Logger.log(" Request declined", type: "success");
     } catch (e) {
-      Logger.log("❌ Error declining help request: $e", type: "error");
+      Logger.log(" Error declining help request: $e", type: "error");
     }
   }
 
@@ -578,17 +584,17 @@ class GiverHomeController extends GetxController {
       // Add to pending requests list
       pendingHelpRequests.add(request);
       emergencyMode.value = 1;
+      emergencyVibration();
       Logger.log("✅ Help request added. Total pending: ${pendingHelpRequests.length}", type: "success");
-
       // Optional: Show notification or update UI
-      Get.snackbar(
-        "New Help Request",
-        "${request['seeker']?['name'] ?? 'Someone'} needs help!",
-        snackPosition: SnackPosition.TOP,
-      );
+      // Get.snackbar(
+      //   "New Help Request",
+      //   "${request['seeker']?['name'] ?? 'Someone'} needs help!",
+      //   snackPosition: SnackPosition.TOP,
+      // );
 
     } catch (e) {
-      Logger.log("❌ Error handling new help request: $e", type: "error");
+      Logger.log(" Error handling new help request: $e", type: "error");
     }
   }
 
@@ -618,10 +624,12 @@ class GiverHomeController extends GetxController {
         acceptedHelpRequest.value = null;
         seekerPosition.value = null;
         emergencyMode.value = 0;
+        stopVibration();
       }
 
       if (pendingHelpRequests.isEmpty && acceptedHelpRequest.value == null) {
         emergencyMode.value = 0;
+        stopVibration();
       }
 
       Logger.log("✅ Cancelled request removed from list", type: "success");
@@ -763,6 +771,62 @@ class GiverHomeController extends GetxController {
       Logger.log("📤 Sending test ping to server...", type: "info");
       socketService!.socket.emit('ping', {'from': 'giver', 'timestamp': DateTime.now().toIso8601String()});
     }
+  }
+
+  bool _isVibrating = false;
+  AudioPlayer? _audioPlayer;
+
+  Future<void> emergencyVibration() async {
+    _isVibrating = true;
+
+    final notificationsController = Get.find<NotificationsController>();
+    final soundEnabled = notificationsController.isSoundEnabled.value;
+    final notificationsEnabled =
+        notificationsController.isNotificationsEnabled.value;
+
+    // Play audio only if sound is enabled
+    if (soundEnabled && notificationsEnabled) {
+      _audioPlayer = AudioPlayer();
+      await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer!.play(AssetSource('mp3/preview.mp3'));
+    }
+
+    if (Platform.isAndroid) {
+      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      if (hasVibrator && notificationsEnabled) {
+        await Vibration.vibrate(
+          pattern: [0, 200, 100, 200, 100, 200, 100, 200],
+          intensities: [255, 255, 255, 255],
+          repeat: 0,
+        );
+      }
+    } else if (Platform.isIOS) {
+      while (_isVibrating) {
+        if (!notificationsEnabled) break;
+
+        await HapticFeedback.heavyImpact();
+        await Vibration.vibrate(duration: 100);
+        await Future.delayed(const Duration(milliseconds: 80));
+        if (!_isVibrating) break;
+
+        await Vibration.vibrate(duration: 100);
+        await HapticFeedback.heavyImpact();
+        await Future.delayed(const Duration(milliseconds: 80));
+        if (!_isVibrating) break;
+
+        await HapticFeedback.heavyImpact();
+        await Vibration.vibrate(duration: 100);
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+    }
+  }
+
+  void stopVibration() {
+    _isVibrating = false;
+    Vibration.cancel();
+    _audioPlayer?.stop();
+    _audioPlayer?.dispose();
+    _audioPlayer = null;
   }
 
   @override

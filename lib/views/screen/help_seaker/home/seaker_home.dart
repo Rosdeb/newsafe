@@ -840,8 +840,7 @@ class _SeakerHomeState extends State<SeakerHome>
       backgroundColor: AppColors.iconBg.withOpacity(0.01),
       child: Row(
         children: [
-          Obx(
-            () => Container(
+          Obx(() => Container(
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.colorYellow, width: 2),
                 borderRadius: BorderRadius.circular(50),
@@ -849,8 +848,8 @@ class _SeakerHomeState extends State<SeakerHome>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(50),
                 child: CachedNetworkImage(
-                  imageUrl: controller.profileImage.value,
-                  cacheKey: controller.profileImage.value.split('?').first,
+                  imageUrl: controller1.profileImage.value,
+                  cacheKey: controller1.profileImage.value.split('?').first,
                   fit: BoxFit.cover,
                   height: 50,
                   width: 50,

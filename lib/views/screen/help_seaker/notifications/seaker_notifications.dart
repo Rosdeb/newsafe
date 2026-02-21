@@ -367,88 +367,146 @@ class SeakerNotifications extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Notification",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Obx(() {
-                        final unreadCount = notificationsController.unreadCount;
-                        if (unreadCount > 0) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      }),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              Expanded(
-                child: Obx(() {
-                  // LOADING STATE → SHIMMER
-                  if (notificationsController.isLoading.value &&
-                      notificationsController.notifications.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: NotificationShimmerByRole(),
-                    );
-                  }
-
-                  // EMPTY STATE with RefreshIndicator
-                  if (notificationsController.notifications.isEmpty) {
-                    return SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: SizedBox(
-                        height: MediaQuery.of(context).size.height - 200,
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            EmptyHistoryBox(
-                              title: "No notification yet",
-                              subtitle: "Your notification will appear here",
-                              iconPath: "assets/icon/notifications.svg",
-                              height: 200,
-                            ),
-                            SizedBox(height: 20),
-                          ],
-                        ),
+          child: RefreshIndicator(
+            color: AppColors.colorYellow,
+            backgroundColor: Colors.white,
+            onRefresh: () => notificationsController.fetchNotifications(
+              context: context,
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Notification",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black,
                       ),
-                    );
-                  }
+                    ),
+                    Row(
+                      children: [
+                        Obx(() {
+                          final unreadCount = notificationsController.unreadCount;
+                          if (unreadCount > 0) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        }),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
 
-                  // GIVER ROLE NOTIFICATIONS
-                  if (userController.userRole.value == "giver") {
+                Expanded(
+                  child: Obx(() {
+                    // LOADING STATE → SHIMMER
+                    if (notificationsController.isLoading.value &&
+                        notificationsController.notifications.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: NotificationShimmerByRole(),
+                      );
+                    }
+
+                    // EMPTY STATE with RefreshIndicator
+                    if (notificationsController.notifications.isEmpty) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height - 200,
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              EmptyHistoryBox(
+                                title: "No notification yet",
+                                subtitle: "Your notification will appear here",
+                                iconPath: "assets/icon/notifications.svg",
+                                height: 200,
+                              ),
+                              SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // GIVER ROLE NOTIFICATIONS
+                    if (userController.userRole.value == "giver") {
+                      return RefreshIndicator(
+                        color: AppColors.colorYellow,
+                        backgroundColor: Colors.white,
+                        onRefresh: () => notificationsController.fetchNotifications(
+                          context: context,
+                        ),
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          itemCount: notificationsController.notifications.length,
+                          itemBuilder: (_, index) {
+                            final notification =
+                                notificationsController.notifications[index];
+                            return Dismissible(
+                              key: Key(notification.id),
+                              background: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (direction) {
+                                notificationsController.deleteNotification(
+                                  notification.id,
+                                );
+                              },
+                              child: GestureDetector(
+                                onTap: () {
+                                  notificationsController.markAsRead(
+                                    notification.id,
+                                  );
+                                  _showNotificationDetails(context, notification);
+                                },
+                                child: SeakernotificationItem(
+                                  notification: notification,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }
+
+                    // SEEKER ROLE NOTIFICATIONS
                     return RefreshIndicator(
                       color: AppColors.colorYellow,
                       backgroundColor: Colors.white,
@@ -457,112 +515,61 @@ class SeakerNotifications extends StatelessWidget {
                       ),
                       child: ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
                         itemCount: notificationsController.notifications.length,
                         itemBuilder: (_, index) {
                           final notification =
                               notificationsController.notifications[index];
-                          return Dismissible(
-                            key: Key(notification.id),
-                            background: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(12),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Dismissible(
+                              key: Key(notification.id),
+                              background: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
                               ),
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.white,
-                              ),
-                            ),
-                            direction: DismissDirection.endToStart,
-                            onDismissed: (direction) {
-                              notificationsController.deleteNotification(
-                                notification.id,
-                              );
-                            },
-                            child: GestureDetector(
-                              onTap: () {
-                                notificationsController.markAsRead(
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (direction) {
+                                notificationsController.deleteNotification(
                                   notification.id,
                                 );
-                                _showNotificationDetails(context, notification);
                               },
-                              child: SeakernotificationItem(
-                                notification: notification,
+                              child: GestureDetector(
+                                onTap: () {
+                                  notificationsController.markAsRead(
+                                    notification.id,
+                                  );
+                                  _showNotificationDetails(context, notification);
+                                },
+                                child: CustomBox(
+                                  child: GiverNotificationItem(
+                                    title: notification.title,
+                                    name: notification.body,
+                                    distance: notification.distance,
+                                    profileImage: notification.userImage,
+                                    isRead: notification.isRead,
+                                    timestamp: notification.timestamp,
+                                  ),
+                                ),
                               ),
                             ),
                           );
                         },
                       ),
                     );
-                  }
-
-                  // SEEKER ROLE NOTIFICATIONS
-                  return RefreshIndicator(
-                    color: AppColors.colorYellow,
-                    backgroundColor: Colors.white,
-                    onRefresh: () => notificationsController.fetchNotifications(
-                      context: context,
-                    ),
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      itemCount: notificationsController.notifications.length,
-                      itemBuilder: (_, index) {
-                        final notification =
-                            notificationsController.notifications[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Dismissible(
-                            key: Key(notification.id),
-                            background: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.white,
-                              ),
-                            ),
-                            direction: DismissDirection.endToStart,
-                            onDismissed: (direction) {
-                              notificationsController.deleteNotification(
-                                notification.id,
-                              );
-                            },
-                            child: GestureDetector(
-                              onTap: () {
-                                notificationsController.markAsRead(
-                                  notification.id,
-                                );
-                                _showNotificationDetails(context, notification);
-                              },
-                              child: CustomBox(
-                                child: GiverNotificationItem(
-                                  title: notification.title,
-                                  name: notification.body,
-                                  distance: notification.distance,
-                                  profileImage: notification.userImage,
-                                  isRead: notification.isRead,
-                                  timestamp: notification.timestamp,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                }),
-              ),
-            ],
+                  }),
+                ),
+              ],
+            ),
           ),
         ),
       ),

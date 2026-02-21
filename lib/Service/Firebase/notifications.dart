@@ -643,15 +643,15 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    // Android-only permission request
+    //<------>  Android-only permission request <------>
     await _localNotifications
         .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
 
     await _localNotifications.initialize(
-      initSettings,
       onDidReceiveNotificationResponse: _handleNotificationTap,
+      settings: initSettings,
     );
 
     await _createAndroidNotificationChannel();
@@ -756,10 +756,10 @@ class NotificationService {
 
     try {
       await _localNotifications.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        title,
-        body,
-        platformDetails,
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: title,
+        body: body,
+        notificationDetails: platformDetails,
         payload: payload,
       );
       debugPrint(
