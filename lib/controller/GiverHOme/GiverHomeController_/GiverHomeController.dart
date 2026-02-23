@@ -118,7 +118,6 @@ class GiverHomeController extends GetxController {
       );
 
       if (!alreadyExists) {
-        // Notification data থেকে request object বানাও
         final helpRequest = {
           '_id': requestId,
           'seeker': {
@@ -139,27 +138,27 @@ class GiverHomeController extends GetxController {
         };
 
         pendingHelpRequests.add(helpRequest);
-        emergencyMode.value = 1; // sendMode দেখাবে
+        emergencyMode.value = 1;
 
-        // Socket connect না থাকলে init করো
+        //<-----> Socket connect না থাকলে init করো <------>
         if (_socketService == null || !_socketService!.isConnected.value) {
           initSocket();
         }
 
-        Logger.log(
-          "✅ Help request injected from notification: $requestId",
-          type: "success",
-        );
+        Logger.log("Help request injected from notification: $requestId", type: "success",);
         emergencyVibration();
       }
     } catch (e) {
-      Logger.log("❌ Error injecting help request: $e", type: "error");
+      Logger.log("Error injecting help request: $e", type: "error");
     }
   }
 
   void _setupLocationListener() {
     try {
-      final locationController = Get.find<SeakerLocationsController>();
+      //<-----> If not registered yet, put it as permanent
+      final locationController = Get.isRegistered<SeakerLocationsController>()
+          ? Get.find<SeakerLocationsController>()
+          : Get.put(SeakerLocationsController(), permanent: true);
 
       ever(locationController.currentPosition, (position) {
         if (position != null) {
@@ -167,37 +166,30 @@ class GiverHomeController extends GetxController {
         }
       });
 
-      Logger.log("📍 Location listener setup complete", type: "success");
+      Logger.log("Location listener setup complete", type: "success");
     } catch (e) {
-      Logger.log("❌ Error setting up location listener: $e", type: "error");
+      Logger.log("Error setting up location listener: $e", type: "error");
     }
   }
 
   Future<void> initSocket() async {
     try {
       final token = await TokenService().getToken();
-      if (token == null || token.isEmpty) {
-        Logger.log(" No token available for giver socket", type: "error");
-        return;
-      }
+      if (token == null || token.isEmpty) return;
 
-      final String role = 'giver';
-
-      // Check if already initialized
-      if (_socketService != null && _socketService!.isConnected.value) {
-        Logger.log("✅ Giver socket already connected", type: "info");
-        return;
-      }
-
-      Logger.log("🔄 Initializing giver socket...", type: "info");
-
-      // Remove old instance if exists
       if (Get.isRegistered<SocketService>()) {
-        // await Get.delete<SocketService>(force: true);
+        final existing = Get.find<SocketService>();
+        if (existing.isConnected.value) {
+          _socketService = existing;
+          existing.updateRole('giver');
+          _removeAllListeners();
+          _setupSocketListeners();
+          return;
+        }
       }
 
       _socketService = await Get.putAsync(
-        () => SocketService().init(token, role: role),
+            () => SocketService().init(token, role: 'giver'),
         permanent: true,
       );
 
@@ -1059,10 +1051,10 @@ class GiverHomeController extends GetxController {
 
   @override
   void onClose() {
-    if (socketService?.isConnected.value == true) {
-      socketService!.socket.disconnect();
-      Logger.log("🔌 [GIVER] Socket disconnected", type: "info");
-    }
+    // if (socketService?.isConnected.value == true) {
+    //   socketService!.socket.disconnect();
+    //   Logger.log("🔌 [GIVER] Socket disconnected", type: "info");
+    // }
     removeAllListeners();
     seekerPosition.value = null;
     super.onClose();

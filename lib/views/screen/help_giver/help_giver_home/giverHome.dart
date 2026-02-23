@@ -52,8 +52,11 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
     WidgetsBinding.instance.addObserver(this);
 
     if (Get.isRegistered<SocketService>()) {
-      final socketService = Get.find<SocketService>();
-      socketService.updateRole('giver');
+      final userCtrl = Get.find<UserController>();
+      if (userCtrl.userRole.value != 'both') {
+        final socketService = Get.find<SocketService>();
+        socketService.updateRole('giver');
+      }
     }
 
     _blinkController = AnimationController(
@@ -98,22 +101,6 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       default:
         break;
     }
-  }
-
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-
-    _blinkController.dispose();
-    if (controller.socketService != null &&
-        controller.socketService!.isConnected.value) {
-      controller.socketService!.socket.disconnect();
-      controller.socketService!.isConnected.value = false;
-      Logger.log("🔌 Socket disconnected because page disposed", type: "info");
-    }
-    controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -1422,6 +1409,22 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
         controller.socketService?.joinRoom(requestId);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    //  Dispose animation controller first
+    _blinkController.dispose();
+
+    // if (controller.socketService != null &&
+    //     controller.socketService!.isConnected.value) {
+    //   controller.socketService!.socket.disconnect();
+    //   controller.socketService!.isConnected.value = false;
+    // }
+    // Don't call controller.dispose() manually
+    super.dispose();
   }
 
   void _resumeLocationSharing(){

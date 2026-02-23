@@ -23,8 +23,11 @@ class SocketService extends GetxService {
   Timer? _connectionHealthTimer;
   DateTime? _lastPingTime;
   int _pingTimeoutDisconnects = 0;
+  String _originalRole = 'seeker';
 
   Future<SocketService> init(String token, {String role = 'seeker', int retryCount = 3}) async {
+    _originalRole = role;
+
     if (_isInitializing) {
       Logger.log("⏳ Socket initialization already in progress", type: "info");
       await _connectionCompleter?.future;
@@ -297,7 +300,7 @@ class SocketService extends GetxService {
       Logger.log("📍 Sent location update: ($latitude, $longitude) to room: ${currentRoom ?? 'unknown'}", type: "success");
 
     } on Exception catch (e) {
-      Logger.log("❌ Error sending location update: $e", type: "error");
+      Logger.log("Error sending location update: $e", type: "error");
     }
   }
 
@@ -308,14 +311,11 @@ class SocketService extends GetxService {
       }
 
       if (!isConnected.value) {
-        Logger.log("⚠️ Cannot join room - socket not connected", type: "warning");
+        Logger.log("️Cannot join room - socket not connected", type: "warning");
         throw Exception('Socket not connected');
       }
+      Logger.log("Attempting to join room: $roomId", type: "info");
 
-      Logger.log("🚪 Attempting to join room: $roomId", type: "info");
-
-      // FIX: Use regular emit instead of emitWithAck since server doesn't support ack
-      // Remove the emitWithAck and use regular emit
       socket.emit('joinRoom', roomId);
       currentRoom = roomId;
 
@@ -339,14 +339,19 @@ class SocketService extends GetxService {
   }
 
   void updateRole(String newRole) {
-    if (userRole.value != newRole) {
-      userRole.value = newRole;
-      _setupRoleBasedListeners();
-      Logger.log("🔄 User role updated to: $newRole", type: "info");
-    }
+    userRole.value = newRole;
+    socket.off('giver_newHelpRequest');
+    socket.off('receiveLocationUpdate');
+    socket.off('giver_receiveLocationUpdate');
+    socket.off('helpRequestCancelled');
+    socket.off('giver_helpRequestCancelled');
+    socket.off('helpRequestCompleted');
+    socket.off('giver_helpRequestCompleted');
+    _setupRoleBasedListeners();
+    Logger.log("User role updated to: $newRole", type: "info");
   }
 
-  // Start monitoring connection health to detect potential ping timeout issues
+  //<-----> Start monitoring connection health to detect potential ping timeout issues
   void _startConnectionHealthMonitoring() {
     _connectionHealthTimer?.cancel();
     _lastPingTime = DateTime.now();

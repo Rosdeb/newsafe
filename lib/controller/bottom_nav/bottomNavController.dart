@@ -2,7 +2,11 @@ import 'package:get/get.dart';
 import '../SeakerLocation/seakerLocationsController.dart';
 
 class BottomNavController extends GetxController{
-  final SeakerLocationsController controller = Get.put(SeakerLocationsController());
+  final SeakerLocationsController controller = Get.put(
+    SeakerLocationsController(),
+    permanent: true,
+  );
+
   var selectedIndex = 0.obs;
 
   @override

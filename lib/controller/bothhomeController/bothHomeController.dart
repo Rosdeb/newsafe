@@ -18,10 +18,13 @@ class BothHomeController extends GetxController {
 
   void toggleMode() {
     currentMode.value = currentMode.value == 'seeker' ? 'giver' : 'seeker';
+
     if (Get.isRegistered<SocketService>()) {
       final socketService = Get.find<SocketService>();
-      socketService.updateRole(currentMode.value);
+
+      socketService.updateRole('both');
     }
+
     Logger.log("🔄 Switched to ${currentMode.value} mode", type: "info");
   }
 

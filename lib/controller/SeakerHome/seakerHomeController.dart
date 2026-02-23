@@ -257,18 +257,20 @@ class SeakerHomeController extends GetxController {
   Future<void> initSocket() async {
     try {
       final token = await TokenService().getToken();
-      if (token == null || token.isEmpty) {
-        Logger.log(" No token available for socket", type: "error");
-        return;
-      }
+      if (token == null || token.isEmpty) return;
 
       final String role = userController.userRole.value;
 
-      // Check if already initialized and connected
-      if (socketService != null && socketService!.isConnected.value) {
-        Logger.log("✅ Socket already connected", type: "info");
-        isSocketInitialized.value = true;
-        return;
+
+      if (Get.isRegistered<SocketService>()) {
+        final existing = Get.find<SocketService>();
+        if (existing.isConnected.value) {
+          socketService = existing;
+          existing.updateRole(role);
+          _setupSocketListeners();
+          isSocketInitialized.value = true;
+          return;
+        }
       }
 
       // Initialize socket
@@ -277,7 +279,6 @@ class SeakerHomeController extends GetxController {
         () => SocketService().init(token, role: role),
         permanent: true
       );
-
       if (socketService != null) {
         _setupSocketListeners();
         isSocketInitialized.value = true;
@@ -310,9 +311,14 @@ class SeakerHomeController extends GetxController {
       Logger.log("🚪 [SEEKER] Rejoining room after reconnect: $requestId", type: "info");
       Future.delayed(const Duration(milliseconds: 500), () {
         socketService?.joinRoom(requestId);
-        // Location sharing resume করো
-        if (!locationController.isSharingLocation.value) {
-          _startAutoLocationSharing();
+        // ✅ Use Get.find instead of top-level getter
+        try {
+          final locCtrl = Get.find<SeakerLocationsController>();
+          if (!locCtrl.isSharingLocation.value) {
+            _startAutoLocationSharing();
+          }
+        } catch (e) {
+          Logger.log("❌ Error resuming location: $e", type: "error");
         }
       });
     }
@@ -394,30 +400,26 @@ class SeakerHomeController extends GetxController {
       }
     });
 
-    // socketService!.socket.on('giver_newHelpRequest', (data) {
-    //   if (!Get.isRegistered<SeakerHomeController>()) return;
-    //
-    //   final userRole = userController.userRole.value;
-    //
-    //   // Check if user can act as giver
-    //   final canActAsGiver = userRole == "giver" || userRole == "both";
-    //
-    //   if (canActAsGiver) {
-    //     try {
-    //       final requestData = data as Map<String, dynamic>;
-    //       incomingHelpRequests.add(requestData);
-    //       incomingHelpRequests.refresh();
-    //       emergencyMode.value = 1;
-    //
-    //       Logger.log(
-    //         " Added giver request. Total: ${incomingHelpRequests.length}",
-    //         type: "success",
-    //       );
-    //     } on Exception catch (e) {
-    //       Logger.log(" Error processing giver request: $e", type: "error");
-    //     }
-    //   }
-    // });
+    // For 'both' role — server sends giver_newHelpRequest
+    socketService!.socket.on('giver_newHelpRequest', (data) {
+      if (!Get.isRegistered<SeakerHomeController>()) return;
+
+      final userRole = userController.userRole.value;
+      final bool isInGiverMode = userRole == "giver" || userRole == "both";
+
+      if (isInGiverMode) {
+        try {
+          final requestData = data as Map<String, dynamic>;
+          incomingHelpRequests.add(requestData);
+          incomingHelpRequests.refresh();
+          emergencyMode.value = 1;
+          emergencyVibration();
+          Logger.log("✅ [BOTH] giver_newHelpRequest received", type: "success");
+        } catch (e) {
+          Logger.log("❌ Error: $e", type: "error");
+        }
+      }
+    });
 
     socketService!.socket.on('disconnect', (_) {
       Logger.log("⚠ [SEEKER] Socket disconnected", type: "warning");
@@ -1442,10 +1444,10 @@ class SeakerHomeController extends GetxController {
 
   @override
   void onClose() {
-    if (socketService?.isConnected.value == true) {
-      socketService!.socket.disconnect();
-      Logger.log("🔌 [SEEKER] Socket disconnected", type: "info");
-    }
+    // if (socketService?.isConnected.value == true) {
+    //   socketService!.socket.disconnect();
+    //   Logger.log("🔌 [SEEKER] Socket disconnected", type: "info");
+    // }
     removeAllListeners();
     giverPosition.value = null;
     super.onClose();

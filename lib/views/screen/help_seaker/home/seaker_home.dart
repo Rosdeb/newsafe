@@ -45,15 +45,22 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+
     controller = Get.put(SeakerHomeController());
-    locationController = Get.put(SeakerLocationsController());
+    locationController = Get.isRegistered<SeakerLocationsController>()
+        ? Get.find<SeakerLocationsController>()
+        : Get.put(SeakerLocationsController(), permanent: true);
+
     userController = Get.find<UserController>();
     controller1 = Get.put(ProfileController());
     WidgetsBinding.instance.addObserver(this);
 
     if (Get.isRegistered<SocketService>()) {
-      final socketService = Get.find<SocketService>();
-      socketService.updateRole('seeker');
+      final userCtrl = Get.find<UserController>();
+      if (userCtrl.userRole.value != 'both') {
+        final socketService = Get.find<SocketService>();
+        socketService.updateRole('seeker');
+      }
     }
     _blinkController = AnimationController(
       vsync: this,
@@ -1011,6 +1018,8 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
     }
   }
 
+
+
   void _onAppPaused() {
     // Active help request থাকলে location sharing background এ চালু রাখো
     if (controller.hasActiveHelpRequest) {
@@ -1034,13 +1043,18 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
 
-    if (Get.isRegistered<SeakerLocationsController>()) {
-      locationController.stopLocationSharing();
-    }
-    if (Get.isRegistered<SeakerHomeController>()) {
-      controller.removeAllListeners();
-    }
-    controller.dispose();
+    //<-----> MUST dispose animation controller BEFORE super.dispose() <----->
+    _blinkController.dispose();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<SeakerLocationsController>()) {
+        locationController.stopLocationSharing();
+      }
+      if (Get.isRegistered<SeakerHomeController>()) {
+        controller.removeAllListeners();
+      }
+    });
+
     super.dispose();
   }
 
