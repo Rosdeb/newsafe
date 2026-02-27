@@ -28,6 +28,7 @@ void main() async {
   Get.put(LocalizationController(sharedPreferences: prefs), permanent: true);
   Map<String, Map<String, String>> languages = await di.init();
   final lifecycleHandler = AppLifecycleSocketHandler();
+
   WidgetsBinding.instance.addObserver(lifecycleHandler);
 
   runApp(MyApp(

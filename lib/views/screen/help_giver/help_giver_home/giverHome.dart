@@ -72,6 +72,12 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       controller.initSocket();
       locationController.startLiveLocation();
       NotificationService.processPendingNotification();
+
+      if (userController.userRole.value == 'both') {
+        controller.helperStatus.value = true;
+        controller.updateAvailability(true);
+      }
+
     });
   }
 

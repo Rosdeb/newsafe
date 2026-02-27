@@ -235,9 +235,9 @@ import UserNotifications
         options: authOptions
       ) { granted, error in
         if let error = error {
-          print("❌ Notification permission error: \(error.localizedDescription)")
+          print(" Notification permission error: \(error.localizedDescription)")
         } else {
-          print(granted ? "✅ Notification permission granted" : "❌ Notification permission denied")
+          print(granted ? " Notification permission granted" : " Notification permission denied")
         }
       }
     }
@@ -257,14 +257,14 @@ import UserNotifications
     Messaging.messaging().apnsToken = deviceToken
 
     let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-    print("✅ APNs Device Token: \(tokenString)")
+    print(" APNs Device Token: \(tokenString)")
   }
 
   override func application(
     _ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
-    print("❌ Failed to register for remote notifications: \(error.localizedDescription)")
+    print(" Failed to register for remote notifications: \(error.localizedDescription)")
   }
 
   // MARK: - Foreground Notification Display + Vibration
@@ -276,16 +276,16 @@ import UserNotifications
     let userInfo = notification.request.content.userInfo
     print("📬 Foreground notification received: \(userInfo)")
 
-    // ✅ iOS 15+: Set interruptionLevel to trigger vibration
+    // iOS 15+: Set interruptionLevel to trigger vibration
     if #available(iOS 15.0, *) {
       let content = notification.request.content.mutableCopy() as! UNMutableNotificationContent
       // .active  → vibrates + sound (normal notifications)
       // .timeSensitive → vibrates + bypasses Focus/DND mode
       content.interruptionLevel = .timeSensitive
-      print("✅ interruptionLevel set to timeSensitive — vibration enabled")
+      print(" interruptionLevel set to timeSensitive — vibration enabled")
     }
 
-    // ✅ Show banner + sound + badge + list (list keeps it in Notification Center)
+    //  Show banner + sound + badge + list (list keeps it in Notification Center)
     // .sound here is what physically causes iPhone to vibrate
     if #available(iOS 14.0, *) {
       completionHandler([.banner, .sound, .badge, .list])
@@ -313,7 +313,7 @@ import UserNotifications
   private func sendNotificationDataToFlutter(userInfo: [AnyHashable: Any]) {
     DispatchQueue.main.async {
       guard let controller = self.window?.rootViewController as? FlutterViewController else {
-        print("⚠️ FlutterViewController not ready — cannot forward notification data")
+        print(" FlutterViewController not ready — cannot forward notification data")
         return
       }
       let channel = FlutterMethodChannel(
@@ -344,11 +344,11 @@ extension AppDelegate: MessagingDelegate {
 
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
     guard let token = fcmToken else {
-      print("⚠️ FCM token is nil")
+      print(" FCM token is nil")
       return
     }
 
-    print("✅ FCM Token: \(token)")
+    print(" FCM Token: \(token)")
 
     // Persist locally so Flutter can read it on next launch
     UserDefaults.standard.set(token, forKey: "fcm_token")
@@ -356,7 +356,7 @@ extension AppDelegate: MessagingDelegate {
     // Send to Flutter side via MethodChannel
     DispatchQueue.main.async {
       guard let controller = self.window?.rootViewController as? FlutterViewController else {
-        print("⚠️ FlutterViewController not ready — FCM token will be read from UserDefaults")
+        print(" FlutterViewController not ready — FCM token will be read from UserDefaults")
         return
       }
       let channel = FlutterMethodChannel(
@@ -364,7 +364,7 @@ extension AppDelegate: MessagingDelegate {
         binaryMessenger: controller.binaryMessenger
       )
       channel.invokeMethod("onToken", arguments: ["token": token])
-      print("✅ FCM Token sent to Flutter")
+      print(" FCM Token sent to Flutter")
     }
   }
 }

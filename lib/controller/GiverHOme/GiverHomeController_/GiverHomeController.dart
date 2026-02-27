@@ -817,9 +817,9 @@ class GiverHomeController extends GetxController {
         stopVibration();
       }
 
-      Logger.log("✅ Cancelled request removed from list", type: "success");
+      Logger.log("Cancelled request removed from list", type: "success");
     } catch (e) {
-      Logger.log("❌ Error handling cancelled request: $e", type: "error");
+      Logger.log(" Error handling cancelled request: $e", type: "error");
     }
   }
 
@@ -837,9 +837,9 @@ class GiverHomeController extends GetxController {
         emergencyMode.value = 0;
       }
 
-      Logger.log("✅ Completed request removed from list", type: "success");
+      Logger.log("Completed request removed from list", type: "success");
     } catch (e) {
-      Logger.log("❌ Error handling completed request: $e", type: "error");
+      Logger.log("Error handling completed request: $e", type: "error");
     }
   }
 
@@ -847,7 +847,7 @@ class GiverHomeController extends GetxController {
 
   Future<void> updateAvailability(bool isAvailable) async {
     try {
-      Logger.log("📤 Updating availability → $isAvailable", type: "info");
+      Logger.log("Updating availability → $isAvailable", type: "info");
 
       final availabilityResponse = await ApiService.put(
         '/api/users/me/availability',
@@ -857,12 +857,12 @@ class GiverHomeController extends GetxController {
       if (availabilityResponse.statusCode != 200) {
         final err = jsonDecode(availabilityResponse.body);
         final message = err["message"] ?? "Failed to update availability";
-        Logger.log("❌ Failed: $message", type: "error");
+        Logger.log("Failed: $message", type: "error");
         return;
       }
 
       helperStatus.value = isAvailable;
-      Logger.log("✅ Availability updated", type: "success");
+      Logger.log("Availability updated", type: "success");
 
       if (!isAvailable) {
         _stopLocationSharing();
@@ -871,7 +871,7 @@ class GiverHomeController extends GetxController {
 
       final locationController = Get.find<SeakerLocationsController>();
 
-      // 🔥 IMPORTANT: Start live location BEFORE updating server location
+      // IMPORTANT: Start live location BEFORE updating server location
       if (!locationController.liveLocation.value) {
         await locationController.startLiveLocation();
         await Future.delayed(const Duration(milliseconds: 500));
@@ -890,7 +890,7 @@ class GiverHomeController extends GetxController {
         ).timeout(const Duration(seconds: 10));
 
         if (locationResponse.statusCode == 200) {
-          Logger.log("✅ Location updated on server", type: "success");
+          Logger.log("Location updated on server", type: "success");
         }
       }
 
