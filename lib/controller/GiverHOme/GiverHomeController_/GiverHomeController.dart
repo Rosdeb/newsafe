@@ -214,9 +214,13 @@ class GiverHomeController extends GetxController {
         Logger.log("🔍 Socket ID: ${_socketService!.socket.id}", type: "debug");
         Logger.log("🔍 Socket connected: ${_socketService!.isConnected.value}", type: "debug",);
 
-        _socketService!.socket.onConnect((_) {
+        _socketService!.socket.onConnect((_) async {
           Logger.log("✅ Socket reconnected!", type: "success");
           _rejoinCurrentRoomAfterReconnect();
+          if (helperStatus.value) {
+            await updateAvailability(true);
+            Logger.log("🔄 Re-synced availability after reconnect", type: "info");
+          }
         });
 
         _socketService!.socket.onAny((event, data) {
@@ -235,7 +239,7 @@ class GiverHomeController extends GetxController {
     try {
       if (_socketService != null && !_socketService!.isConnected.value) {
         Logger.log("🔄 Attempting socket reconnect...", type: "info");
-        _socketService!.socket.connect();
+        _socketService!.reconnect();
       }
     } catch (e) {
       Logger.log(" Reconnect error: $e", type: "error");
