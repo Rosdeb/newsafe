@@ -45,8 +45,14 @@ class _BothhomeState extends State<Bothhome> {
       if (userController.userRole.value == 'both') {
         final token = await TokenService().getToken();
         if (token != null) {
-          await Get.putAsync(() => SocketService().init(token, role: 'both'));
-          Logger.log("Socket initialized for BOTH role", type: "success");
+          if (!Get.isRegistered<SocketService>() ||
+              !Get.find<SocketService>().isConnected.value) {
+            await Get.putAsync(() => SocketService().init(token, role: 'both'), permanent: true,);
+            Logger.log("Socket initialized for BOTH role", type: "success");
+          } else {
+            Get.find<SocketService>().updateRole('both');
+            Logger.log("Socket already connected — updated role to both", type: "info");
+          }
         }
       }
     });
@@ -54,101 +60,103 @@ class _BothhomeState extends State<Bothhome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
-            colors: [Color(0xFFFFF1A9), Color(0xFFFFFFFF), Color(0xFFFFF1A9)],
-            stops: [0.0046, 0.5005, 0.9964],
-          ),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 70),
-            homeHeader(),
-
-            const SizedBox(height: 70),
-
-            IosTapEffect(
-              onTap: () {
-                if (Get.isRegistered<SeakerHomeController>()) {
-                  Get.delete<SeakerHomeController>();
-                }
-                if (Get.isRegistered<SeakerLocationsController>()) {
-                  Get.delete<SeakerLocationsController>();
-                }
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SeakerHome()),
-                );
-              },
-              child: CustomBox(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Column(
-                  children: [
-                    AppText(
-                      "Help Seeker".tr,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
-                    ),
-                    AppText(
-                      "If you need help click here".tr,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.color2Box.withOpacity(0.50),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            IosTapEffect(
-              onTap: () {
-                if (Get.isRegistered<GiverHomeController>()) {
-                  Get.delete<GiverHomeController>();
-                }
-                if (Get.isRegistered<SeakerLocationsController>()) {
-                  Get.delete<SeakerLocationsController>();
-                }
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Giverhome()),
-                );
-              },
-              child: CustomBox(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Column(
-                  children: [
-                    AppText(
-                      "Help Giver".tr,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
-                    ),
-                    AppText(
-                      "If you want to help click here".tr,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.color2Box.withOpacity(0.50),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return Giverhome();
+    // return Scaffold(
+    //   body: Container(
+    //     padding: const EdgeInsets.symmetric(horizontal: 16),
+    //     width: double.infinity,
+    //     height: double.infinity,
+    //     decoration: const BoxDecoration(
+    //       gradient: LinearGradient(
+    //         begin: Alignment.centerRight,
+    //         end: Alignment.centerLeft,
+    //         colors: [Color(0xFFFFF1A9), Color(0xFFFFFFFF), Color(0xFFFFF1A9)],
+    //         stops: [0.0046, 0.5005, 0.9964],
+    //       ),
+    //     ),
+    //     child: Column(
+    //       children: [
+    //         const SizedBox(height: 70),
+    //         homeHeader(),
+    //
+    //         const SizedBox(height: 70),
+    //
+    //         IosTapEffect(
+    //           onTap: () {
+    //             if (Get.isRegistered<SeakerHomeController>()) {
+    //               Get.delete<SeakerHomeController>();
+    //             }
+    //             if (Get.isRegistered<SeakerLocationsController>()) {
+    //               Get.delete<SeakerLocationsController>();
+    //             }
+    //
+    //             Navigator.push(
+    //               context,
+    //               MaterialPageRoute(builder: (context) => SeakerHome()),
+    //             );
+    //           },
+    //           child: CustomBox(
+    //             padding: const EdgeInsets.symmetric(vertical: 20),
+    //             child: Column(
+    //               children: [
+    //                 AppText(
+    //                   "Help Seeker".tr,
+    //                   fontSize: 18,
+    //                   fontWeight: FontWeight.w500,
+    //                   color: Colors.black,
+    //                 ),
+    //                 AppText(
+    //                   "If you need help click here".tr,
+    //                   fontSize: 14,
+    //                   fontWeight: FontWeight.w400,
+    //                   color: AppColors.color2Box.withOpacity(0.50),
+    //                 ),
+    //               ],
+    //             ),
+    //           ),
+    //         ),
+    //
+    //         const SizedBox(height: 20),
+    //
+    //         IosTapEffect(
+    //           onTap: () {
+    //             if (Get.isRegistered<GiverHomeController>()) {
+    //               Get.delete<GiverHomeController>();
+    //             }
+    //             if (Get.isRegistered<SeakerLocationsController>()) {
+    //               Get.delete<SeakerLocationsController>();
+    //             }
+    //
+    //             Navigator.push(
+    //               context,
+    //               MaterialPageRoute(builder: (context) => Giverhome()),
+    //             );
+    //           },
+    //           child: CustomBox(
+    //             padding: const EdgeInsets.symmetric(vertical: 20),
+    //             child: Column(
+    //               children: [
+    //                 AppText(
+    //                   "Help Giver".tr,
+    //                   fontSize: 18,
+    //                   fontWeight: FontWeight.w500,
+    //                   color: Colors.black,
+    //                 ),
+    //                 AppText(
+    //                   "If you want to help click here".tr,
+    //                   fontSize: 15,
+    //                   fontWeight: FontWeight.w400,
+    //                   color: AppColors.color2Box.withOpacity(0.50),
+    //                 ),
+    //               ],
+    //             ),
+    //           ),
+    //         ),
+    //
+    //       ],
+    //     ),
+    //   ),
+    // );
   }
 
   CustomBox homeHeader() {

@@ -63,50 +63,52 @@ class SignUpScreen extends StatelessWidget {
             SizedBox(height: MediaQuery.of(context).size.height * 0.02),
             InputSignUpPage(),
             SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-            Container(
-              height: 445,
-              width: double.infinity,
-              padding:const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: AppColors.fill_Color2,
-                border: Border.all(width: 0.5, color: AppColors.colorYellow),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: size.height * 0.01),
-                  AnimatedAppText(
-                    "Choose Your Role".tr,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFFEDC602),
-                  ),
-                  SizedBox(height: size.height * 0.008),
-                  AppText(
-                    "Select how you want to participate in the SafeRadar community".tr,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    height: 2,
-                    color: AppColors.colorSubheading,
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: size.height * 0.023),
-                  SimpleAnimatedContainersListsss(),
-                  SizedBox(height: size.height * 0.015),
-                  AppText(
-                    "You can change these settings anytime in your profile".tr,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.colorSubheading,
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: size.height * 0.008),
 
+            // Container(
+            //   height: 445,
+            //   width: double.infinity,
+            //   padding:const EdgeInsets.symmetric(horizontal: 24),
+            //   decoration: BoxDecoration(
+            //     borderRadius: BorderRadius.circular(16),
+            //     color: AppColors.fill_Color2,
+            //     border: Border.all(width: 0.5, color: AppColors.colorYellow),
+            //   ),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.center,
+            //     children: [
+            //       SizedBox(height: size.height * 0.01),
+            //       AnimatedAppText(
+            //         "Choose Your Role".tr,
+            //         fontSize: 30,
+            //         fontWeight: FontWeight.w700,
+            //         color: const Color(0xFFEDC602),
+            //       ),
+            //       SizedBox(height: size.height * 0.008),
+            //       AppText(
+            //         "Select how you want to participate in the SafeRadar community".tr,
+            //         fontSize: 12,
+            //         fontWeight: FontWeight.w400,
+            //         height: 2,
+            //         color: AppColors.colorSubheading,
+            //         textAlign: TextAlign.center,
+            //       ),
+            //       SizedBox(height: size.height * 0.023),
+            //       SimpleAnimatedContainersListsss(),
+            //       SizedBox(height: size.height * 0.015),
+            //       AppText(
+            //         "You can change these settings anytime in your profile".tr,
+            //         fontSize: 12,
+            //         fontWeight: FontWeight.w400,
+            //         color: AppColors.colorSubheading,
+            //         textAlign: TextAlign.center,
+            //       ),
+            //       SizedBox(height: size.height * 0.008),
+            //
+            //
+            //     ],
+            //   ),
+            // ),
 
-                ],
-              ),
-            ),
             SizedBox(height: MediaQuery.of(context).size.height * 0.02),
             Row(
               children: [
@@ -232,7 +234,7 @@ class SignUpScreen extends StatelessWidget {
                     email: email,
                     phone: phone,
                     password: password,
-                    role: role,
+                    role: "both",
                   );
                 },
               )),
