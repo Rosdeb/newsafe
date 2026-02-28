@@ -74,21 +74,11 @@ class AppLifecycleSocketHandler extends WidgetsBindingObserver {
     if (socketService == null) return;
 
     try {
-      // If socket is not connected, attempt to reconnect
+      // If socket is not connected, reconnect without full init (avoids connect/disconnect churn)
       if (!socketService.isConnected.value) {
         debugPrint('Socket disconnected, attempting to reconnect...');
-        
-        // Get the token and role to reinitialize
-        final token = await TokenService().getToken();
-        final role = socketService.userRole.value;
-        
-        if (token != null && token.isNotEmpty) {
-          // Reinitialize the socket
-          await socketService.init(token, role: role);
-          
-          // Wait a bit for connection to establish
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
+        socketService.reconnect();
+        await Future.delayed(const Duration(milliseconds: 500));
       }
 
       // After reconnection, rejoin the room if there was one

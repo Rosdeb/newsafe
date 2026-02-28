@@ -34,6 +34,13 @@ class SocketService extends GetxService {
       return this;
     }
 
+    // Already connected: skip init to avoid disconnect/reconnect churn
+    if (_socket != null && _socket!.connected) {
+      Logger.log("✅ Socket already connected, skipping init", type: "info");
+      userRole.value = role;
+      return this;
+    }
+
     int attempt = 0;
 
     while (attempt < retryCount) {
@@ -336,6 +343,15 @@ class SocketService extends GetxService {
       currentRoom = null;
     }
     Logger.log("📤 Left room: $roomId", type: "info");
+  }
+
+  /// Reconnect without full re-init. Use when socket exists but is disconnected.
+  /// Call init() only when SocketService has no socket at all.
+  void reconnect() {
+    if (_socket == null) return;
+    if (_socket!.connected) return;
+    Logger.log("🔄 Reconnecting existing socket...", type: "info");
+    socket.connect();
   }
 
   void updateRole(String newRole) {

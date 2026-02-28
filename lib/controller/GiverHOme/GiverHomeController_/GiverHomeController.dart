@@ -179,13 +179,18 @@ class GiverHomeController extends GetxController {
 
       if (Get.isRegistered<SocketService>()) {
         final existing = Get.find<SocketService>();
+        _socketService = existing;
         if (existing.isConnected.value) {
-          _socketService = existing;
-          existing.updateRole('giver');
+          existing.updateRole('both');
           _removeAllListeners();
           _setupSocketListeners();
           return;
         }
+        // Socket exists but disconnected: reconnect, don't re-init (avoids connect/disconnect churn)
+        existing.reconnect();
+        _removeAllListeners();
+        _setupSocketListeners();
+        return;
       }
 
       _socketService = await Get.putAsync(
