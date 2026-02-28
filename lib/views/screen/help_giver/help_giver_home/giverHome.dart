@@ -14,6 +14,7 @@ import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dar
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
 import '../../../../Service/Firebase/notifications.dart';
 import '../../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
+import '../../../../controller/SeakerHome/seakerHomeController.dart';
 import '../../../../controller/SocketService/socket_service.dart';
 import '../../../../controller/UserController/userController.dart';
 import '../../../../controller/bottom_nav/bottomNavController.dart';
@@ -32,6 +33,7 @@ class Giverhome extends StatefulWidget {
 
 class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMixin ,WidgetsBindingObserver{
   late final GiverHomeController controller;
+  late final SeakerHomeController seekerController;
   late final UserController userController;
   late final ProfileController controller1;
   late final SeakerLocationsController locationController;
@@ -45,6 +47,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
     super.initState();
 
     controller = Get.put(GiverHomeController());
+    seekerController = Get.put(SeakerHomeController());
     userController = Get.find<UserController>();
     controller1 = Get.put(ProfileController());
     locationController = Get.put(SeakerLocationsController());
@@ -68,7 +71,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       controller.initSocket();
       locationController.startLiveLocation();
       NotificationService.processPendingNotification();
@@ -76,7 +79,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
         controller.helperStatus.value = true;
         controller.updateAvailability(true);
       }
-
+      // Attach seeker socket listeners (helpRequestAccepted, etc.) to same SocketService
+      await seekerController.initSocket();
     });
   }
 
@@ -142,6 +146,16 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Obx(() {
+                  // When user sent "I need help", show seeker state on same page
+                  if (seekerController.currentHelpRequestId.value.isNotEmpty) {
+                    if (seekerController.emergencyMode.value == 1) {
+                      return seekerSendMode(context);
+                    }
+                    if (seekerController.emergencyMode.value == 2) {
+                      return seekerHelpComing(context);
+                    }
+                  }
+                  // Default: giver mode (idle / incoming / helping)
                   switch (controller.emergencyMode.value) {
                     case 0:
                       return helpMode(context);
@@ -161,6 +175,44 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
     );
   }
 
+  void _showNeedHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Need help?"),
+        content: const Text(
+          "Send an emergency help request? Helpers nearby will be notified.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final pos = locationController.currentPosition.value;
+              if (pos == null) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Location not ready. Please wait a moment and try again."),
+                    ),
+                  );
+                }
+                return;
+              }
+              seekerController.helpRequest(context, pos.latitude, pos.longitude);
+              seekerController.emergencyVibration();
+            },
+            child: const Text("Yes"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget helpMode(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Column(
@@ -172,9 +224,7 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
             return Column(
               children: [
                 IosTapEffect(
-                  onTap: () {
-                    // controller.emergencyMode.value = 1;
-                  },
+                  onTap: () => _showNeedHelpDialog(context),
                   child: AnimatedBuilder(
                     animation: _blinkAnimation,
                     builder: (context, child) {
@@ -262,6 +312,241 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
         }),
       ],
     );
+  }
+
+  /// Seeker "waiting for helper" UI when user sent "I need help" (same page).
+  Widget seekerSendMode(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Column(
+      children: [
+        AnimatedBuilder(
+          animation: _blinkAnimation,
+          builder: (context, child) {
+            return Container(
+              height: 300,
+              width: 300,
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFFEE3B5),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFD7F2C),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFD9346),
+                  ),
+                  child: Opacity(
+                    opacity: _blinkAnimation.value,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppText(
+                            "SENDING",
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.colorWhite,
+                          ),
+                          AppText(
+                            "Request..",
+                            fontSize: 22,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorWhite,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        SizedBox(height: size.height * 0.02),
+        IosTapEffect(
+          onTap: () => seekerController.cancelHelpRequest(),
+          child: Container(
+            height: 46,
+            width: 140,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+              ),
+            ),
+            child: const Center(
+              child: AppText(
+                "Cancel Request",
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+                color: AppColors.colorWhite,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: size.height * 0.01),
+        const Align(
+          child: AppText(
+            "Helpers Responding",
+            fontWeight: FontWeight.w500,
+            fontSize: 20,
+            color: AppColors.color2Box,
+          ),
+        ),
+        CustomBox(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const AppText(
+                    "Nearby Helpers",
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.color2Box,
+                  ),
+                  SvgPicture.asset("assets/icon/Frame (1).svg"),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Obx(() {
+                final nearbyList = [
+                  {"distance": "Within 1 km", "count": seekerController.nearbyStats.value.km1},
+                  {"distance": "Within 2 km", "count": seekerController.nearbyStats.value.km2},
+                ];
+                return Column(
+                  children: List.generate(nearbyList.length, (index) {
+                    final item = nearbyList[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.iconBg.withOpacity(0.10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AppText(
+                            item["distance"] as String,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            color: AppColors.color2Box,
+                          ),
+                          AppText(
+                            "${item["count"]} available",
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.colorIcons,
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Seeker "help on the way" UI when helper accepted (same page).
+  Widget seekerHelpComing(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Obx(() {
+      if (!seekerController.hasActiveHelpRequest) {
+        return const Center(
+          child: AppText("No active help request", color: AppColors.color2Box),
+        );
+      }
+      return Column(
+        children: [
+          Container(
+            height: 300,
+            width: 300,
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFD7E5FB),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF60A5FA),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF3B82F6),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AppText(
+                        "Help".toUpperCase(),
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.colorWhite,
+                      ),
+                      const AppText(
+                        "Coming..",
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.colorWhite,
+                      ),
+                      const SizedBox(height: 10),
+                      AppText(
+                        "${seekerController.helperName} is on the way",
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.colorWhite,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: size.height * 0.02),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 90),
+            child: Column(
+              children: [
+                GradientButtons(
+                  gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                  onTap: () => seekerController.cancelHelpRequest(),
+                  text: "Cancel Request",
+                  icon: Icons.cancel_outlined,
+                ),
+                const SizedBox(height: 10),
+                GradientButtons(
+                  onTap: () => seekerController.helpCompleted(
+                    seekerController.currentHelpRequestId.value,
+                  ),
+                  text: "Work is done",
+                  icon: Icons.check,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   Widget helpGiver() {
