@@ -2,9 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import '../controller/SocketService/socket_service.dart';
 import '../controller/SeakerLocation/seakerLocationsController.dart';
-import '../controller/SeakerHome/seakerHomeController.dart';
-import '../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
-import 'token_service.dart'; // Import your token service
 
 class AppLifecycleSocketHandler extends WidgetsBindingObserver {
   @override
@@ -33,27 +30,13 @@ class AppLifecycleSocketHandler extends WidgetsBindingObserver {
 
   Future<void> _handleAppResume() async {
     try {
-      // Reconnect socket and rejoin room for all possible socket services
-      
-      // Check and reconnect SeakerHomeController socket
-      if (Get.isRegistered<SeakerHomeController>()) {
-        final seakerController = Get.find<SeakerHomeController>();
-        await _reconnectSocketAndRejoinRoom(seakerController.socketService);
-      }
-
-      // Check and reconnect GiverHomeController socket
-      if (Get.isRegistered<GiverHomeController>()) {
-        final giverController = Get.find<GiverHomeController>();
-        await _reconnectSocketAndRejoinRoom(giverController.socketService);
-      }
-
-      // Check and reconnect general SocketService if registered
+      // SOCKET_STABILITY: One connection per user. Reconnect the single SocketService.
       if (Get.isRegistered<SocketService>()) {
-        final generalSocket = Get.find<SocketService>();
-        await _reconnectSocketAndRejoinRoom(generalSocket);
+        final socketService = Get.find<SocketService>();
+        await _reconnectSocketAndRejoinRoom(socketService);
       }
 
-      // Also refresh the location controller's socket connection
+      // Refresh location controller after map return
       if (Get.isRegistered<SeakerLocationsController>()) {
         final locationController = Get.find<SeakerLocationsController>();
         await locationController.refreshAfterMapReturn();

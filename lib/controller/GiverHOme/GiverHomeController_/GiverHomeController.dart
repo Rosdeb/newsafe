@@ -20,7 +20,8 @@ import '../../notifications/notifications_controller.dart';
 
 class GiverHomeController extends GetxController {
   RxInt emergencyMode = 0.obs;
-  RxList<Map<String, dynamic>> pendingHelpRequests = <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> pendingHelpRequests =
+      <Map<String, dynamic>>[].obs;
   Rxn<Map<String, dynamic>> acceptedHelpRequest = Rxn<Map<String, dynamic>>();
   final UserController userController = Get.find<UserController>();
   Rxn<Position> seekerPosition = Rxn<Position>();

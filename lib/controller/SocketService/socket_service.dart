@@ -4,6 +4,9 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:get/get.dart';
 import 'dart:async';
 
+/// Single socket connection per user (SOCKET_STABILITY.md).
+/// Backend stores one socket ID per user in Redis. Reuse this instance for all
+/// screens (Giver, Seeker). Do not create separate Giver/Seeker connections.
 class SocketService extends GetxService {
   IO.Socket? _socket;
 
@@ -20,8 +23,6 @@ class SocketService extends GetxService {
   String? currentRoom;
   Completer<void>? _connectionCompleter;
   bool _isInitializing = false;
-  Timer? _connectionHealthTimer;
-  DateTime? _lastPingTime;
   int _pingTimeoutDisconnects = 0;
   String _originalRole = 'seeker';
 
@@ -68,8 +69,8 @@ class SocketService extends GetxService {
             .setAuth({'token': token})
             .enableReconnection()
             .setReconnectionAttempts(10)
-            .setReconnectionDelay(1000)
-            .setReconnectionDelayMax(5000) // Max delay between reconnection attempts
+            .setReconnectionDelay(2000) // 1-3s for mobile per SOCKET_STABILITY.md
+            .setReconnectionDelayMax(5000)
             .setTimeout(20000)
             .disableAutoConnect()
             .build(),);
@@ -144,18 +145,13 @@ class SocketService extends GetxService {
         _connectionCompleter!.complete();
       }
 
-      // 🔥 CRITICAL: Rejoin room after reconnection
+      // CRITICAL: Rejoin room after reconnection
       if (currentRoom != null) {
-        Logger.log("🔄 Reconnected - Rejoining room: $currentRoom", type: "info");
+        Logger.log("Reconnected - Rejoining room: $currentRoom", type: "info");
         await joinRoom(currentRoom!);
-
-        // 🔥 Give a moment for room join, then notify that location sharing should resume
         await Future.delayed(const Duration(milliseconds: 500));
-        Logger.log("✅ Room rejoined - Location sharing can resume", type: "success");
+        Logger.log("Room rejoined - Location sharing can resume", type: "success");
       }
-      
-      // Start connection health monitoring
-      _startConnectionHealthMonitoring();
     });
 
     socket.onDisconnect((reason) {
@@ -175,12 +171,7 @@ class SocketService extends GetxService {
         Logger.log("❌ Socket Disconnected - Reason: $reason", type: "warning");
       }
 
-      // Stop health monitoring
-      _connectionHealthTimer?.cancel();
-      _connectionHealthTimer = null;
-      _lastPingTime = null;
-
-      // 🔥 IMPORTANT: On disconnect, the socket is automatically removed from all rooms
+      // On disconnect, the socket is automatically removed from all rooms
       // We need to rejoin the room when we reconnect
       if (currentRoom != null) {
         Logger.log("⚠️ Was in room: $currentRoom - will rejoin on reconnect", type: "warning");
@@ -367,34 +358,8 @@ class SocketService extends GetxService {
     Logger.log("User role updated to: $newRole", type: "info");
   }
 
-  //<-----> Start monitoring connection health to detect potential ping timeout issues
-  void _startConnectionHealthMonitoring() {
-    _connectionHealthTimer?.cancel();
-    _lastPingTime = DateTime.now();
-    
-    // Monitor connection every 10 seconds
-    _connectionHealthTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (!isConnected.value || _socket == null || !_socket!.connected) {
-        timer.cancel();
-        return;
-      }
-      
-      // Log connection health status
-      final now = DateTime.now();
-      final timeSinceLastCheck = now.difference(_lastPingTime ?? now);
-      Logger.log("💓 Connection health check - Connected: ${_socket!.connected}, Time since last check: ${timeSinceLastCheck.inSeconds}s", type: "debug");
-      
-      _lastPingTime = now;
-    });
-  }
-
   void disconnectAndDispose() {
     try {
-      // Stop health monitoring
-      _connectionHealthTimer?.cancel();
-      _connectionHealthTimer = null;
-      _lastPingTime = null;
-      
       if (currentRoom != null) {
         leaveRoom(currentRoom!);
       }
