@@ -262,18 +262,18 @@ class SeakerHomeController extends GetxController {
       final String role = userController.userRole.value;
 
 
+      // Reuse existing SocketService from Giverhome (same socket, avoid second connection)
       if (Get.isRegistered<SocketService>()) {
         final existing = Get.find<SocketService>();
-        if (existing.isConnected.value) {
-          socketService = existing;
-          existing.updateRole(role);
-          _setupSocketListeners();
-          isSocketInitialized.value = true;
-          return;
-        }
+        socketService = existing;
+        existing.updateRole(role);
+        _setupSocketListeners();
+        isSocketInitialized.value = true;
+        Logger.log("✅ [SEEKER] Reusing existing socket (no second connection)", type: "success");
+        return;
       }
 
-      // Initialize socket
+      // Initialize socket only when not already registered (e.g. app started without Giverhome)
       Logger.log("🔄 Initializing socket for role: $role", type: "info");
       socketService = await Get.putAsync(
         () => SocketService().init(token, role: role),

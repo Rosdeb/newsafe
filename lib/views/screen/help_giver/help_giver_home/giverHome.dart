@@ -72,7 +72,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      controller.initSocket();
+      // Giver init first so SocketService is registered; then seeker reuses it (no second connection)
+      await controller.initSocket();
       locationController.startLiveLocation();
       NotificationService.processPendingNotification();
       if (userController.userRole.value == 'both') {
