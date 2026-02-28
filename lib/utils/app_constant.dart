@@ -8,8 +8,8 @@ class AppConstants{
   static String APP_NAME="Saferadar";
   //http://164.92.215.115:9443/
   //http://164.92.215.115:9548
-  static String BASE_URL ="http://164.92.215.115:9548";
-  //static String BASE_URL ="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps";
+  //static String BASE_URL ="http://164.92.215.115:9548";
+  static String BASE_URL ="https://prostores-scored-uses-coleman.trycloudflare.com";
   static String get Secret_key => dotenv.env['API_KEY'] ?? '';
   static String get Bennar_ad_Id=> dotenv.env['BANNER_ADS_ID'] ?? '';
 

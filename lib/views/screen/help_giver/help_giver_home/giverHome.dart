@@ -1600,31 +1600,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
             ],
           ),
           const Spacer(),
-          Obx(() {
-            final connected = controller.socketService?.isConnected.value ?? false;
-            if (connected) return const SizedBox.shrink();
-            return Tooltip(
-              message: 'Reconnecting... Real-time updates may be delayed',
-              child: Container(
-                margin: const EdgeInsets.only(right: 12),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.orange.withOpacity(0.5),
-                      blurRadius: 4,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+
           IosTapEffect(
-                    onTap: () {
+              onTap: () {
               Get.to(SeakerNotifications());
             },
             child: SizedBox(
