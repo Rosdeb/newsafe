@@ -42,17 +42,16 @@ class _BothhomeState extends State<Bothhome> {
     super.initState();
     controller1 = Get.put(ProfileController());
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (userController.userRole.value == 'both') {
-        final token = await TokenService().getToken();
-        if (token != null) {
-          if (!Get.isRegistered<SocketService>() ||
-              !Get.find<SocketService>().isConnected.value) {
-            await Get.putAsync(() => SocketService().init(token, role: 'both'), permanent: true,);
-            Logger.log("Socket initialized for BOTH role", type: "success");
-          } else {
-            Get.find<SocketService>().updateRole('both');
-            Logger.log("Socket already connected — updated role to both", type: "info");
-          }
+      // Everyone has role "both"; socket always uses "both"
+      final token = await TokenService().getToken();
+      if (token != null) {
+        if (!Get.isRegistered<SocketService>() ||
+            !Get.find<SocketService>().isConnected.value) {
+          await Get.putAsync(() => SocketService().init(token, role: 'both'), permanent: true,);
+          Logger.log("Socket initialized for BOTH role", type: "success");
+        } else {
+          Get.find<SocketService>().updateRole('both');
+          Logger.log("Socket already connected — updated role to both", type: "info");
         }
       }
     });

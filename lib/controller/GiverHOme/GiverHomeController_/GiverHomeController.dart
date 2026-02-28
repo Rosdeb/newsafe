@@ -281,8 +281,6 @@ class GiverHomeController extends GetxController {
 
     socketService?.socket.on('helpRequestAccepted', (data) {
       if (!Get.isRegistered<GiverHomeController>()) return;
-      final userRole = userController.userRole.value;
-      if (userRole != 'giver' && userRole != 'both') return;
       Logger.log("❤️ HELP REQUEST ACCEPTED RECEIVED: $data", type: "success");
       _handleHelpRequestAccepted(data);
     });

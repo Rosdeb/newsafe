@@ -70,7 +70,7 @@ class SigInController extends GetxController {
           }
 
           final id   = user['_id']  as String? ?? '';
-          final role = user['role'] as String? ?? '';
+          final role = user['role'] as String? ?? 'both';
 
           await TokenService().saveToken(token);
           await TokenService().saveUserId(id);
@@ -80,7 +80,7 @@ class SigInController extends GetxController {
           await userBox.put('name',        user['name']         ?? '');
           await userBox.put('email',       user['email']        ?? '');
           await userBox.put('_id',         user['_id']          ?? '');
-          await userBox.put('role',        user['role']         ?? '');
+          await userBox.put('role',        role);
           await userBox.put('phone',       user['phone']        ?? '');
           await userBox.put('dateOfBirth', user['dateOfBirth']  ?? '');
           await userBox.put('gender',      user['gender']       ?? '');

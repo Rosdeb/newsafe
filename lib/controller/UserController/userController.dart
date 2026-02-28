@@ -4,7 +4,7 @@ import 'package:saferader/utils/logger.dart';
 
 class UserController extends GetxController {
 
-  RxString userRole = "seeker".obs;
+  RxString userRole = "both".obs;
   RxString userName = "".obs;
   RxString userEmail = "".obs;
   RxString userPhone = "".obs;

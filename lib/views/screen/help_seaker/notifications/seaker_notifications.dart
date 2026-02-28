@@ -332,7 +332,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:saferader/controller/UserController/userController.dart';
+import 'package:saferader/controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
 import 'package:saferader/controller/notifications/notifications_controller.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/base/seakerNotification.dart';
@@ -349,7 +349,6 @@ class SeakerNotifications extends StatelessWidget {
   SeakerNotifications({super.key});
 
   final notificationsController = Get.put(NotificationsController());
-  final userController = Get.put(UserController());
 
   @override
   Widget build(BuildContext context) {
@@ -453,8 +452,9 @@ class SeakerNotifications extends StatelessWidget {
                       );
                     }
 
-                    // GIVER ROLE NOTIFICATIONS
-                    if (userController.userRole.value == "giver") {
+                    // GIVER CONTEXT: user has "I'm available to help" on → giver notifications
+                    if (Get.isRegistered<GiverHomeController>() &&
+                        Get.find<GiverHomeController>().helperStatus.value) {
                       return RefreshIndicator(
                         color: AppColors.colorYellow,
                         backgroundColor: Colors.white,

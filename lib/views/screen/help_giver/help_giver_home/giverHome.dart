@@ -54,12 +54,9 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
 
     WidgetsBinding.instance.addObserver(this);
 
+    // Everyone has role "both"; socket uses "both" for unified help flow
     if (Get.isRegistered<SocketService>()) {
-      final userCtrl = Get.find<UserController>();
-      if (userCtrl.userRole.value != 'both') {
-        final socketService = Get.find<SocketService>();
-        socketService.updateRole('giver');
-      }
+      Get.find<SocketService>().updateRole('both');
     }
 
     _blinkController = AnimationController(
@@ -76,10 +73,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
       await controller.initSocket();
       locationController.startLiveLocation();
       NotificationService.processPendingNotification();
-      if (userController.userRole.value == 'both') {
-        controller.helperStatus.value = true;
-        controller.updateAvailability(true);
-      }
+      // Default home = seeker (asking for help is priority); helperStatus stays false
+      // User toggles "I'm available to help" when they want to receive requests
       // Attach seeker socket listeners (helpRequestAccepted, etc.) to same SocketService
       await seekerController.initSocket();
     });
@@ -1606,12 +1601,8 @@ class _SeakerHomeState extends State<Giverhome> with SingleTickerProviderStateMi
           ),
           const Spacer(),
           IosTapEffect(
-            onTap: () {
-              if (userController.userRole == 'both') {
-                Get.to(SeakerNotifications());
-              } else {
-                navController.notification(2);
-              }
+                    onTap: () {
+              Get.to(SeakerNotifications());
             },
             child: SizedBox(
               height: 50,
