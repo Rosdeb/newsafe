@@ -23,7 +23,7 @@ class UserController extends GetxController {
   Future<void> loadUserRole() async {
     try {
       final box = await Hive.openBox('userBox');
-      final savedRole = box.get('role', defaultValue: 'seeker');
+      final savedRole = box.get('role', defaultValue: 'both');
       userRole.value = savedRole;
     } catch (e) {
       Logger.log("Error loading user role: $e", type: "error");
@@ -59,7 +59,7 @@ class UserController extends GetxController {
     try {
       final box = await Hive.openBox('userBox');
       await box.delete('role');
-      userRole.value = "seeker";
+      userRole.value = "both";
     } catch (e) {
       Logger.log("Error clearing user role: $e", type: "error");
     }

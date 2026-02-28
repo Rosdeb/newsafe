@@ -314,8 +314,8 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced> wit
   bool _isSeekerMode() {
     if (Get.isRegistered<SeakerHomeController>()) {
       final controller = Get.find<SeakerHomeController>();
-      final userRole = controller.userController.userRole.value;
-      return userRole == "seeker" || (userRole == "both" && !controller.helperStatus.value);
+      // Unified role: seeker mode = not currently available as helper
+      return !controller.helperStatus.value;
     }
     return false;
   }

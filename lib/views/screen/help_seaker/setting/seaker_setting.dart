@@ -7,7 +7,6 @@ import 'package:saferader/utils/app_color.dart';
 import 'package:saferader/views/base/AppText/appText.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
 import 'package:saferader/views/screen/auth/signinPage/signIn_screen.dart';
-import 'package:saferader/views/screen/help_seaker/setting/UserRole/user_role.dart';
 import 'package:saferader/views/screen/help_seaker/setting/distanceSetting/distanceSetting.dart';
 import 'package:saferader/views/screen/help_seaker/setting/help/help_setting.dart';
 import 'package:saferader/views/screen/help_seaker/setting/legal_terms/legal_terms.dart';

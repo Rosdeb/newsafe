@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:saferader/views/screen/help_giver/help_giver_home/giverHome.dart';
 import 'package:saferader/views/screen/help_seaker/history/seaker_history.dart';
-import 'package:saferader/views/screen/help_seaker/home/seaker_home.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
 import 'package:saferader/views/screen/help_seaker/setting/seaker_setting.dart';
 import '../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
-import '../../../controller/SeakerHome/seakerHomeController.dart';
 import '../../../controller/UserController/userController.dart';
 import '../../../controller/bottom_nav/bottomNavController.dart';
 import '../bothHome/bothHome.dart';
@@ -52,16 +50,8 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
   }
 
   void _onAppResumed() {
-    final role = userController.userRole.value;
-
-    // Role অনুযায়ী controller find করে reconnect করো
-    if (role == 'giver') {
-      _resumeGiver();
-    } else if (role == 'seeker') {
-      _resumeSeeker();
-    } else if (role == 'both') {
-      // BothHome এ নিজের lifecycle আছে
-    }
+    // Unified home is Bothhome (Giverhome); reconnect its socket
+    _resumeGiver();
   }
 
   void _resumeGiver() {
@@ -78,31 +68,13 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
     }
   }
 
-  void _resumeSeeker() {
-    try {
-      if (Get.isRegistered<SeakerHomeController>()) {
-        final seekerController = Get.find<SeakerHomeController>();
-        seekerController.refreshSocketOnResume();
-      }
-    } catch (e) {
-      debugPrint('Error resuming seeker: $e');
-    }
-  }
-
   void _onAppPaused() {
     debugPrint('🌙 [BottomWrapper] App paused');
   }
 
   Widget dynamicHomePage(String role) {
-    if (role == "seeker") {
-      return SeakerHome();
-    } else if (role == "giver") {
-      return Giverhome();
-    } else if (role == "both") {
-      return Bothhome();
-    } else {
-      return SeakerHome();
-    }
+    // All users see unified home (Bothhome); no role-based routing
+    return Bothhome();
   }
 
   @override
@@ -111,7 +83,7 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
       final String role = userController.userRole.value;
 
       final List<Widget> pages = [
-        dynamicHomePage(role),
+        dynamicHomePage(userController.userRole.value),
         SeakerLocation(),
         SeakerNotifications(),
         SeakerHistory(),

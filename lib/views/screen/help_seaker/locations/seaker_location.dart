@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -11,7 +12,6 @@ import 'package:saferader/views/screen/help_seaker/locations/live.dart';
 import '../../../../utils/app_color.dart';
 import '../../../base/EmptyBox/emptybox.dart';
 import '../../../base/Ios_effect/iosTapEffect.dart';
-import '../setting/UserRole/user_role.dart';
 class SeakerLocation extends StatefulWidget {
   SeakerLocation({super.key});
 
@@ -70,23 +70,21 @@ class _SeakerLocationState extends State<SeakerLocation> {
                       children: [
                         AppText("Share your live location".tr, fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box),
                         const Spacer(),
-                        LabeledSwitch(
-                          title: "",
-                          value: controller.liveLocation,
+                        Obx(() => CupertinoSwitch(
+                          value: controller.liveLocation.value,
+                          activeColor: AppColors.colorYellow,
                           onChanged: (v) async {
-                            controller.liveLocation.value = v; // Update the toggle
+                            controller.liveLocation.value = v;
 
                             if (v) {
-                              // Start live location and auto-sharing
                               await controller.startLiveLocation();
                               controller.startLocationSharing();
                             } else {
-                              // Stop live location and auto-sharing
                               controller.stopLocationSharing();
                               controller.liveLocation.value = false;
                             }
                           },
-                        ),
+                        )),
 
                       ],
                     ),

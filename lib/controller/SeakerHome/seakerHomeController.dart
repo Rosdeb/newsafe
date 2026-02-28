@@ -355,8 +355,7 @@ class SeakerHomeController extends GetxController {
         Logger.log("⚠ [SEEKER] Socket not connected, waiting...", type: "warning",);
         await Future.delayed(const Duration(seconds: 1));
       }
-      final currentRole = userController.userRole.value;
-      if (currentRole != 'seeker' && currentRole != 'both') return;
+      // Unified role: all users can receive seeker events
 
       await _handleHelpRequestAccepted(data);
     });
@@ -383,8 +382,8 @@ class SeakerHomeController extends GetxController {
     socketService!.socket.on('newHelpRequest', (data) {
       if (!Get.isRegistered<SeakerHomeController>()) return;
 
-      final userRole = userController.userRole.value;
-      final bool isInGiverMode = userRole == "giver" || (userRole == "both" && helperStatus.value);
+      // Unified role: show new requests when user is available to help (helperStatus)
+      final bool isInGiverMode = helperStatus.value;
 
       if (isInGiverMode) {
         try {
@@ -400,24 +399,20 @@ class SeakerHomeController extends GetxController {
       }
     });
 
-    // For 'both' role — server sends giver_newHelpRequest
+    // Server sends giver_newHelpRequest to available users (isAvailable=true)
     socketService!.socket.on('giver_newHelpRequest', (data) {
       if (!Get.isRegistered<SeakerHomeController>()) return;
 
-      final userRole = userController.userRole.value;
-      final bool isInGiverMode = userRole == "giver" || userRole == "both";
-
-      if (isInGiverMode) {
-        try {
-          final requestData = data as Map<String, dynamic>;
-          incomingHelpRequests.add(requestData);
-          incomingHelpRequests.refresh();
-          emergencyMode.value = 1;
-          emergencyVibration();
-          Logger.log("✅ [BOTH] giver_newHelpRequest received", type: "success");
-        } catch (e) {
-          Logger.log("❌ Error: $e", type: "error");
-        }
+      // Unified role: server only sends to available users; process when received
+      try {
+        final requestData = data as Map<String, dynamic>;
+        incomingHelpRequests.add(requestData);
+        incomingHelpRequests.refresh();
+        emergencyMode.value = 1;
+        emergencyVibration();
+        Logger.log("✅ [BOTH] giver_newHelpRequest received", type: "success");
+      } catch (e) {
+        Logger.log("❌ Error: $e", type: "error");
       }
     });
 

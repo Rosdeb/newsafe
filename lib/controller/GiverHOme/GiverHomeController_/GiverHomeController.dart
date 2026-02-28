@@ -189,7 +189,7 @@ class GiverHomeController extends GetxController {
       }
 
       _socketService = await Get.putAsync(
-            () => SocketService().init(token, role: 'giver'),
+            () => SocketService().init(token, role: 'both'),
         permanent: true,
       );
 

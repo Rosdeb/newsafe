@@ -28,12 +28,8 @@ class BothHomeController extends GetxController {
     Logger.log("🔄 Switched to ${currentMode.value} mode", type: "info");
   }
 
-  RxBool isAvailableAsGiver = false.obs;
-
-  void toggleGiverAvailability() {
-    isAvailableAsGiver.value = !isAvailableAsGiver.value;
-    Logger.log("🔄 Giver availability: ${isAvailableAsGiver.value}", type: "info");
-  }
+  /// Availability is controlled via GiverHomeController.updateAvailability (PUT /api/users/me/availability).
+  /// Unified home shows Giverhome() which has the single "I'm available to help" toggle.
 
   Future<void> loadUserData() async {
     try {

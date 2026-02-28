@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final appDir = await getApplicationDocumentsDirectory();
     Hive.init(appDir.path);
     final box = await Hive.openBox('userBox');
-    final savedRole = box.get('role', defaultValue: 'seeker');
+    final savedRole = box.get('role', defaultValue: 'both');
     Get.put(NetworkController(), permanent: true);
     final userController = UserController();
     userController.userRole.value = savedRole;
