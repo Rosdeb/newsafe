@@ -20,8 +20,7 @@ import '../../notifications/notifications_controller.dart';
 
 class GiverHomeController extends GetxController {
   RxInt emergencyMode = 0.obs;
-  RxList<Map<String, dynamic>> pendingHelpRequests =
-      <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> pendingHelpRequests = <Map<String, dynamic>>[].obs;
   Rxn<Map<String, dynamic>> acceptedHelpRequest = Rxn<Map<String, dynamic>>();
   final UserController userController = Get.find<UserController>();
   Rxn<Position> seekerPosition = Rxn<Position>();
@@ -111,7 +110,6 @@ class GiverHomeController extends GetxController {
         Logger.log(" No requestId in notification data", type: "error");
         return;
       }
-
       // Already pending তে আছে কিনা check করো
       final alreadyExists = pendingHelpRequests.any(
         (req) => req['_id'] == requestId,
@@ -193,10 +191,7 @@ class GiverHomeController extends GetxController {
         return;
       }
 
-      _socketService = await Get.putAsync(
-            () => SocketService().init(token, role: 'both'),
-        permanent: true,
-      );
+      _socketService = await Get.putAsync(() => SocketService().init(token, role: 'both'),permanent: true);
 
       if (_socketService != null) {
         _removeAllListeners();
@@ -641,8 +636,8 @@ class GiverHomeController extends GetxController {
         type: "info",
       );
 
-      final status = locationController.getLocationSharingStatus();
-      Logger.log("✓ Status: $status", type: "info");
+      //final status = locationController.getLocationSharingStatus();
+     // Logger.log("✓ Status: $status", type: "info");
       Logger.log("==================", type: "info");
 
       if (locationController.isSharingLocation.value &&
@@ -765,24 +760,13 @@ class GiverHomeController extends GetxController {
 
   void _handleNewHelpRequest(dynamic data) {
     try {
-      Logger.log("🔥 Processing new help request", type: "info");
-
+      Logger.log("Processing new help request", type: "info");
       final request = data as Map<String, dynamic>;
-
-      // Add to pending requests list
       pendingHelpRequests.add(request);
       emergencyMode.value = 1;
       emergencyVibration();
-      Logger.log(
-        "✅ Help request added. Total pending: ${pendingHelpRequests.length}",
-        type: "success",
-      );
-      // Optional: Show notification or update UI
-      // Get.snackbar(
-      //   "New Help Request",
-      //   "${request['seeker']?['name'] ?? 'Someone'} needs help!",
-      //   snackPosition: SnackPosition.TOP,
-      // );
+      Logger.log(" Help request added. Total pending: ${pendingHelpRequests.length}", type: "success",);
+
     } catch (e) {
       Logger.log(" Error handling new help request: $e", type: "error");
     }
@@ -1068,8 +1052,6 @@ class GiverHomeController extends GetxController {
   }
 
   void refreshSocketOnResume() {
-    // This method can be called when the app resumes
-    // to ensure the socket is properly connected and in the right room
     if (socketService != null) {
       final helpRequestId = acceptedHelpRequest.value?['_id']?.toString();
       if (helpRequestId != null && helpRequestId.isNotEmpty) {
@@ -1083,4 +1065,5 @@ class GiverHomeController extends GetxController {
       }
     }
   }
+
 }

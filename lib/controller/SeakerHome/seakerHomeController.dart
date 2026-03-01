@@ -30,7 +30,7 @@ class SeakerHomeController extends GetxController {
   SocketService? socketService;
   RxBool isSocketInitialized = false.obs;
   RxInt emergencyMode = 0.obs;
-  Rx<NearbyStats> nearbyStats = NearbyStats(km1: 0, km2: 0).obs;
+  Rx<NearbyStats> nearbyStats = NearbyStats(km1: 0, km2: 0,km3: 0).obs;
   Rxn<Position> giverPosition = Rxn<Position>();
 
   RxBool helperStatus = false.obs;
@@ -1009,7 +1009,7 @@ class SeakerHomeController extends GetxController {
 
     // First check if already connected
     if (socketService!.isConnected.value) {
-      Logger.log("✅ Socket already connected", type: "success");
+      Logger.log(" Socket already connected", type: "success");
     } else {
       Logger.log("⏳ Waiting for socket connection (max $maxAttempts attempts)...", type: "info",);
 
@@ -1019,7 +1019,7 @@ class SeakerHomeController extends GetxController {
 
         // Check again in case connection happened while waiting
         if (socketService!.isConnected.value) {
-          Logger.log("✅ Socket connected on attempt ${waitAttempts + 1}", type: "success",);
+          Logger.log(" Socket connected on attempt ${waitAttempts + 1}", type: "success",);
           break;
         }
 
@@ -1100,6 +1100,7 @@ class SeakerHomeController extends GetxController {
         updateNearbyStats(
           helpRequest.nearbyStats.km1,
           helpRequest.nearbyStats.km2,
+          helpRequest.nearbyStats.km3,
         );
 
         Logger.log("⏳ [SEEKER] Waiting for helper...", type: "info");
@@ -1147,8 +1148,8 @@ class SeakerHomeController extends GetxController {
     }
   }
 
-  void updateNearbyStats(int km1, int km2) {
-    nearbyStats.value = NearbyStats(km1: km1, km2: km2);
+  void updateNearbyStats(int km1, int km2,int km3) {
+    nearbyStats.value = NearbyStats(km1: km1, km2: km2,km3: km3);
   }
 
   void toggleMode() {

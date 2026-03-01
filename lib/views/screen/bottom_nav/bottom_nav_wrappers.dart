@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:saferader/views/screen/help_giver/help_giver_home/giverHome.dart';
 import 'package:saferader/views/screen/help_seaker/history/seaker_history.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
 import 'package:saferader/views/screen/help_seaker/setting/seaker_setting.dart';
-import '../../../controller/GiverHOme/GiverHomeController_/GiverHomeController.dart';
+import '../../../controller/UnifiedHelpController.dart';
 import '../../../controller/UserController/userController.dart';
 import '../../../controller/bottom_nav/bottomNavController.dart';
+import '../UnifiedHomePage.dart';
 import '../bothHome/bothHome.dart';
 import 'bottom_navigations.dart';
 
-class BottomMenuWrappers extends StatefulWidget {  // ✅ StatefulWidget
+class BottomMenuWrappers extends StatefulWidget {
   const BottomMenuWrappers({super.key});
 
   @override
@@ -19,8 +19,7 @@ class BottomMenuWrappers extends StatefulWidget {  // ✅ StatefulWidget
 }
 
 class _BottomMenuWrappersState extends State<BottomMenuWrappers>
-    with WidgetsBindingObserver {  // ✅ Observer mixin
-
+    with WidgetsBindingObserver {
   late final BottomNavController controller;
   late final UserController userController;
 
@@ -29,19 +28,18 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
     super.initState();
     controller = Get.put(BottomNavController(), permanent: true);
     userController = Get.find<UserController>();
-    WidgetsBinding.instance.addObserver(this);  // ✅ Register
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);  // ✅ Remove
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-
     if (state == AppLifecycleState.resumed) {
       _onAppResumed();
     } else if (state == AppLifecycleState.paused) {
@@ -50,40 +48,30 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
   }
 
   void _onAppResumed() {
-    // Unified home is Bothhome (Giverhome); reconnect its socket
-    _resumeGiver();
-  }
-
-  void _resumeGiver() {
     try {
-      if (Get.isRegistered<GiverHomeController>()) {
-        final giverController = Get.find<GiverHomeController>();
-        if (giverController.socketService == null ||
-            !giverController.socketService!.isConnected.value) {
-          giverController.initSocket();
-        }
+      if (Get.isRegistered<UnifiedHelpController>()) {
+        Get.find<UnifiedHelpController>().onAppResumed();
       }
     } catch (e) {
-      debugPrint('Error resuming giver: $e');
+      debugPrint('[BottomWrapper] onAppResumed error: $e');
     }
   }
 
   void _onAppPaused() {
-    debugPrint('🌙 [BottomWrapper] App paused');
-  }
-
-  Widget dynamicHomePage(String role) {
-    // All users see unified home (Bothhome); no role-based routing
-    return Bothhome();
+    try {
+      if (Get.isRegistered<UnifiedHelpController>()) {
+        Get.find<UnifiedHelpController>().onAppPaused();
+      }
+    } catch (e) {
+      debugPrint('[BottomWrapper] onAppPaused error: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final String role = userController.userRole.value;
-
       final List<Widget> pages = [
-        dynamicHomePage(userController.userRole.value),
+        UnifiedHomePage(),
         SeakerLocation(),
         SeakerNotifications(),
         SeakerHistory(),

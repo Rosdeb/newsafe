@@ -85,15 +85,15 @@
   class NearbyStats {
     final int km1;
     final int km2;
-    //inal int km3;
+    final int km3;
 
-    NearbyStats({required this.km1, required this.km2, });
+    NearbyStats({required this.km1, required this.km2, required this.km3 });
 
     factory NearbyStats.fromJson(Map<String, dynamic> json) {
       return NearbyStats(
         km1: json['1km'],
         km2: json['2km'],
-        //km3: json['3km'],
+        km3: json['3km'],
       );
     }
 
