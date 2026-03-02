@@ -455,13 +455,7 @@ class SeakerNotifications extends StatelessWidget {
                     // GIVER CONTEXT: user has "I'm available to help" on → giver notifications
                     if (Get.isRegistered<GiverHomeController>() &&
                         Get.find<GiverHomeController>().helperStatus.value) {
-                      return RefreshIndicator(
-                        color: AppColors.colorYellow,
-                        backgroundColor: Colors.white,
-                        onRefresh: () => notificationsController.fetchNotifications(
-                          context: context,
-                        ),
-                        child: ListView.builder(
+                      return ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           itemCount: notificationsController.notifications.length,
@@ -502,18 +496,11 @@ class SeakerNotifications extends StatelessWidget {
                               ),
                             );
                           },
-                        ),
                       );
                     }
 
                     // SEEKER ROLE NOTIFICATIONS
-                    return RefreshIndicator(
-                      color: AppColors.colorYellow,
-                      backgroundColor: Colors.white,
-                      onRefresh: () => notificationsController.fetchNotifications(
-                        context: context,
-                      ),
-                      child: ListView.builder(
+                    return ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         itemCount: notificationsController.notifications.length,
@@ -564,7 +551,6 @@ class SeakerNotifications extends StatelessWidget {
                             ),
                           );
                         },
-                      ),
                     );
                   }),
                 ),

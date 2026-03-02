@@ -138,7 +138,9 @@ class UnifiedHelpController extends GetxController {
         _setupSocketListeners();
 
         _socketService!.socket.onConnect((_) async {
-          Logger.log('✅ [UNIFIED] Socket connected/reconnected', type: 'success');
+          Logger.log('[UNIFIED] Socket connected/reconnected', type: 'success');
+          await Future.delayed(const Duration(milliseconds: 300));
+
           _rejoinRoomAfterReconnect();
           if (helperStatus.value) {
             await _syncAvailabilityToServer(true);
@@ -146,16 +148,16 @@ class UnifiedHelpController extends GetxController {
         });
 
         _socketService!.socket.onDisconnect((_) {
-          Logger.log('⚡ [UNIFIED] Socket disconnected — scheduling reconnect', type: 'warning');
+          Logger.log('[UNIFIED] Socket disconnected — scheduling reconnect', type: 'warning');
           Future.delayed(const Duration(seconds: 3), () {
             if (Get.isRegistered<UnifiedHelpController>()) _tryReconnect();
           });
         });
 
-        Logger.log('✅ [UNIFIED] Socket initialized', type: 'success');
+        Logger.log('[UNIFIED] Socket initialized', type: 'success');
       }
     } catch (e) {
-      Logger.log('❌ [UNIFIED] Socket init error: $e', type: 'error');
+      Logger.log('[UNIFIED] Socket init error: $e', type: 'error');
     }
   }
 
@@ -168,19 +170,23 @@ class UnifiedHelpController extends GetxController {
 
   void _rejoinRoomAfterReconnect() {
     _reconnectAttempts = 0;
+
     // Rejoin seeker room
     if (seekerHelpRequestId.value.isNotEmpty) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _socketService?.joinRoom(seekerHelpRequestId.value);
+      final id = seekerHelpRequestId.value;
+      Future.delayed(const Duration(milliseconds: 500), () async {
+        await _socketService?.joinRoom(id);
+        _resumeLocationSharing(id);
       });
     }
+
     // Rejoin giver room
     final req = acceptedRequest.value;
     if (req != null) {
       final id = req['_id']?.toString() ?? '';
       if (id.isNotEmpty) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _socketService?.joinRoom(id);
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          await _socketService?.joinRoom(id);
           _resumeLocationSharing(id);
         });
       }
@@ -286,9 +292,9 @@ class UnifiedHelpController extends GetxController {
       }
 
       emergencyVibration();
-      Logger.log('✅ [UNIFIED] Pending requests: ${pendingRequests.length}', type: 'success');
+      Logger.log('[UNIFIED] Pending requests: ${pendingRequests.length}', type: 'success');
     } catch (e) {
-      Logger.log('❌ [UNIFIED] _onNewHelpRequest error: $e', type: 'error');
+      Logger.log('[UNIFIED] _onNewHelpRequest error: $e', type: 'error');
     }
   }
 
@@ -330,9 +336,9 @@ class UnifiedHelpController extends GetxController {
       // Start sharing my location so the helper can track me
       await _startLocationSharing(helpRequestId);
 
-      Logger.log('✅ [UNIFIED] Seeker: help accepted, sharing location', type: 'success');
+      Logger.log('[UNIFIED] Seeker: help accepted, sharing location', type: 'success');
     } catch (e) {
-      Logger.log('❌ [UNIFIED] _onHelpRequestAccepted: $e', type: 'error');
+      Logger.log('[UNIFIED] _onHelpRequestAccepted: $e', type: 'error');
     }
   }
 
@@ -343,7 +349,7 @@ class UnifiedHelpController extends GetxController {
       incomingHelperPosition.value = _makePosition(loc['lat']!, loc['lng']!);
       _recalcSeekerDistanceEta();
     } catch (e) {
-      Logger.log('❌ [UNIFIED] _onReceiveHelperLocation: $e', type: 'error');
+      Logger.log('[UNIFIED] _onReceiveHelperLocation: $e', type: 'error');
     }
   }
 
@@ -354,7 +360,7 @@ class UnifiedHelpController extends GetxController {
       seekerLivePosition.value = _makePosition(loc['lat']!, loc['lng']!);
       _recalcGiverDistanceEta();
     } catch (e) {
-      Logger.log('❌ [UNIFIED] _onReceiveSeekerLocation: $e', type: 'error');
+      Logger.log('[UNIFIED] _onReceiveSeekerLocation: $e', type: 'error');
     }
   }
 
@@ -615,7 +621,7 @@ class UnifiedHelpController extends GetxController {
   // ─────────────────────────────────────────────────────────────────────────
   void injectHelpRequestFromNotification(Map<String, dynamic> data) {
     try {
-      final requestId = data['requestId']?.toString();
+      final requestId = data['helpRequestId']?.toString();
       if (requestId == null || requestId.isEmpty) return;
 
       if (pendingRequests.any((r) => r['_id'] == requestId)) return;

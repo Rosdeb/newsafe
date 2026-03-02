@@ -21,12 +21,25 @@ class SocketService extends GetxService {
   }
 
   final RxBool isConnected = false.obs;
+  final RxBool _isSocketReady = false.obs;
+  Completer<void>? _readyCompleter;
   final RxString userRole = ''.obs;
   String? currentRoom;
 
   Completer<void>? _connectionCompleter;
   bool _isInitializing = false;
   int _pingTimeoutCount = 0;
+
+  Future<void> waitForReady({Duration timeout = const Duration(seconds: 10)}) async {
+    if (_isSocketReady.value) return;
+
+    try {
+      await _readyCompleter?.future.timeout(timeout);
+    } catch (e) {
+      Logger.log('[SOCKET] Ready timeout: $e', type: 'warning');
+      rethrow;
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   Future<SocketService> init(
@@ -36,12 +49,19 @@ class SocketService extends GetxService {
       }) async {
     userRole.value = role;
 
+    _isSocketReady.value = false;
+    _readyCompleter = Completer<void>();
+
     if (_isInitializing) {
       await _connectionCompleter?.future;
       return this;
     }
 
-    // Already connected — just reuse
+    if (_isSocketReady.value && _socket?.connected == true) {
+      Logger.log('✅ [SOCKET] Already ready, reusing', type: 'info');
+      return this;
+    }
+
     if (_socket != null && _socket!.connected) {
       Logger.log('✅ [SOCKET] Already connected, reusing', type: 'info');
       return this;
@@ -86,10 +106,10 @@ class SocketService extends GetxService {
           const Duration(seconds: 20),
           onTimeout: () => throw TimeoutException('Socket connection timeout'),
         );
-        Logger.log('✅ [SOCKET] Connected on attempt $attempt', type: 'success');
+        Logger.log('[SOCKET] Connected on attempt $attempt', type: 'success');
         break;
       } catch (e) {
-        Logger.log('❌ [SOCKET] Attempt $attempt failed: $e', type: 'error');
+        Logger.log('[SOCKET] Attempt $attempt failed: $e', type: 'error');
         if (attempt < retryCount) {
           await Future.delayed(const Duration(seconds: 3));
         } else {
@@ -101,6 +121,26 @@ class SocketService extends GetxService {
 
     _isInitializing = false;
     return this;
+  }
+
+
+  Future<SocketService?> getActiveSocketWithWait({Duration maxWait = const Duration(seconds: 5)}) async {
+    // Quick check first
+    if (_socket != null && _socket!.connected && _isSocketReady.value) {
+      return this;
+    }
+
+    // Wait for ready with timeout
+    final start = DateTime.now();
+    while (DateTime.now().difference(start) < maxWait) {
+      if (_socket != null && _socket!.connected && _isSocketReady.value) {
+        return this;
+      }
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
+    Logger.log('⚠️ [SOCKET] Not ready after ${maxWait.inSeconds}s', type: 'warning');
+    return null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -120,31 +160,54 @@ class SocketService extends GetxService {
 
       // Auto-rejoin last room
       if (currentRoom != null) {
-        Logger.log('🚪 [SOCKET] Rejoining room: $currentRoom', type: 'info');
+        Logger.log('[SOCKET] Rejoining room: $currentRoom', type: 'info');
         await joinRoom(currentRoom!);
       }
+
+      _isSocketReady.value = true;
+      if (_readyCompleter != null && !_readyCompleter!.isCompleted) {
+        _readyCompleter!.complete();
+      }
+      Logger.log('[SOCKET] Socket marked as ready', type: 'success');
+
     });
 
     socket.onDisconnect((reason) {
       isConnected.value = false;
+      _readyCompleter = Completer<void>();
+
       final r = reason.toString();
       if (r.contains('ping timeout') || r.contains('pingTimeout')) {
         _pingTimeoutCount++;
-        Logger.log('⚠️ [SOCKET] Ping timeout #$_pingTimeoutCount — reason: $r', type: 'warning');
+        Logger.log('[SOCKET] Ping timeout #$_pingTimeoutCount — reason: $r', type: 'warning');
+        if (_pingTimeoutCount >= 3) {
+          Logger.log('🔄 [SOCKET] Too many timeouts — forcing reconnect', type: 'warning');
+          Future.delayed(const Duration(seconds: 2), () {
+            if (!isConnected.value && _socket != null) {
+              reconnect();
+            }
+          });
+        }
+
       } else {
-        Logger.log('⚡ [SOCKET] Disconnected — reason: $r', type: 'warning');
+        _pingTimeoutCount = 0;
+        Logger.log('[SOCKET] Disconnected — reason: $r', type: 'warning');
       }
     });
 
     socket.onConnectError((data) {
-      Logger.log('❌ [SOCKET] Connect error: $data', type: 'error');
+      Logger.log('[SOCKET] Connect error: $data', type: 'error');
       if (_connectionCompleter != null && !_connectionCompleter!.isCompleted) {
         _connectionCompleter!.completeError('Connect error: $data');
       }
+      if (_readyCompleter != null && !_readyCompleter!.isCompleted) {
+        _readyCompleter!.completeError('Connect error: $data');
+      }
+
     });
 
     socket.onError((data) {
-      Logger.log('❌ [SOCKET] Error: $data', type: 'error');
+      Logger.log('[SOCKET] Error: $data', type: 'error');
     });
   }
 
@@ -167,24 +230,35 @@ class SocketService extends GetxService {
       if (currentRoom != null && currentRoom != roomId) {
         leaveRoom(currentRoom!);
       }
-      if (!isConnected.value) throw Exception('Socket not connected');
+
+      if (!isConnected.value) {
+        int waited = 0;
+        while (!isConnected.value && waited < 3000) {
+          await Future.delayed(const Duration(milliseconds: 200));
+          waited += 200;
+        }
+        if (!isConnected.value) {
+          throw Exception('Socket not connected after waiting');
+        }
+      }
 
       socket.emit('joinRoom', roomId);
       currentRoom = roomId;
       await Future.delayed(const Duration(milliseconds: 300));
       Logger.log('🚪 [SOCKET] Joined room: $roomId', type: 'info');
     } catch (e) {
-      Logger.log('❌ [SOCKET] joinRoom error: $e', type: 'error');
+      Logger.log('[SOCKET] joinRoom error: $e', type: 'error');
     }
   }
+
 
   void leaveRoom(String roomId) {
     try {
       socket.emit('leaveRoom', roomId);
       if (currentRoom == roomId) currentRoom = null;
-      Logger.log('🚪 [SOCKET] Left room: $roomId', type: 'info');
+      Logger.log('[SOCKET] Left room: $roomId', type: 'info');
     } catch (e) {
-      Logger.log('❌ [SOCKET] leaveRoom error: $e', type: 'error');
+      Logger.log('[SOCKET] leaveRoom error: $e', type: 'error');
     }
   }
 
@@ -194,17 +268,17 @@ class SocketService extends GetxService {
 
   void sendLocationUpdate(double latitude, double longitude) {
     if (!isConnected.value) {
-      Logger.log('⚠️ [SOCKET] Not connected — location update skipped', type: 'warning');
+      Logger.log('[SOCKET] Not connected — location update skipped', type: 'warning');
       return;
     }
     socket.emit('sendLocationUpdate', {'latitude': latitude, 'longitude': longitude});
-    Logger.log('📍 [SOCKET] Location sent: ($latitude, $longitude)', type: 'success');
+    Logger.log('[SOCKET] Location sent: ($latitude, $longitude)', type: 'success');
   }
 
   void declineHelpRequest(String helpRequestId) {
     if (!isConnected.value) return;
     socket.emit('declineHelpRequest', helpRequestId);
-    Logger.log('🚫 [SOCKET] Declined: $helpRequestId', type: 'info');
+    Logger.log('[SOCKET] Declined: $helpRequestId', type: 'info');
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -212,7 +286,12 @@ class SocketService extends GetxService {
   // ─────────────────────────────────────────────────────────────────────────
   void reconnect() {
     if (_socket == null || _socket!.connected) return;
-    Logger.log('🔄 [SOCKET] Reconnecting...', type: 'info');
+
+    _isSocketReady.value = false;
+    _readyCompleter = Completer<void>();
+    _pingTimeoutCount = 0;
+
+    Logger.log('[SOCKET] Reconnecting...', type: 'info');
     socket.connect();
   }
 
@@ -226,9 +305,11 @@ class SocketService extends GetxService {
       if (socket.connected) socket.disconnect();
       socket.dispose();
       isConnected.value = false;
-      Logger.log('🔌 [SOCKET] Disposed', type: 'info');
+      _isSocketReady.value = false;
+      _readyCompleter = null;
+      Logger.log('[SOCKET] Disposed', type: 'info');
     } catch (e) {
-      Logger.log('❌ [SOCKET] Dispose error: $e', type: 'error');
+      Logger.log('[SOCKET] Dispose error: $e', type: 'error');
     }
   }
 

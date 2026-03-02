@@ -48,53 +48,81 @@ class SeakerLocationsController extends GetxController {
   // ─────────────────────────────────────────────────────────────────────────
   // SOCKET RESOLUTION — now uses UnifiedHelpController only
   // ─────────────────────────────────────────────────────────────────────────
+  // SocketService? getActiveSocket() {
+  //   final now = DateTime.now();
+  //
+  //   // Return valid cached socket
+  //   if (_socketCacheTime != null &&
+  //       now.difference(_socketCacheTime!).inSeconds < 2 &&
+  //       _cachedSocketService != null &&
+  //       _cachedSocketService!.isConnected.value) {
+  //     return _cachedSocketService;
+  //   }
+  //
+  //   // Clear stale/disconnected cache
+  //   if (_cachedSocketService != null && !_cachedSocketService!.isConnected.value) {
+  //     Logger.log("⚠️ [SOCKET] Cached socket disconnected, clearing", type: "warning");
+  //     _cachedSocketService = null;
+  //     _socketCacheTime = null;
+  //   }
+  //
+  //   SocketService? socketService;
+  //
+  //   // PRIMARY: UnifiedHelpController's socket
+  //   if (Get.isRegistered<UnifiedHelpController>()) {
+  //     final ctrl = Get.find<UnifiedHelpController>();
+  //     if (ctrl.socketService != null && ctrl.socketService!.isConnected.value) {
+  //       socketService = ctrl.socketService;
+  //       Logger.log("[SOCKET] Using UnifiedHelpController socket", type: "debug");
+  //     }
+  //   }
+  //
+  //   // FALLBACK: Global SocketService singleton
+  //   if (socketService == null && Get.isRegistered<SocketService>()) {
+  //     final generalSocket = Get.find<SocketService>();
+  //     if (generalSocket.isConnected.value) {
+  //       socketService = generalSocket;
+  //       Logger.log("[SOCKET] Using global SocketService", type: "debug");
+  //     }
+  //   }
+  //
+  //   if (socketService != null) {
+  //     _cachedSocketService = socketService;
+  //     _socketCacheTime = now;
+  //   } else {
+  //     Logger.log(" [SOCKET] No active socket found", type: "warning");
+  //   }
+  //
+  //   return socketService;
+  // }
+
   SocketService? getActiveSocket() {
-    final now = DateTime.now();
-
-    // Return valid cached socket
-    if (_socketCacheTime != null &&
-        now.difference(_socketCacheTime!).inSeconds < 2 &&
-        _cachedSocketService != null &&
-        _cachedSocketService!.isConnected.value) {
-      return _cachedSocketService;
-    }
-
-    // Clear stale/disconnected cache
-    if (_cachedSocketService != null && !_cachedSocketService!.isConnected.value) {
-      Logger.log("⚠️ [SOCKET] Cached socket disconnected, clearing", type: "warning");
-      _cachedSocketService = null;
-      _socketCacheTime = null;
-    }
-
     SocketService? socketService;
 
-    // ✅ PRIMARY: UnifiedHelpController's socket
+    // PRIMARY: UnifiedHelpController's socket
     if (Get.isRegistered<UnifiedHelpController>()) {
       final ctrl = Get.find<UnifiedHelpController>();
       if (ctrl.socketService != null && ctrl.socketService!.isConnected.value) {
         socketService = ctrl.socketService;
-        Logger.log("✅ [SOCKET] Using UnifiedHelpController socket", type: "debug");
+        Logger.log("[SOCKET] Using UnifiedHelpController socket", type: "debug");
+        return socketService;
       }
     }
 
-    // ✅ FALLBACK: Global SocketService singleton
-    if (socketService == null && Get.isRegistered<SocketService>()) {
+    // FALLBACK: Global SocketService singleton
+    if (Get.isRegistered<SocketService>()) {
       final generalSocket = Get.find<SocketService>();
       if (generalSocket.isConnected.value) {
         socketService = generalSocket;
-        Logger.log("✅ [SOCKET] Using global SocketService", type: "debug");
+        Logger.log("[SOCKET] Using global SocketService", type: "debug");
+        return socketService;
       }
     }
 
-    if (socketService != null) {
-      _cachedSocketService = socketService;
-      _socketCacheTime = now;
-    } else {
-      Logger.log("⚠️ [SOCKET] No active socket found", type: "warning");
-    }
-
-    return socketService;
+    Logger.log("[SOCKET] No active socket found", type: "warning");
+    return null;
   }
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // HELP REQUEST ID MANAGEMENT
@@ -104,9 +132,9 @@ class SeakerLocationsController extends GetxController {
       currentHelpRequestId.value = helpRequestId;
       _cachedSocketService = null;
       _socketCacheTime = null;
-      Logger.log("✅ [LOCATION SHARE] Help request ID set: $helpRequestId", type: "success");
+      Logger.log("[LOCATION SHARE] Help request ID set: $helpRequestId", type: "success");
     } else {
-      Logger.log("⚠️ [LOCATION SHARE] Attempted to set empty help request ID", type: "warning");
+      Logger.log("[LOCATION SHARE] Attempted to set empty help request ID", type: "warning");
     }
   }
 
@@ -168,20 +196,20 @@ class SeakerLocationsController extends GetxController {
 
     final helpRequestId = _getHelpRequestId();
     if (helpRequestId == null || helpRequestId.isEmpty) {
-      Logger.log("⚠️ [LOCATION SHARE] Starting without help request ID", type: "warning");
+      Logger.log("[LOCATION SHARE] Starting without help request ID", type: "warning");
     } else {
-      Logger.log("✅ [LOCATION SHARE] Started for request: $helpRequestId", type: "success");
+      Logger.log("[LOCATION SHARE] Started for request: $helpRequestId", type: "success");
     }
 
     if (currentPosition.value != null) {
       _shareLocation(currentPosition.value!);
     }
 
-    Logger.log("✅ [LOCATION SHARE] Location sharing started", type: "success");
+    Logger.log("[LOCATION SHARE] Location sharing started", type: "success");
   }
 
   void stopLocationSharing() {
-    Logger.log("🛑 [STOP] Stopping location sharing...", type: "info");
+    Logger.log("[STOP] Stopping location sharing...", type: "info");
     isSharingLocation.value = false;
     _lastSentPosition = null;
     _locationTimer?.cancel();
@@ -189,20 +217,20 @@ class SeakerLocationsController extends GetxController {
     _lastSuccessfulUpdate = null;
     _hasReceivedFirstLocation = false;
     _forceStopLocationStream();
-    Logger.log("✅ [STOP] Location sharing stopped", type: "success");
+    Logger.log("[STOP] Location sharing stopped", type: "success");
   }
 
   Future<void> _forceStopLocationStream() async {
-    Logger.log("🛑 [STREAM] Force stopping location stream...", type: "warning");
+    Logger.log("[STREAM] Force stopping location stream...", type: "warning");
     _isStreamActive = false;
     liveLocation.value = false;
     if (_positionStreamSubscription != null) {
       await _positionStreamSubscription!.cancel();
       _positionStreamSubscription = null;
-      Logger.log("✅ [STREAM] Subscription cancelled", type: "success");
+      Logger.log("[STREAM] Subscription cancelled", type: "success");
     }
     await Future.delayed(const Duration(milliseconds: 300));
-    Logger.log("✅ [STREAM] All streams stopped", type: "success");
+    Logger.log("[STREAM] All streams stopped", type: "success");
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -213,12 +241,12 @@ class SeakerLocationsController extends GetxController {
 
     final hasPermission = await handlePermission();
     if (!hasPermission) {
-      Logger.log("❌ [STREAM] No location permission", type: "error");
+      Logger.log("[STREAM] No location permission", type: "error");
       return;
     }
 
     if (_isStreamActive || _positionStreamSubscription != null) {
-      Logger.log("⚠️ [STREAM] Existing stream detected, stopping first...", type: "warning");
+      Logger.log("⚠[STREAM] Existing stream detected, stopping first...", type: "warning");
       await _forceStopLocationStream();
     }
 
@@ -293,54 +321,52 @@ class SeakerLocationsController extends GetxController {
   void _shareLocation(Position position) {
     try {
       final helpRequestId = _getHelpRequestId();
-
-      if (helpRequestId == null || helpRequestId.isEmpty) {
-        Logger.log("[SHARE] No help request ID", type: "warning");
+      if (helpRequestId == null) {
         _consecutiveFailures++;
         return;
       }
 
       final socketService = getActiveSocket();
-
       if (socketService == null) {
-        Logger.log("[SHARE] No socket service", type: "error");
         _consecutiveFailures++;
-        isSocketConnected.value = false;
-        return;
-      }
-
-      if (!socketService.isConnected.value) {
-        Logger.log("[SHARE] Socket disconnected", type: "error");
-        _consecutiveFailures++;
-        isSocketConnected.value = false;
-        return;
-      }
-
-      // Ensure we're in the right room
-      if (socketService.currentRoom != helpRequestId) {
-        Logger.log("⚠️ [SHARE] Not in correct room, joining: $helpRequestId", type: "warning");
-        socketService.joinRoom(helpRequestId);
-        Future.delayed(const Duration(milliseconds: 300)).then((_) {
-          _shareLocation(position);
+        // ✅ Retry after 2 seconds
+        Future.delayed(const Duration(seconds: 2), () {
+          if (isSharingLocation.value) _shareLocation(position);
         });
         return;
       }
 
-      isSocketConnected.value = true;
+      if (!socketService.isConnected.value) {
+        Logger.log("[SHARE] Socket disconnected — reconnecting", type: "error");
+        socketService.reconnect();
+        return;
+      }
 
-      socketService.sendLocationUpdate(
-        position.latitude,
-        position.longitude,
-      );
+      // ✅ Room check — সঠিক room এ না থাকলে join করুন
+      if (socketService.currentRoom != helpRequestId) {
+        Logger.log("[SHARE] Wrong room, joining: $helpRequestId", type: "warning");
+        socketService.joinRoom(helpRequestId).then((_) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            _shareLocation(position);
+          });
+        });
+        return;
+      }
 
+      // ✅ Location send
+      socketService.sendLocationUpdate(position.latitude, position.longitude);
       _lastSuccessfulUpdate = DateTime.now();
       _consecutiveFailures = 0;
-      _lastSentPosition = position;
 
-      Logger.log("✅ [SHARE] Location sent for $helpRequestId", type: "success");
     } catch (e) {
       _consecutiveFailures++;
       Logger.log("[SHARE] Error: $e", type: "error");
+      // ✅ Auto retry
+      if (_consecutiveFailures < 3) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (isSharingLocation.value) _shareLocation(position);
+        });
+      }
     }
   }
 
@@ -415,31 +441,44 @@ class SeakerLocationsController extends GetxController {
     if (socketService == null) return;
 
     if (socketService.currentRoom == helpRequestId) {
-      Logger.log("✅ [ROOM] Already in room: $helpRequestId", type: "info");
+      Logger.log("[ROOM] Already in room: $helpRequestId", type: "info");
       return;
     }
 
-    Logger.log("🚪 [ROOM] Rejoining: $helpRequestId", type: "info");
+    Logger.log("[ROOM] Rejoining: $helpRequestId", type: "info");
     await socketService.joinRoom(helpRequestId);
     await Future.delayed(const Duration(milliseconds: 500));
-    Logger.log("✅ [ROOM] Rejoined: $helpRequestId", type: "success");
+    Logger.log("[ROOM] Rejoined: $helpRequestId", type: "success");
   }
 
   Future<void> refreshAfterMapReturn() async {
-    Logger.log("🔄 [MAP RETURN] Refreshing after map return", type: "info");
-    forceSocketRefresh();
-    await Future.delayed(const Duration(milliseconds: 300));
+    Logger.log("🔄 [MAP RETURN] Refreshing...", type: "info");
+
+    // ✅ Cache clear
+    _cachedSocketService = null;
+    _socketCacheTime = null;
+
+    // ✅ Socket ready হওয়া পর্যন্ত wait (max 5 seconds)
+    int waited = 0;
+    while (getActiveSocket() == null && waited < 5000) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      waited += 300;
+    }
 
     final socketService = getActiveSocket();
-    if (socketService == null) return;
+    if (socketService == null) {
+      Logger.log("[MAP RETURN] Socket not available", type: "error");
+      return;
+    }
 
+    // ✅ Room rejoin
     if (currentHelpRequestId.value.isNotEmpty) {
       await rejoinRoomIfNeeded();
       await Future.delayed(const Duration(milliseconds: 500));
-      if (currentPosition.value != null) _shareLocation(currentPosition.value!);
+      if (currentPosition.value != null) {
+        _shareLocation(currentPosition.value!);
+      }
     }
-
-    Logger.log("✅ [MAP RETURN] Refresh complete", type: "success");
   }
 
   Future<void> refreshSocketAndRejoinRoom() async {

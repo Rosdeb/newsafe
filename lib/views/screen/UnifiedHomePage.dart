@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,7 @@ import '../../../../controller/UserController/userController.dart';
 import '../../../../controller/bottom_nav/bottomNavController.dart';
 import '../../../../controller/notifications/notifications_controller.dart';
 import '../../../../controller/profile/profile.dart';
+import '../../Service/Backgound/background_services.dart';
 import '../../controller/UnifiedHelpController.dart';
 import '../base/AppText/appText.dart';
 import 'help_seaker/locations/seaker_location.dart';
@@ -75,7 +78,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
       ctrl.helperStatus.value = true;
       ctrl.setHelperAvailability(true);
       locationController.startLiveLocation();
+
+      if (Platform.isAndroid) {
+        await BackgroundService.start();
+      }
+
       NotificationService.processPendingNotification();
+
     });
   }
 
@@ -97,6 +106,9 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (Platform.isAndroid) {
+      BackgroundService.stop();
+    }
     _blinkCtrl.dispose();
     super.dispose();
   }
@@ -321,86 +333,344 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildSeekerWaiting(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return Column(
-      children: [
-        Container(
-          height: 300,
-          width: 300,
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color(0xFFD7E5FB),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(10),
+    return Obx(() {
+      final helperName = ctrl.incomingHelperName.value.isEmpty
+          ? 'Helper'
+          : ctrl.incomingHelperName.value;
+      final helperImage = ctrl.incomingHelperImage.value;
+      final distance = ctrl.seekerToHelperDistance.value;
+      final eta = ctrl.seekerToHelperEta.value;
+
+      return Column(
+        children: [
+          // ── Top info circle ──────────────────────────────────────────────
+          Container(
+            height: 300,
+            width: 300,
+            padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF60A5FA),
+              color: Color(0xFFD7E5FB),
             ),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF3B82F6),
+                color: Color(0xFF60A5FA),
               ),
-              child: Center(
-                child: Obx(() => Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const AppText(
-                      'HELP',
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.colorWhite,
-                    ),
-                    const AppText(
-                      'Coming..',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.colorWhite,
-                    ),
-                    const SizedBox(height: 10),
-                    AppText(
-                      '${ctrl.helperName} is on the way',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.colorWhite,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    AppText(
-                      '${ctrl.seekerToHelperDistance.value} · ETA ${ctrl.seekerToHelperEta.value}',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.colorWhite,
-                    ),
-                  ],
-                )),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF3B82F6),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Helper avatar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: helperImage.isNotEmpty
+                            ? Image.network(
+                          helperImage,
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _helperAvatarFallback(),
+                        )
+                            : _helperAvatarFallback(),
+                      ),
+                      const SizedBox(height: 8),
+                      AnimatedBuilder(
+                        animation: _blinkAnim,
+                        builder: (_, __) => Opacity(
+                          opacity: _blinkAnim.value,
+                          child: const AppText(
+                            'HELP',
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.colorWhite,
+                          ),
+                        ),
+                      ),
+                      const AppText(
+                        'Coming..',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.colorWhite,
+                      ),
+                      const SizedBox(height: 6),
+                      AppText(
+                        '$helperName is on the way',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.colorWhite,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.location_on, size: 12, color: Colors.white70),
+                          const SizedBox(width: 2),
+                          AppText(distance, fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.colorWhite),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.timer, size: 12, color: Colors.white70),
+                          const SizedBox(width: 2),
+                          AppText('ETA $eta', fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.colorWhite),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-        SizedBox(height: size.height * 0.02),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 90),
-          child: Column(
-            children: [
-              GradientButtons(
-                gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
-                onTap: ctrl.cancelMyHelpRequest,
-                text: 'Cancel Request',
-                icon: Icons.cancel_outlined,
-              ),
-              const SizedBox(height: 10),
-              GradientButtons(
-                onTap: ctrl.seekerMarkHelpDone,
-                text: 'Work is done',
-                icon: Icons.check,
-              ),
-            ],
+          SizedBox(height: size.height * 0.02),
+
+          // ── Action buttons ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 90),
+            child: Column(
+              children: [
+                GradientButtons(
+                  gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                  onTap: ctrl.cancelMyHelpRequest,
+                  text: 'Cancel Request',
+                  icon: Icons.cancel_outlined,
+                ),
+                const SizedBox(height: 10),
+                GradientButtons(
+                  onTap: ctrl.seekerMarkHelpDone,
+                  text: 'Work is done',
+                  icon: Icons.check,
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          SizedBox(height: size.height * 0.02),
+
+          // ── Info card with map ───────────────────────────────────────────
+          CustomBox(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                // Helper profile row
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(25),
+                      child: helperImage.isNotEmpty
+                          ? Image.network(
+                        helperImage,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 50, height: 50,
+                          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(25)),
+                          child: const Icon(Icons.person, color: Colors.grey),
+                        ),
+                      )
+                          : Container(
+                        width: 50, height: 50,
+                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(25)),
+                        child: const Icon(Icons.person, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(helperName, fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.color2Box),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: AppText(
+                                  '$distance away · ETA $eta',
+                                  fontSize: 12, fontWeight: FontWeight.w400, color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const AppText('Helper Location', fontSize: 18, fontWeight: FontWeight.w500, color: AppColors.color2Box),
+                const SizedBox(height: 12),
+
+                // ── Map ────────────────────────────────────────────────────
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(width: 2, color: AppColors.colorYellow),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Stack(
+                    children: [
+                      Obx(() {
+                        final myPos = ctrl.myPosition;
+                        final helperPos = ctrl.incomingHelperPosition.value;
+
+                        if (myPos == null) {
+                          return const SizedBox(
+                            height: 200,
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+
+                        // Use helper position if available, otherwise center on me
+                        final mapTarget = helperPos != null
+                            ? LatLng(helperPos.latitude, helperPos.longitude)
+                            : LatLng(myPos.latitude, myPos.longitude);
+
+                        final Set<Marker> markers = {
+                          Marker(
+                            markerId: const MarkerId('me'),
+                            position: LatLng(myPos.latitude, myPos.longitude),
+                            infoWindow: const InfoWindow(title: 'You (Seeker)'),
+                            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                          ),
+                          if (helperPos != null)
+                            Marker(
+                              markerId: const MarkerId('helper'),
+                              position: LatLng(helperPos.latitude, helperPos.longitude),
+                              infoWindow: InfoWindow(title: helperName),
+                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                            ),
+                        };
+
+                        return SizedBox(
+                          height: 200,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: GoogleMap(
+                              initialCameraPosition: CameraPosition(target: mapTarget, zoom: 14),
+                              markers: markers,
+                              onTap: (_) => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const UniversalMapViewEnhanced(),
+                                ),
+                              ),
+                              zoomControlsEnabled: false,
+                              myLocationButtonEnabled: false,
+                              liteModeEnabled: true,
+                            ),
+                          ),
+                        );
+                      }),
+                      Positioned(
+                        bottom: 0, right: 0,
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const UniversalMapViewEnhanced()),
+                          ),
+                          child: Container(
+                            height: 32, width: 83,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFDE047).withOpacity(0.80),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: const Center(
+                              child: AppText('View map', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.color2Box),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // ──> Address + last updated ─────────────────────────────────>
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 150,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText('Helper :', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.colorStroke),
+                          SizedBox(height: 4),
+                          AppText('Status :', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.colorStroke),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(
+                            helperName,
+                            fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box,
+                            overflow: TextOverflow.ellipsis, maxLines: 1,
+                          ),
+                          const SizedBox(height: 4),
+                          const AppText(
+                            'On the way to you',
+                            fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+
+                // ── Bottom action row ──────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: GradientButtons(
+                        onTap: ctrl.seekerMarkHelpDone,
+                        text: 'Done',
+                        icon: Icons.check,
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: GradientButtons(
+                        onTap: ctrl.cancelMyHelpRequest,
+                        gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                        text: 'Cancel',
+                        icon: Icons.cancel_outlined,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+// Helper avatar fallback widget
+  Widget _helperAvatarFallback() {
+    return Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: const Icon(Icons.person, size: 35, color: Colors.white),
     );
   }
 

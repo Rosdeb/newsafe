@@ -535,6 +535,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:saferader/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -763,6 +764,12 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((msg) {
       debugPrint('📬 Foreground message: ${msg.messageId}');
       if (!_isNotificationsEnabled) return;
+      final type = msg.data['type']?.toString();
+
+      if (type == 'new_help_request') {
+        _injectHelpRequest(msg.data);
+      }
+
       final n = msg.notification;
       if (n != null) {
         showLocalNotification(
@@ -823,8 +830,9 @@ class NotificationService {
 
   /// Call this after UnifiedHelpController is ready (in initState)
   static void processPendingNotification() {
-    if (_pendingHelpRequestData != null) {
-      _injectHelpRequest(_pendingHelpRequestData!);
+    if (_pendingHelpRequestData != null && Get.isRegistered<UnifiedHelpController>()) {
+      Logger.log("🔄 Processing pending notification", type: "info");
+      Get.find<UnifiedHelpController>().injectHelpRequestFromNotification(_pendingHelpRequestData!);
       _pendingHelpRequestData = null;
     }
   }
