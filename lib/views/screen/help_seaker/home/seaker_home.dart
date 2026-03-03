@@ -785,7 +785,7 @@ class _SeakerHomeState extends State<SeakerHome> with SingleTickerProviderStateM
                                 bottomRight: Radius.circular(8),
                               ),
                             ),
-                            child: const Center(
+                            child: Center(
                               child: AppText(
                                 "View map",
                                 fontSize: 14,

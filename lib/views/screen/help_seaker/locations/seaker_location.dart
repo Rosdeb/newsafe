@@ -159,7 +159,7 @@ class _SeakerLocationState extends State<SeakerLocation> {
                                       },
                                       zoomControlsEnabled: false,
                                       myLocationButtonEnabled: false,
-                                      liteModeEnabled: true, // ⭐ MAKE IT LIKE A STATIC PREVIEW
+                                      liteModeEnabled: true,
                                     ),
                                   ),
                                 );
@@ -183,8 +183,8 @@ class _SeakerLocationState extends State<SeakerLocation> {
                                             bottomRight: Radius.circular(8)
                                         )
                                     ),
-                                    child:const Center(
-                                      child: AppText("View map",fontSize: 14,fontWeight: FontWeight.w500,color: AppColors.color2Box,),
+                                    child: Center(
+                                      child: AppText("View map".tr,fontSize: 14,fontWeight: FontWeight.w500,color: AppColors.color2Box,),
                                     ),
                                   ),
                                 ),
@@ -197,20 +197,20 @@ class _SeakerLocationState extends State<SeakerLocation> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                           const SizedBox(
+                            SizedBox(
                               width: 150,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
+                                children:  [
                                   AppText(
-                                    "Address :",
+                                    "Address :".tr,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: AppColors.colorStroke,
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   AppText(
-                                    "Last Updated :",
+                                    "Last Updated :".tr,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: AppColors.colorStroke,

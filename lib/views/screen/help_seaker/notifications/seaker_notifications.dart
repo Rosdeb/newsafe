@@ -378,9 +378,9 @@ class SeakerNotifications extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Notification",
-                      style: TextStyle(
+                     Text(
+                      "Notification".tr,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
                         color: Colors.black,
@@ -436,16 +436,16 @@ class SeakerNotifications extends StatelessWidget {
                         physics: const AlwaysScrollableScrollPhysics(),
                         child: SizedBox(
                           height: MediaQuery.of(context).size.height - 200,
-                          child: const Column(
+                          child: Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               EmptyHistoryBox(
-                                title: "No notification yet",
-                                subtitle: "Your notification will appear here",
+                                title: "No notification yet".tr,
+                                subtitle: "Your notification will appear here".tr,
                                 iconPath: "assets/icon/notifications.svg",
                                 height: 200,
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                             ],
                           ),
                         ),

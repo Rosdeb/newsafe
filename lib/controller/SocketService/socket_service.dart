@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:saferader/utils/app_constant.dart';
+import 'package:saferader/utils/auth_service.dart';
 import 'package:saferader/utils/logger.dart';
+import 'package:saferader/utils/token_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,16 +86,25 @@ class SocketService extends GetxService {
 
       _connectionCompleter = Completer<void>();
 
+      // Fetch fresh token before each connection attempt
+      String? freshToken = await TokenService().getToken();
+      if (freshToken == null) {
+        freshToken = token; // Fallback to provided token
+        Logger.log('[SOCKET] No fresh token available, using provided token', type: 'warning');
+      } else {
+        Logger.log('[SOCKET] Using fresh token for connection attempt $attempt', type: 'info');
+      }
+
       _socket = IO.io(
         AppConstants.BASE_URL,
         IO.OptionBuilder()
             .setTransports(['websocket'])
-            .setAuth({'token': token})
+            .setAuth({'token': freshToken})
             .enableReconnection()
-            .setReconnectionAttempts(10)
-            .setReconnectionDelay(2000)
-            .setReconnectionDelayMax(5000)
-            .setTimeout(20000)
+            .setReconnectionAttempts(5)
+            .setReconnectionDelay(3000)
+            .setReconnectionDelayMax(10000)
+            .setTimeout(30000)
             .disableAutoConnect()
             .build(),
       );
@@ -180,9 +191,9 @@ class SocketService extends GetxService {
       if (r.contains('ping timeout') || r.contains('pingTimeout')) {
         _pingTimeoutCount++;
         Logger.log('[SOCKET] Ping timeout #$_pingTimeoutCount — reason: $r', type: 'warning');
-        if (_pingTimeoutCount >= 3) {
-          Logger.log('🔄 [SOCKET] Too many timeouts — forcing reconnect', type: 'warning');
-          Future.delayed(const Duration(seconds: 2), () {
+        if (_pingTimeoutCount >= 5) {              // Increased from 3 to 5 for mobile
+          Logger.log('[SOCKET] Too many timeouts — forcing reconnect', type: 'warning');
+          Future.delayed(const Duration(seconds: 5), () {  // Increased from 2s to 5s
             if (!isConnected.value && _socket != null) {
               reconnect();
             }
@@ -195,15 +206,43 @@ class SocketService extends GetxService {
       }
     });
 
-    socket.onConnectError((data) {
+    socket.onConnectError((data) async {
       Logger.log('[SOCKET] Connect error: $data', type: 'error');
+
+      // Check if it's an authentication error
+      if (_isAuthError(data)) {
+        Logger.log('[SOCKET] Authentication error detected, attempting token refresh...', type: 'warning');
+
+        // Attempt token refresh
+        try {
+          final refreshed = await AuthService.refreshToken();
+          if (refreshed) {
+            Logger.log('[SOCKET] Token refreshed successfully, will retry connection', type: 'success');
+
+            // Update auth token for next connection attempt
+            await updateAuthToken();
+
+            // Retry connection after short delay
+            Future.delayed(const Duration(seconds: 2), () {
+              if (!isConnected.value && _socket != null) {
+                Logger.log('[SOCKET] Retrying connection with fresh token', type: 'info');
+                reconnect();
+              }
+            });
+          } else {
+            Logger.log('[SOCKET] Token refresh failed - user may need to re-login', type: 'error');
+          }
+        } catch (e) {
+          Logger.log('[SOCKET] Error during token refresh: $e', type: 'error');
+        }
+      }
+
       if (_connectionCompleter != null && !_connectionCompleter!.isCompleted) {
         _connectionCompleter!.completeError('Connect error: $data');
       }
       if (_readyCompleter != null && !_readyCompleter!.isCompleted) {
         _readyCompleter!.completeError('Connect error: $data');
       }
-
     });
 
     socket.onError((data) {
@@ -293,6 +332,30 @@ class SocketService extends GetxService {
 
     Logger.log('[SOCKET] Reconnecting...', type: 'info');
     socket.connect();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TOKEN REFRESH AWARENESS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Update auth token before reconnect (call after token refresh)
+  Future<void> updateAuthToken() async {
+    final newToken = await TokenService().getToken();
+    if (newToken != null && _socket != null) {
+      // Update auth options for next connection
+      _socket!.auth = {'token': newToken};
+      Logger.log('[SOCKET] Auth token updated for reconnection', type: 'info');
+    }
+  }
+
+  /// Check if error is authentication-related
+  bool _isAuthError(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    return errorStr.contains('authentication') ||
+           errorStr.contains('unauthorized') ||
+           errorStr.contains('401') ||
+           errorStr.contains('invalid token') ||
+           errorStr.contains('token expired');
   }
 
   // ─────────────────────────────────────────────────────────────────────────

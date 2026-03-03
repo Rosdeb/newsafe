@@ -59,7 +59,7 @@ class Body extends StatelessWidget {
 
 
                 if (controller.historyList.isEmpty) {
-                  return const SingleChildScrollView(
+                  return SingleChildScrollView(
                     physics:  AlwaysScrollableScrollPhysics(),
                     child: Column(
                       children: [

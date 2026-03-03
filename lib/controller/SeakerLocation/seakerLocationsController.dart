@@ -320,52 +320,76 @@ class SeakerLocationsController extends GetxController {
   // ─────────────────────────────────────────────────────────────────────────
   void _shareLocation(Position position) {
     try {
+      // Check if still sharing
+      if (!isSharingLocation.value) {
+        Logger.log("[SHARE] Location sharing stopped — skipping update", type: "info");
+        return;
+      }
+
       final helpRequestId = _getHelpRequestId();
       if (helpRequestId == null) {
+        Logger.log("[SHARE] No help request ID — skipping update", type: "warning");
         _consecutiveFailures++;
         return;
       }
 
       final socketService = getActiveSocket();
       if (socketService == null) {
+        Logger.log("[SHARE] No socket service — retrying in 2s", type: "warning");
         _consecutiveFailures++;
-        // ✅ Retry after 2 seconds
+        // Retry after 2 seconds
         Future.delayed(const Duration(seconds: 2), () {
           if (isSharingLocation.value) _shareLocation(position);
         });
         return;
       }
 
+      // Check socket connection
       if (!socketService.isConnected.value) {
         Logger.log("[SHARE] Socket disconnected — reconnecting", type: "error");
         socketService.reconnect();
-        return;
-      }
-
-      // ✅ Room check — সঠিক room এ না থাকলে join করুন
-      if (socketService.currentRoom != helpRequestId) {
-        Logger.log("[SHARE] Wrong room, joining: $helpRequestId", type: "warning");
-        socketService.joinRoom(helpRequestId).then((_) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            _shareLocation(position);
-          });
+        _consecutiveFailures++;
+        // Retry after reconnection
+        Future.delayed(const Duration(seconds: 3), () {
+          if (isSharingLocation.value) _shareLocation(position);
         });
         return;
       }
 
-      // ✅ Location send
+      if (socketService.currentRoom != helpRequestId) {
+        Logger.log("[SHARE] Wrong room (${socketService.currentRoom}), joining: $helpRequestId", type: "warning");
+        socketService.joinRoom(helpRequestId).then((_) {
+          Logger.log("[SHARE] Room joined successfully", type: "success");
+          Future.delayed(const Duration(milliseconds: 300), () {
+            _shareLocation(position);
+          });
+        }).catchError((e) {
+          Logger.log("[SHARE] Failed to join room: $e", type: "error");
+          _consecutiveFailures++;
+        });
+        return;
+      }
+
+      // Location send
+      Logger.log("[SHARE] Sending location: (${position.latitude}, ${position.longitude})", type: "debug");
       socketService.sendLocationUpdate(position.latitude, position.longitude);
+      _lastSentPosition = position;
       _lastSuccessfulUpdate = DateTime.now();
       _consecutiveFailures = 0;
+      Logger.log("[SHARE] Location sent successfully", type: "success");
 
     } catch (e) {
       _consecutiveFailures++;
       Logger.log("[SHARE] Error: $e", type: "error");
-      // ✅ Auto retry
+      // Auto retry with limit
       if (_consecutiveFailures < 3) {
+        Logger.log("[SHARE] Retrying in 2s (attempt $_consecutiveFailures/3)", type: "warning");
         Future.delayed(const Duration(seconds: 2), () {
           if (isSharingLocation.value) _shareLocation(position);
         });
+      } else {
+        Logger.log("[SHARE] Too many failures — stopping location sharing", type: "error");
+        stopLocationSharing();
       }
     }
   }
@@ -416,16 +440,34 @@ class SeakerLocationsController extends GetxController {
 
       if (wasConnected != isConnected) {
         if (isConnected) {
-          Logger.log("✅ [CONNECTION] Socket restored — rejoining room", type: "success");
+          Logger.log("[CONNECTION] Socket restored — rejoining room", type: "success");
           rejoinRoomIfNeeded();
-          if (currentPosition.value != null) _shareLocation(currentPosition.value!);
+          if (currentPosition.value != null) {
+            Logger.log("[CONNECTION] Sending buffered location after reconnect", type: "info");
+            _shareLocation(currentPosition.value!);
+          }
         } else {
-          Logger.log("⚠️ [CONNECTION] Socket lost", type: "warning");
+          Logger.log("[CONNECTION] Socket lost — will retry", type: "warning");
         }
       }
 
+      // Enhanced: Check for stale connections
       if (!isConnected && isSharingLocation.value) {
-        Logger.log("⚠️ [CONNECTION] Location sharing active but socket disconnected", type: "warning");
+        Logger.log("[CONNECTION] Location sharing active but socket disconnected", type: "warning");
+        // Attempt recovery
+        if (_consecutiveFailures < 5) {
+          Logger.log("[CONNECTION] Attempting socket recovery...", type: "info");
+          socketService?.reconnect();
+        }
+      }
+
+      // Check for location staleness
+      if (_lastSuccessfulUpdate != null &&
+          DateTime.now().difference(_lastSuccessfulUpdate!).inSeconds > 30) {
+        Logger.log("[CONNECTION] Location update stale (>30s) — forcing refresh", type: "warning");
+        if (currentPosition.value != null) {
+          _shareLocation(currentPosition.value!);
+        }
       }
     });
   }
@@ -452,13 +494,13 @@ class SeakerLocationsController extends GetxController {
   }
 
   Future<void> refreshAfterMapReturn() async {
-    Logger.log("🔄 [MAP RETURN] Refreshing...", type: "info");
+    Logger.log("[MAP RETURN] Refreshing...", type: "info");
 
-    // ✅ Cache clear
+    // Cache clear
     _cachedSocketService = null;
     _socketCacheTime = null;
 
-    // ✅ Socket ready হওয়া পর্যন্ত wait (max 5 seconds)
+    // Wait for socket ready (max 5 seconds)
     int waited = 0;
     while (getActiveSocket() == null && waited < 5000) {
       await Future.delayed(const Duration(milliseconds: 300));
@@ -471,7 +513,7 @@ class SeakerLocationsController extends GetxController {
       return;
     }
 
-    // ✅ Room rejoin
+    // Room rejoin
     if (currentHelpRequestId.value.isNotEmpty) {
       await rejoinRoomIfNeeded();
       await Future.delayed(const Duration(milliseconds: 500));

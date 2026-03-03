@@ -19,6 +19,7 @@ import '../../controller/SocketService/socket_service.dart';
 import '../../controller/UserController/userController.dart';
 import '../../controller/networkService/networkService.dart';
 import '../../utils/auth_service.dart';
+import '../Service/Backgound/background_services.dart';
 import 'notifications/notifications_controller.dart';
 
 
@@ -91,6 +92,7 @@ class UnifiedHelpController extends GetxController {
   bool _isVibrating = false;
   AudioPlayer? _audioPlayer;
   Timer? _reconnectTimer;
+  Timer? _healthCheckTimer;
   int _reconnectAttempts = 0;
   static const int _maxReconnect = 5;
 
@@ -103,6 +105,7 @@ class UnifiedHelpController extends GetxController {
     _setupLocationDistanceListener();
     loadUserData();
     fetchUserProfile();
+    _startHealthMonitoring();        // Start health monitoring
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -147,12 +150,9 @@ class UnifiedHelpController extends GetxController {
           }
         });
 
-        _socketService!.socket.onDisconnect((_) {
-          Logger.log('[UNIFIED] Socket disconnected — scheduling reconnect', type: 'warning');
-          Future.delayed(const Duration(seconds: 3), () {
-            if (Get.isRegistered<UnifiedHelpController>()) _tryReconnect();
-          });
-        });
+        // REMOVED: Duplicate onDisconnect handler
+        // SocketService already handles reconnection internally (lines 180-192 of socket_service.dart)
+        // This was causing connection churn and race conditions
 
         Logger.log('[UNIFIED] Socket initialized', type: 'success');
       }
@@ -908,7 +908,14 @@ class UnifiedHelpController extends GetxController {
   // ─────────────────────────────────────────────────────────────────────────
 
   void onAppResumed() {
+    Logger.log('☀️ [UNIFIED] App resumed', type: 'info');
+
+    // Stop background service to save battery
+    BackgroundService.stop();
+
+    // Check socket health
     if (_socketService == null || !_socketService!.isConnected.value) {
+      Logger.log('🔌 [UNIFIED] Socket disconnected — reconnecting', type: 'warning');
       initSocket().then((_) => _rejoinRoomAfterReconnect());
     } else {
       _rejoinRoomAfterReconnect();
@@ -916,7 +923,26 @@ class UnifiedHelpController extends GetxController {
   }
 
   void onAppPaused() {
-    Logger.log('🌙 [UNIFIED] App paused — location continues in background', type: 'info');
+    Logger.log('🌙 [UNIFIED] App paused — keeping socket alive', type: 'info');
+
+    // Start background service if actively sharing location
+    if (seekerHelpRequestId.value.isNotEmpty || acceptedRequest.value != null) {
+      BackgroundService.start();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // HEALTH MONITORING
+  // ─────────────────────────────────────────────────────────────────────────
+  void _startHealthMonitoring() {
+    _healthCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
+      if (_socketService == null || !_socketService!.isConnected.value) {
+        Logger.log('🏥 [HEALTH] Socket disconnected — triggering reconnect', type: 'warning');
+        initSocket();
+      } else {
+        Logger.log('🏥 [HEALTH] Socket connection healthy', type: 'info');
+      }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -993,6 +1019,7 @@ class UnifiedHelpController extends GetxController {
     _removeAllListeners();
     stopVibration();
     _reconnectTimer?.cancel();
+    _healthCheckTimer?.cancel();      // Cleanup health timer
     super.onClose();
   }
 }

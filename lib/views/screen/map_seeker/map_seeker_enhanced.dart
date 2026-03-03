@@ -1974,7 +1974,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
   GoogleMapController? mapController;
 
   final SeakerLocationsController _locCtrl =
-  Get.find<SeakerLocationsController>();
+      Get.find<SeakerLocationsController>();
   UnifiedHelpController? _ctrl;
 
   Set<Marker> _markers = {};
@@ -1985,8 +1985,9 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
   LatLng? _myLatLng;
   LatLng? _otherLatLng;
 
-  final PolylinePoints _polylinePoints =
-  PolylinePoints(apiKey: AppConstants.Secret_key);
+  final PolylinePoints _polylinePoints = PolylinePoints(
+    apiKey: AppConstants.Secret_key,
+  );
   DateTime? _lastPolylineUpdate;
   static const Duration _polylineUpdateInterval = Duration(seconds: 15);
 
@@ -1994,19 +1995,20 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
   RxBool isLocationSharing = false.obs;
   Timer? _connectionMonitor;
 
-
   HelpScreenMode get _mode => _ctrl?.screenMode.value ?? HelpScreenMode.idle;
 
   bool get _isSeeker => _mode == HelpScreenMode.seekerWaiting;
-  bool get _isGiver => _mode == HelpScreenMode.giverHelping;
-  bool get _hasActiveRequest => _isSeeker || _isGiver;
 
+  bool get _isGiver => _mode == HelpScreenMode.giverHelping;
+
+  bool get _hasActiveRequest => _isSeeker || _isGiver;
 
   String get _otherPersonName {
     if (_ctrl == null) return 'Other Person';
-    if (_isSeeker) return _ctrl!.incomingHelperName.value.isEmpty
-        ? 'Helper'
-        : _ctrl!.incomingHelperName.value;
+    if (_isSeeker)
+      return _ctrl!.incomingHelperName.value.isEmpty
+          ? 'Helper'
+          : _ctrl!.incomingHelperName.value;
     if (_isGiver) return _ctrl!.acceptedSeekerName;
     return 'Other Person';
   }
@@ -2096,13 +2098,15 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
         _locCtrl.startLiveLocation();
       }
     } else {
-      Logger.log("⚠️ [MAP] Cannot start sharing — no request ID", type: "warning");
+      Logger.log(
+        "⚠️ [MAP] Cannot start sharing — no request ID",
+        type: "warning",
+      );
     }
   }
 
   void _setupListeners() {
     _setupConnectionMonitor();
-
 
     ever(_locCtrl.currentPosition, (Position? pos) {
       if (pos != null && mounted) {
@@ -2132,8 +2136,9 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
     ever(_ctrl!.incomingHelperPosition, (Position? pos) {
       if (pos != null && _isSeeker && mounted) {
         Logger.log(
-            "🗺️ [MAP-SEEKER] Helper pos: (${pos.latitude}, ${pos.longitude})",
-            type: "success");
+          "🗺️ [MAP-SEEKER] Helper pos: (${pos.latitude}, ${pos.longitude})",
+          type: "success",
+        );
         _handleOtherPersonUpdate(pos.latitude, pos.longitude);
       }
     });
@@ -2142,8 +2147,9 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
     ever(_ctrl!.seekerLivePosition, (Position? pos) {
       if (pos != null && _isGiver && mounted) {
         Logger.log(
-            "🗺️ [MAP-GIVER] Seeker pos: (${pos.latitude}, ${pos.longitude})",
-            type: "success");
+          "🗺️ [MAP-GIVER] Seeker pos: (${pos.latitude}, ${pos.longitude})",
+          type: "success",
+        );
         _handleOtherPersonUpdate(pos.latitude, pos.longitude);
       }
     });
@@ -2227,71 +2233,152 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
     final newLoc = LatLng(lat, lng);
     final old = _otherLatLng;
 
-    final distChanged = old == null ||
-        Geolocator.distanceBetween(
-            old.latitude, old.longitude, lat, lng) >=
+    final distChanged =
+        old == null ||
+        Geolocator.distanceBetween(old.latitude, old.longitude, lat, lng) >=
             3.0;
 
     if (distChanged) {
       _otherLatLng = newLoc;
-      _updateMarkersOnly(); // marker update
+      _updateMarkersOnly();
 
-      // ✅ Camera: দুজনকে দেখাও — শুধু বড় movement এ
       if (old == null ||
-          Geolocator.distanceBetween(
-              old.latitude, old.longitude, lat, lng) >=
+          Geolocator.distanceBetween(old.latitude, old.longitude, lat, lng) >=
               20.0) {
         Future.delayed(const Duration(milliseconds: 300), () {
           _getRoutePolyline();
-          _moveCameraToShowBoth(); // ✅ দুজনকে দেখাও
+          _moveCameraToShowBoth();
         });
       }
     }
   }
 
-  // ✅ FIX: Marker update — camera move করে না
+  void _openExternalMapsNavigation() async {
+    final myLoc = _myLatLng;
+    final otherLoc = _otherLatLng;
+
+    if (myLoc == null || otherLoc == null) {
+      Get.snackbar(
+        "Navigation",
+        "Location data not available",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    try {
+      // Store the current state before navigating away
+      Logger.log("📱 Preparing to navigate to external maps", type: "info");
+      Logger.log("📍 My location: (${myLoc.latitude}, ${myLoc.longitude})", type: "info",);
+      Logger.log("📍 Other person location: (${otherLoc.latitude}, ${otherLoc.longitude})", type: "info",);
+
+      if (Platform.isIOS) {
+        await _openAppleMaps(
+          myLoc.latitude,
+          myLoc.longitude,
+          otherLoc.latitude,
+          otherLoc.longitude,
+        );
+      } else if (Platform.isAndroid) {
+        await _openGoogleMapsNavigation(
+          myLoc.latitude,
+          myLoc.longitude,
+          otherLoc.latitude,
+          otherLoc.longitude,
+        );
+      }
+    } on Exception catch (e) {
+      Get.snackbar("Navigation Error", e.toString(), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  Future<void> _openGoogleMapsNavigation(
+    double startLat,
+    double startLng,
+    double endLat,
+    double endLng,
+  ) async {
+    // Using the Google Maps URL scheme that automatically starts navigation
+    final url = Uri.parse(
+      'google.navigation:q=$endLat,$endLng&from=$startLat,$startLng',
+    );
+
+    // Fallback URL for web version
+    final webUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$endLat,$endLng&travelmode=driving',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else if (await canLaunchUrl(webUrl)) {
+      await launchUrl(webUrl);
+    } else {
+      throw 'Could not launch Google Maps';
+    }
+  }
+
+  Future<void> _openAppleMaps(
+    double startLat,
+    double startLng,
+    double endLat,
+    double endLng,
+  ) async {
+    final url = Uri.parse(
+      'http://maps.apple.com/?saddr=$startLat,$startLng&daddr=$endLat,$endLng&dirflg=d',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch Apple Maps';
+    }
+  }
+
+  //  FIX: Marker update — camera move করে না
   void _updateMarkersOnly() {
     if (!mounted) return;
     final Set<Marker> newMarkers = {};
 
     if (_myLatLng != null) {
-      newMarkers.add(Marker(
-        markerId: const MarkerId("my_location"),
-        position: _myLatLng!,
-        infoWindow: InfoWindow(
-          title: _isSeeker ? "You (Seeker)" : "You (Helper)",
-          snippet: "Your current location",
+      newMarkers.add(
+        Marker(
+          markerId: const MarkerId("my_location"),
+          position: _myLatLng!,
+          infoWindow: InfoWindow(
+            title: _isSeeker ? "You (Seeker)" : "You (Helper)",
+            snippet: "Your current location",
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            _isSeeker ? BitmapDescriptor.hueRed : BitmapDescriptor.hueGreen,
+          ),
+          anchor: const Offset(0.5, 1.0),
         ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          _isSeeker ? BitmapDescriptor.hueRed : BitmapDescriptor.hueGreen,
-        ),
-        anchor: const Offset(0.5, 1.0),
-      ));
+      );
     }
 
     if (_otherLatLng != null) {
-      newMarkers.add(Marker(
-        markerId: const MarkerId("other_person"),
-        position: _otherLatLng!,
-        infoWindow: InfoWindow(
-          title: _otherPersonName,
-          snippet: "Distance: $_distanceText • ETA: $_etaText",
+      newMarkers.add(
+        Marker(
+          markerId: const MarkerId("other_person"),
+          position: _otherLatLng!,
+          infoWindow: InfoWindow(
+            title: _otherPersonName,
+            snippet: "Distance: $_distanceText • ETA: $_etaText",
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            _isSeeker ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
+          ),
+          anchor: const Offset(0.5, 1.0),
         ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          _isSeeker ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
-        ),
-        anchor: const Offset(0.5, 1.0),
-      ));
+      );
     }
 
     setState(() => _markers = newMarkers);
 
-    Logger.log(
-        "✅ [MARKER] Updated — My: ${_myLatLng != null}, Other: ${_otherLatLng != null}",
-        type: "debug");
+    Logger.log("[MARKER] Updated — My: ${_myLatLng != null}, Other: ${_otherLatLng != null}", type: "debug",);
   }
 
-  // ✅ FIX: Initial marker + camera — দুজনকে দেখাও
+  // FIX: Initial marker + camera — দুজনকে দেখাও
   void _updateMarkersAndCamera() {
     _updateMarkersOnly();
     Future.delayed(const Duration(milliseconds: 500), _moveCameraToShowBoth);
@@ -2320,25 +2407,27 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
       final result = await _polylinePoints.getRouteBetweenCoordinates(
         request: PolylineRequest(
           origin: PointLatLng(_myLatLng!.latitude, _myLatLng!.longitude),
-          destination:
-          PointLatLng(_otherLatLng!.latitude, _otherLatLng!.longitude),
+          destination: PointLatLng(
+            _otherLatLng!.latitude,
+            _otherLatLng!.longitude,
+          ),
           mode: TravelMode.driving,
         ),
       );
 
       if (result.points.isNotEmpty && mounted) {
         setState(() {
-          _polyPoints =
-              result.points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+          _polyPoints = result.points
+              .map((p) => LatLng(p.latitude, p.longitude))
+              .toList();
         });
         _lastPolylineUpdate = DateTime.now();
-        Logger.log(
-            "🗺️ Route: ${_polyPoints.length} points", type: "success");
+        Logger.log(" Route: ${_polyPoints.length} points", type: "success");
       } else {
-        Logger.log("⚠️ No route: ${result.errorMessage}", type: "warning");
+        Logger.log("⚠ No route: ${result.errorMessage}", type: "warning");
       }
     } catch (e) {
-      Logger.log("❌ Route error: $e", type: "error");
+      Logger.log(" Route error: $e", type: "error");
     } finally {
       if (mounted) setState(() => _isLoadingRoute = false);
     }
@@ -2348,7 +2437,6 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
     if (mapController == null || _myLatLng == null) return;
 
     if (_otherLatLng != null) {
-
       final minLat = _myLatLng!.latitude < _otherLatLng!.latitude
           ? _myLatLng!.latitude
           : _otherLatLng!.latitude;
@@ -2362,13 +2450,17 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
           ? _myLatLng!.longitude
           : _otherLatLng!.longitude;
 
-
       final dist = Geolocator.distanceBetween(
-          _myLatLng!.latitude, _myLatLng!.longitude,
-          _otherLatLng!.latitude, _otherLatLng!.longitude);
+        _myLatLng!.latitude,
+        _myLatLng!.longitude,
+        _otherLatLng!.latitude,
+        _otherLatLng!.longitude,
+      );
 
       if (dist < 50) {
-        await mapController!.animateCamera(CameraUpdate.newLatLngZoom(_myLatLng!, 17));
+        await mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(_myLatLng!, 17),
+        );
         return;
       }
 
@@ -2376,51 +2468,17 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
         southwest: LatLng(minLat, minLng),
         northeast: LatLng(maxLat, maxLng),
       );
-      await mapController!
-          .animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
+      await mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(bounds, 80),
+      );
     } else {
-      // শুধু আমার location
-      await mapController!
-          .animateCamera(CameraUpdate.newLatLngZoom(_myLatLng!, 15));
+
+      await mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(_myLatLng!, 15),
+      );
     }
   }
 
-  Future<void> _openExternalMaps() async {
-    final wasSharing = _locCtrl.isSharingLocation.value;
-    final requestId = _locCtrl.currentHelpRequestId.value;
-
-    if (_myLatLng == null || _otherLatLng == null) {
-      Get.snackbar("Navigation", "Location data not available", snackPosition: SnackPosition.BOTTOM);
-      return;
-    }
-    try {
-      if (Platform.isIOS) {
-        final url = Uri.parse(
-            'http://maps.apple.com/?saddr=${_myLatLng!.latitude},${_myLatLng!.longitude}&daddr=${_otherLatLng!.latitude},${_otherLatLng!.longitude}&dirflg=d');
-        if (await canLaunchUrl(url)) await launchUrl(url);
-      } else {
-        final url = Uri.parse(
-            'google.navigation:q=${_otherLatLng!.latitude},${_otherLatLng!.longitude}&from=${_myLatLng!.latitude},${_myLatLng!.longitude}');
-        final fallback = Uri.parse(
-            'https://www.google.com/maps/dir/?api=1&origin=${_myLatLng!.latitude},${_myLatLng!.longitude}&destination=${_otherLatLng!.latitude},${_otherLatLng!.longitude}&travelmode=driving');
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url);
-        } else if (await canLaunchUrl(fallback)) {
-          await launchUrl(fallback);
-        }
-      }
-    } catch (e) {
-      Get.snackbar("Navigation Error", e.toString(), snackPosition: SnackPosition.BOTTOM);
-    }finally{
-      if(wasSharing && requestId.isNotEmpty){
-        Future.delayed(const Duration(seconds: 2),(){
-          if(mounted){
-            _locCtrl.refreshAfterMapReturn();
-          }
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -2435,40 +2493,44 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
         ),
         actions: [
           if (_hasActiveRequest)
-            Obx(() => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSocketConnected.value
-                          ? Colors.green
-                          : Colors.red,
+            Obx(
+              () => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSocketConnected.value
+                            ? Colors.green
+                            : Colors.red,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    isLocationSharing.value
-                        ? Icons.my_location
-                        : Icons.location_disabled,
-                    color:
-                    isLocationSharing.value ? Colors.blue : Colors.grey,
-                    size: 20,
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Icon(
+                      isLocationSharing.value
+                          ? Icons.my_location
+                          : Icons.location_disabled,
+                      color: isLocationSharing.value
+                          ? Colors.blue
+                          : Colors.grey,
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
           if (_isLoadingRoute)
             const Padding(
               padding: EdgeInsets.all(16),
               child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
         ],
       ),
@@ -2482,7 +2544,9 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
               if (_otherLatLng != null) _getRoutePolyline();
               // ✅ Map ready হলে দুজনকে দেখাও
               Future.delayed(
-                  const Duration(milliseconds: 600), _moveCameraToShowBoth);
+                const Duration(milliseconds: 600),
+                _moveCameraToShowBoth,
+              );
             },
             initialCameraPosition: CameraPosition(
               target: _myLatLng ?? const LatLng(23.8103, 90.4125),
@@ -2490,7 +2554,8 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
             ),
             markers: _markers,
             myLocationEnabled: true,
-            myLocationButtonEnabled: false, // ✅ Custom FAB ব্যবহার করছি
+            myLocationButtonEnabled: false,
+            // ✅ Custom FAB ব্যবহার করছি
             trafficEnabled: true,
             polylines: {
               if (_polyPoints.isNotEmpty && _otherLatLng != null)
@@ -2514,8 +2579,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
                 elevation: 8,
                 margin: EdgeInsets.zero,
                 shape: const RoundedRectangleBorder(
-                  borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -2531,30 +2595,35 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
                                 Text(
                                   _otherPersonName,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
-                                ),
-                                Obx(() => Text(
-                                  isSocketConnected.value
-                                      ? (isLocationSharing.value
-                                      ? "🟢 Live location sharing"
-                                      : "🟡 Connected")
-                                      : "🔴 Reconnecting...",
-                                  style: TextStyle(
-                                    color: isSocketConnected.value
-                                        ? Colors.green[700]
-                                        : Colors.orange[700],
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
-                                )),
+                                ),
+                                Obx(
+                                  () => Text(
+                                    isSocketConnected.value
+                                        ? (isLocationSharing.value
+                                              ? "🟢 Live location sharing"
+                                              : "🟡 Connected")
+                                        : "🔴 Reconnecting...",
+                                    style: TextStyle(
+                                      color: isSocketConnected.value
+                                          ? Colors.green[700]
+                                          : Colors.orange[700],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           IconButton(
-                            onPressed: _openExternalMaps,
-                            icon: const Icon(Icons.directions,
-                                color: Colors.blue),
+                            onPressed: _openExternalMapsNavigation,
+                            icon: const Icon(
+                              Icons.directions,
+                              color: Colors.blue,
+                            ),
                             tooltip: "Navigate",
                           ),
                         ],
@@ -2616,7 +2685,10 @@ class _InfoTile extends StatelessWidget {
       children: [
         Icon(icon, color: color),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
       ],
     );

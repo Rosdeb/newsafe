@@ -22,7 +22,7 @@ import '../../Service/Backgound/background_services.dart';
 import '../../controller/UnifiedHelpController.dart';
 import '../base/AppText/appText.dart';
 import 'help_seaker/locations/seaker_location.dart';
-import 'map_seeker/map_seeker_enhanced.dart';  // For CustomBox
+import 'map_seeker/map_seeker_enhanced.dart'; // For CustomBox
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UnifiedHomePage
@@ -69,9 +69,10 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
 
-    _blinkAnim = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _blinkCtrl, curve: Curves.easeInOut),
-    );
+    _blinkAnim = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _blinkCtrl, curve: Curves.easeInOut));
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ctrl.initSocket();
@@ -84,7 +85,6 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
       }
 
       NotificationService.processPendingNotification();
-
     });
   }
 
@@ -119,11 +119,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Color(0xff202020),
-      statusBarBrightness: Brightness.light,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Color(0xff202020),
+        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
 
     return Scaffold(
       body: Container(
@@ -212,18 +214,25 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                     const SizedBox(height: 15),
                     SvgPicture.asset('assets/icon/tabler_heart-handshake.svg'),
                     const SizedBox(height: 15),
-                    const AppText(
-                      'No emergency requests right now',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.color2Box,
+                    Align(
+                      alignment: Alignment.center,
+                      child: AppText(
+                        'No emergency requests right now'.tr,
+                        fontSize: 18,
+                        textAlign: TextAlign.center,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.color2Box,
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    const AppText(
-                      'Your helping keeps the community safe',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w100,
-                      color: AppColors.color2Box,
+                    Align(
+                      alignment: Alignment.center,
+                      child: AppText(
+                        'Your helping keeps the community safe'.tr,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w100,
+                        color: AppColors.color2Box,
+                      ),
                     ),
                     const SizedBox(height: 15),
                   ],
@@ -275,8 +284,8 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const AppText(
-                    'Nearby Helpers',
+                  AppText(
+                    'Nearby Helpers'.tr,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppColors.color2Box,
@@ -287,9 +296,18 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
               const SizedBox(height: 12),
               Obx(() {
                 final stats = [
-                  {'label': 'Within 1 km', 'count': ctrl.nearbyStats.value.km1},
-                  {'label': 'Within 2 km', 'count': ctrl.nearbyStats.value.km2},
-                  {'label': 'Within 3 km', 'count': ctrl.nearbyStats.value.km3},
+                  {
+                    'label': 'Within 1 km'.tr,
+                    'count': ctrl.nearbyStats.value.km1,
+                  },
+                  {
+                    'label': 'Within 2 km'.tr,
+                    'count': ctrl.nearbyStats.value.km2,
+                  },
+                  {
+                    'label': 'Within 3 km'.tr,
+                    'count': ctrl.nearbyStats.value.km3,
+                  },
                 ];
                 return Column(
                   children: stats.map((item) {
@@ -373,12 +391,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         borderRadius: BorderRadius.circular(50),
                         child: helperImage.isNotEmpty
                             ? Image.network(
-                          helperImage,
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _helperAvatarFallback(),
-                        )
+                                helperImage,
+                                width: 70,
+                                height: 70,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _helperAvatarFallback(),
+                              )
                             : _helperAvatarFallback(),
                       ),
                       const SizedBox(height: 8),
@@ -386,8 +405,8 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         animation: _blinkAnim,
                         builder: (_, __) => Opacity(
                           opacity: _blinkAnim.value,
-                          child: const AppText(
-                            'HELP',
+                          child: AppText(
+                            'HELP'.tr,
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
                             color: AppColors.colorWhite,
@@ -412,13 +431,31 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.location_on, size: 12, color: Colors.white70),
+                          const Icon(
+                            Icons.location_on,
+                            size: 12,
+                            color: Colors.white70,
+                          ),
                           const SizedBox(width: 2),
-                          AppText(distance, fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.colorWhite),
+                          AppText(
+                            distance,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.colorWhite,
+                          ),
                           const SizedBox(width: 8),
-                          const Icon(Icons.timer, size: 12, color: Colors.white70),
+                          const Icon(
+                            Icons.timer,
+                            size: 12,
+                            color: Colors.white70,
+                          ),
                           const SizedBox(width: 2),
-                          AppText('ETA $eta', fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.colorWhite),
+                          AppText(
+                            'ETA $eta',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.colorWhite,
+                          ),
                         ],
                       ),
                     ],
@@ -464,37 +501,62 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                       borderRadius: BorderRadius.circular(25),
                       child: helperImage.isNotEmpty
                           ? Image.network(
-                        helperImage,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 50, height: 50,
-                          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(25)),
-                          child: const Icon(Icons.person, color: Colors.grey),
-                        ),
-                      )
+                              helperImage,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            )
                           : Container(
-                        width: 50, height: 50,
-                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(25)),
-                        child: const Icon(Icons.person, color: Colors.grey),
-                      ),
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.grey,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText(helperName, fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.color2Box),
+                          AppText(
+                            helperName,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.color2Box,
+                          ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: AppText(
                                   '$distance away · ETA $eta',
-                                  fontSize: 12, fontWeight: FontWeight.w400, color: Colors.grey,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ],
@@ -505,7 +567,12 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                   ],
                 ),
                 const SizedBox(height: 16),
-                const AppText('Helper Location', fontSize: 18, fontWeight: FontWeight.w500, color: AppColors.color2Box),
+                AppText(
+                  'Helper Location'.tr,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.color2Box,
+                ),
                 const SizedBox(height: 12),
 
                 // ── Map ────────────────────────────────────────────────────
@@ -537,14 +604,21 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                             markerId: const MarkerId('me'),
                             position: LatLng(myPos.latitude, myPos.longitude),
                             infoWindow: const InfoWindow(title: 'You (Seeker)'),
-                            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                            icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueRed,
+                            ),
                           ),
                           if (helperPos != null)
                             Marker(
                               markerId: const MarkerId('helper'),
-                              position: LatLng(helperPos.latitude, helperPos.longitude),
+                              position: LatLng(
+                                helperPos.latitude,
+                                helperPos.longitude,
+                              ),
                               infoWindow: InfoWindow(title: helperName),
-                              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                              icon: BitmapDescriptor.defaultMarkerWithHue(
+                                BitmapDescriptor.hueGreen,
+                              ),
                             ),
                         };
 
@@ -553,12 +627,16 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: GoogleMap(
-                              initialCameraPosition: CameraPosition(target: mapTarget, zoom: 14),
+                              initialCameraPosition: CameraPosition(
+                                target: mapTarget,
+                                zoom: 14,
+                              ),
                               markers: markers,
                               onTap: (_) => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const UniversalMapViewEnhanced(),
+                                  builder: (_) =>
+                                      const UniversalMapViewEnhanced(),
                                 ),
                               ),
                               zoomControlsEnabled: false,
@@ -569,14 +647,18 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         );
                       }),
                       Positioned(
-                        bottom: 0, right: 0,
+                        bottom: 0,
+                        right: 0,
                         child: GestureDetector(
                           onTap: () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const UniversalMapViewEnhanced()),
+                            MaterialPageRoute(
+                              builder: (_) => const UniversalMapViewEnhanced(),
+                            ),
                           ),
                           child: Container(
-                            height: 32, width: 83,
+                            height: 32,
+                            width: 83,
                             decoration: BoxDecoration(
                               color: const Color(0xFFFDE047).withOpacity(0.80),
                               borderRadius: const BorderRadius.only(
@@ -584,8 +666,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                                 bottomRight: Radius.circular(8),
                               ),
                             ),
-                            child: const Center(
-                              child: AppText('View map', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.color2Box),
+                            child: Center(
+                              child: AppText(
+                                'View map'.tr,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.color2Box,
+                              ),
                             ),
                           ),
                         ),
@@ -604,9 +691,19 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText('Helper :', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.colorStroke),
+                          AppText(
+                            'Helper :',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorStroke,
+                          ),
                           SizedBox(height: 4),
-                          AppText('Status :', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.colorStroke),
+                          AppText(
+                            'Status :',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorStroke,
+                          ),
                         ],
                       ),
                     ),
@@ -616,13 +713,18 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         children: [
                           AppText(
                             helperName,
-                            fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box,
-                            overflow: TextOverflow.ellipsis, maxLines: 1,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w200,
+                            color: AppColors.color2Box,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                           const SizedBox(height: 4),
                           const AppText(
                             'On the way to you',
-                            fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w200,
+                            color: AppColors.color2Box,
                           ),
                         ],
                       ),
@@ -645,7 +747,10 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                     Expanded(
                       child: GradientButtons(
                         onTap: ctrl.cancelMyHelpRequest,
-                        gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                        gradientColors: const [
+                          Color(0xFFD93A3A),
+                          Color(0xFFE94A4A),
+                        ],
                         text: 'Cancel',
                         icon: Icons.cancel_outlined,
                       ),
@@ -661,7 +766,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
     });
   }
 
-// Helper avatar fallback widget
+  // Helper avatar fallback widget
   Widget _helperAvatarFallback() {
     return Container(
       width: 70,
@@ -718,15 +823,17 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
           ),
         ),
         const SizedBox(height: 10),
-        Obx(() => ListView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: ctrl.pendingRequests.length,
-          itemBuilder: (context, index) {
-            final req = ctrl.pendingRequests[index];
-            return _buildRequestCard(context, req);
-          },
-        )),
+        Obx(
+          () => ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: ctrl.pendingRequests.length,
+            itemBuilder: (context, index) {
+              final req = ctrl.pendingRequests[index];
+              return _buildRequestCard(context, req);
+            },
+          ),
+        ),
       ],
     );
   }
@@ -778,7 +885,11 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         color: Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(50),
                       ),
-                      child: const Icon(Icons.person, size: 40, color: Colors.white),
+                      child: const Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -790,7 +901,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                     child: Column(
                       children: [
                         AppText(
-                          'GOING TO HELP',
+                          'GOING TO HELP'.tr,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: AppColors.colorWhite,
@@ -805,13 +916,31 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.location_on, size: 14, color: Colors.white),
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 4),
-                            AppText(distance, fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.colorWhite),
+                            AppText(
+                              distance,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.colorWhite,
+                            ),
                             const SizedBox(width: 10),
-                            const Icon(Icons.timer, size: 14, color: Colors.white),
+                            const Icon(
+                              Icons.timer,
+                              size: 14,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 4),
-                            AppText('ETA $eta', fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.colorWhite),
+                            AppText(
+                              'ETA $eta',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.colorWhite,
+                            ),
                           ],
                         ),
                       ],
@@ -861,8 +990,12 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         height: 50,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                          width: 50, height: 50,
-                          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(25)),
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(25),
+                          ),
                           child: const Icon(Icons.person, color: Colors.grey),
                         ),
                       ),
@@ -872,16 +1005,27 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText(seekerName, fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.color2Box),
+                          AppText(
+                            seekerName,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.color2Box,
+                          ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: AppText(
                                   '$distance away · ETA $eta',
-                                  fontSize: 12, fontWeight: FontWeight.w400, color: Colors.grey,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ],
@@ -892,7 +1036,12 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                   ],
                 ),
                 const SizedBox(height: 16),
-                const AppText('Seeker Location', fontSize: 18, fontWeight: FontWeight.w500, color: AppColors.color2Box),
+                const AppText(
+                  'Seeker Location',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.color2Box,
+                ),
                 const SizedBox(height: 12),
 
                 // ── Map ────────────────────────────────────────────────────
@@ -919,25 +1068,38 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: GoogleMap(
-                              initialCameraPosition: CameraPosition(target: seekerLL, zoom: 14),
+                              initialCameraPosition: CameraPosition(
+                                target: seekerLL,
+                                zoom: 14,
+                              ),
                               markers: {
                                 Marker(
                                   markerId: const MarkerId('me'),
-                                  position: LatLng(myPos.latitude, myPos.longitude),
-                                  infoWindow: const InfoWindow(title: 'You (Helper)'),
-                                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                                  position: LatLng(
+                                    myPos.latitude,
+                                    myPos.longitude,
+                                  ),
+                                  infoWindow: const InfoWindow(
+                                    title: 'You (Helper)',
+                                  ),
+                                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    BitmapDescriptor.hueGreen,
+                                  ),
                                 ),
                                 Marker(
                                   markerId: const MarkerId('seeker'),
                                   position: seekerLL,
                                   infoWindow: InfoWindow(title: seekerName),
-                                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    BitmapDescriptor.hueRed,
+                                  ),
                                 ),
                               },
                               onTap: (_) => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const UniversalMapViewEnhanced(),
+                                  builder: (_) =>
+                                      const UniversalMapViewEnhanced(),
                                 ),
                               ),
                               zoomControlsEnabled: false,
@@ -948,9 +1110,11 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         );
                       }),
                       Positioned(
-                        bottom: 0, right: 0,
+                        bottom: 0,
+                        right: 0,
                         child: Container(
-                          height: 32, width: 83,
+                          height: 32,
+                          width: 83,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFDE047).withOpacity(0.80),
                             borderRadius: const BorderRadius.only(
@@ -958,8 +1122,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                               bottomRight: Radius.circular(8),
                             ),
                           ),
-                          child: const Center(
-                            child: AppText('View map', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.color2Box),
+                          child:  Center(
+                            child: AppText(
+                              'View map'.tr,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.color2Box,
+                            ),
                           ),
                         ),
                       ),
@@ -977,32 +1146,49 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText('Address :', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.colorStroke),
+                          AppText(
+                            'Address :',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorStroke,
+                          ),
                           SizedBox(height: 4),
-                          AppText('Last Updated :', fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.colorStroke),
+                          AppText(
+                            'Last Updated :',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.colorStroke,
+                          ),
                         ],
                       ),
                     ),
                     Expanded(
-                      child: Obx(() => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppText(
-                            locationController.addressText.value.isEmpty
-                                ? 'Fetching address...'
-                                : locationController.addressText.value,
-                            fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box,
-                            overflow: TextOverflow.ellipsis, maxLines: 2,
-                          ),
-                          const SizedBox(height: 4),
-                          AppText(
-                            locationController.currentPosition.value == null
-                                ? '--/--/----'
-                                : '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                            fontSize: 14, fontWeight: FontWeight.w200, color: AppColors.color2Box,
-                          ),
-                        ],
-                      )),
+                      child: Obx(
+                        () => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppText(
+                              locationController.addressText.value.isEmpty
+                                  ? 'Fetching address...'
+                                  : locationController.addressText.value,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w200,
+                              color: AppColors.color2Box,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 4),
+                            AppText(
+                              locationController.currentPosition.value == null
+                                  ? '--/--/----'
+                                  : '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w200,
+                              color: AppColors.color2Box,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1022,7 +1208,10 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                     Expanded(
                       child: GradientButtons(
                         onTap: () => ctrl.giverCancelHelp(requestId),
-                        gradientColors: const [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+                        gradientColors: const [
+                          Color(0xFFD93A3A),
+                          Color(0xFFE94A4A),
+                        ],
                         text: 'Cancel',
                         icon: Icons.cancel_outlined,
                       ),
@@ -1070,12 +1259,14 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                 borderRadius: BorderRadius.circular(40),
                 child: image.isNotEmpty
                     ? Image.network(
-                  image,
-                  width: 45, height: 45, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallbackAvatar(),
-                  loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : _loadingAvatar(),
-                )
+                        image,
+                        width: 45,
+                        height: 45,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null ? child : _loadingAvatar(),
+                      )
                     : _fallbackAvatar(),
               ),
               const SizedBox(width: 12),
@@ -1092,13 +1283,25 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 14, color: Colors.black54),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: Colors.black54,
+                        ),
                         const SizedBox(width: 4),
                         AppText(distance, fontSize: 13, color: Colors.black54),
                         const SizedBox(width: 10),
-                        const Icon(Icons.timer_outlined, size: 14, color: Colors.black54),
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color: Colors.black54,
+                        ),
                         const SizedBox(width: 4),
-                        AppText('ETA $eta', fontSize: 13, color: Colors.black54),
+                        AppText(
+                          'ETA $eta',
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
                       ],
                     ),
                     if (createdAt != null)
@@ -1106,7 +1309,10 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         padding: const EdgeInsets.only(top: 3),
                         child: Text(
                           _formatTime(createdAt),
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                   ],
@@ -1134,7 +1340,12 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         children: [
                           Icon(Icons.check, color: Colors.white, size: 18),
                           SizedBox(width: 6),
-                          AppText('Accept', fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                          AppText(
+                            'Accept',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ],
                       ),
                     ),
@@ -1157,7 +1368,12 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
                         children: [
                           Icon(Icons.close, color: Colors.white, size: 18),
                           SizedBox(width: 6),
-                          AppText('Decline', fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                          AppText(
+                            'Decline',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ],
                       ),
                     ),
@@ -1180,76 +1396,109 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
       child: Row(
         children: [
           // Profile image
-          Obx(() => Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.colorYellow, width: 2),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: CachedNetworkImage(
-                imageUrl: profileController.profileImage.value,
-                cacheKey: profileController.profileImage.value.split('?').first,
-                fit: BoxFit.cover, height: 50, width: 50,
-                httpHeaders: const {'Accept': 'image/*'},
-                placeholder: (_, __) => const CupertinoActivityIndicator(),
-                errorWidget: (_, __, ___) => const Icon(Icons.error),
+          Obx(
+            () => Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.colorYellow, width: 2),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: CachedNetworkImage(
+                  imageUrl: profileController.profileImage.value,
+                  cacheKey: profileController.profileImage.value
+                      .split('?')
+                      .first,
+                  fit: BoxFit.cover,
+                  height: 50,
+                  width: 50,
+                  httpHeaders: const {'Accept': 'image/*'},
+                  placeholder: (_, __) => const CupertinoActivityIndicator(),
+                  errorWidget: (_, __, ___) => const Icon(Icons.error),
+                ),
               ),
             ),
-          )),
+          ),
           const SizedBox(width: 10),
 
           // Name + role
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Obx(() => AppText(
-                profileController.firstName.value,
-                fontSize: 18, fontWeight: FontWeight.w600,
-                color: AppColors.color2Box, maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )),
+              Obx(
+                () => AppText(
+                  profileController.firstName.value,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.color2Box,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               Row(
                 children: [
-                  Obx(() => AppText(
-                    'Help ${userController.userRole}',
-                    fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.color2Box,
-                  )),
+                  Obx(
+                    () => AppText(
+                      'Help ${userController.userRole}',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.color2Box,
+                    ),
+                  ),
                   const SizedBox(width: 5),
-                  SvgPicture.asset('assets/icon/material-symbols-light_change-circle.svg'),
+                  SvgPicture.asset(
+                    'assets/icon/material-symbols-light_change-circle.svg',
+                  ),
                 ],
               ),
             ],
           ),
           const Spacer(),
 
-
-
           // Notifications
           IosTapEffect(
             onTap: () => Get.to(SeakerNotifications()),
             child: SizedBox(
-              height: 50, width: 32,
+              height: 50,
+              width: 32,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
                     top: 4,
-                    child: SvgPicture.asset('assets/icon/notifications.svg', height: 30, width: 30),
+                    child: SvgPicture.asset(
+                      'assets/icon/notifications.svg',
+                      height: 30,
+                      width: 30,
+                    ),
                   ),
                   Positioned(
-                    right: -2, top: 0,
+                    right: -2,
+                    top: 0,
                     child: Obx(() {
                       final count = notificationsController.unreadCount;
                       if (count <= 0) return const SizedBox.shrink();
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
                         child: Center(
                           child: Text(
                             count > 99 ? '99+' : count.toString(),
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       );
@@ -1272,25 +1521,37 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
+           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppText('Helper Status', fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.color2Box),
-              SizedBox(height: 8),
-              AppText('Ready to help others', fontSize: 14, fontWeight: FontWeight.w100, color: AppColors.color2Box),
+              AppText(
+                'Helper Status'.tr,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.color2Box,
+              ),
+              const SizedBox(height: 8),
+              AppText(
+                'Ready to help others'.tr,
+                fontSize: 14,
+                fontWeight: FontWeight.w100,
+                color: AppColors.color2Box,
+              ),
             ],
           ),
-          Obx(() => Transform.scale(
-            scale: 0.8,
-            child: CupertinoSwitch(
-              value: ctrl.helperStatus.value,
-              onChanged: (v) => ctrl.setHelperAvailability(v),
-              activeColor: AppColors.colorYellow,
-              trackColor: Colors.grey.shade300,
-              thumbColor: Colors.white,
-              inactiveThumbColor: Colors.white,
+          Obx(
+            () => Transform.scale(
+              scale: 0.8,
+              child: CupertinoSwitch(
+                value: ctrl.helperStatus.value,
+                onChanged: (v) => ctrl.setHelperAvailability(v),
+                activeColor: AppColors.colorYellow,
+                trackColor: Colors.grey.shade300,
+                thumbColor: Colors.white,
+                inactiveThumbColor: Colors.white,
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -1309,7 +1570,8 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
     double labelFontSize = 35,
   }) {
     return Container(
-      height: 300, width: 300,
+      height: 300,
+      width: 300,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(shape: BoxShape.circle, color: outerColor),
       child: Container(
@@ -1324,8 +1586,18 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AppText(label, fontSize: labelFontSize, fontWeight: FontWeight.w700, color: AppColors.colorWhite),
-                  AppText(sublabel, fontSize: 22, fontWeight: FontWeight.w500, color: AppColors.colorWhite),
+                  AppText(
+                    label.tr,
+                    fontSize: labelFontSize,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.colorWhite,
+                  ),
+                  AppText(
+                    sublabel,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.colorWhite,
+                  ),
                 ],
               ),
             ),
@@ -1338,17 +1610,28 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
   // ─────────────────────────────────────────────────────────────────────────
   // CANCEL BUTTON
   // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildCancelButton({required VoidCallback onTap, String label = 'Cancel Request'}) {
+  Widget _buildCancelButton({
+    required VoidCallback onTap,
+    String label = 'Cancel Request',
+  }) {
     return IosTapEffect(
       onTap: onTap,
       child: Container(
-        height: 46, width: 140,
+        height: 46,
+        width: 140,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          gradient: const LinearGradient(colors: [Color(0xFFD93A3A), Color(0xFFE94A4A)]),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFD93A3A), Color(0xFFE94A4A)],
+          ),
         ),
         child: Center(
-          child: AppText(label, fontWeight: FontWeight.w500, fontSize: 15, color: AppColors.colorWhite),
+          child: AppText(
+            label,
+            fontWeight: FontWeight.w500,
+            fontSize: 15,
+            color: AppColors.colorWhite,
+          ),
         ),
       ),
     );
@@ -1363,18 +1646,27 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Need help?'),
-        content: const Text('Send an emergency help request? Helpers nearby will be notified.'),
+        content: const Text(
+          'Send an emergency help request? Helpers nearby will be notified.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
               final pos = locationController.currentPosition.value;
               if (pos == null) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Location not ready. Please wait and try again.'),
-                  ));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Location not ready. Please wait and try again.',
+                      ),
+                    ),
+                  );
                 }
                 return;
               }
@@ -1392,15 +1684,25 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
   // SMALL HELPERS
   // ─────────────────────────────────────────────────────────────────────────
   Widget _fallbackAvatar() => Container(
-    width: 45, height: 45,
-    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(40)),
+    width: 45,
+    height: 45,
+    decoration: BoxDecoration(
+      color: Colors.grey[300],
+      borderRadius: BorderRadius.circular(40),
+    ),
     child: const Icon(Icons.person, color: Colors.grey, size: 22),
   );
 
   Widget _loadingAvatar() => Container(
-    width: 45, height: 45,
-    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(40)),
-    child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber)),
+    width: 45,
+    height: 45,
+    decoration: BoxDecoration(
+      color: Colors.grey[300],
+      borderRadius: BorderRadius.circular(40),
+    ),
+    child: const Center(
+      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+    ),
   );
 
   String _formatTime(String isoTime) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:saferader/utils/app_color.dart';
 import 'package:saferader/views/base/AppText/appText.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
@@ -24,7 +25,7 @@ class Gradientbutton1 extends StatelessWidget {
             colors: [Color(0xfff7d481), Color(0xffffc91d)], ),
         ),
         child: Center(
-          child: AppText(text,fontSize: 16,color: AppColors.color2Box,fontWeight: FontWeight.w600,),
+          child: AppText(text.tr,fontSize: 16,color: AppColors.color2Box,fontWeight: FontWeight.w600,),
         ),
       ),
     );
