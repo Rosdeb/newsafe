@@ -44,20 +44,19 @@ class Historycontroller extends GetxController {
 
     isLoading.value = true;
     try {
-      final response = await ApiService.get('/api/users/me/activity-logs?page=$page&pagesize=$pageSize');
+      final response = await ApiService().get(endpoint:'/api/users/me/activity-logs?page=$page&pagesize=$pageSize');
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final pagination = data['pagination'];
+      if (response != null) {
+        final pagination = response!['pagination'];
         currentPage = pagination['currentPage'] ?? 1;
         pageSize = pagination['pageSize'] ?? 10;
         totalPages = pagination['totalPages'] ?? 1;
 
-        final list = data['data'] as List? ?? [];
+        final list = response!['data'] as List? ?? [];
         historyList.addAll(list.map((item) => HistoryModel.fromJson(item)));
         Logger.log("Fetch successful: ${historyList.length} items", type: "info");
       } else {
-        Logger.log("Fetch failed: ${response.body}", type: "error");
+        Logger.log("Fetch failed: ${response}", type: "error");
       }
     } catch (e, stackTrace) {
       Logger.log("Unexpected error: $e\nStack: $stackTrace", type: "error");

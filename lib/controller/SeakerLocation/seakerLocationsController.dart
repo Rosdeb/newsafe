@@ -39,9 +39,25 @@ class SeakerLocationsController extends GetxController {
 
   @override
   void onClose() {
+    Logger.log("🗑️ [LOCATION] Cleaning up SeakerLocationsController", type: "info");
+
+    // Cancel timers
     _locationTimer?.cancel();
+
+    // Stop location streams
     _forceStopLocationStream();
     stopLocationSharing();
+
+    // Clear cached socket
+    _cachedSocketService = null;
+    _socketCacheTime = null;
+
+    // Clear Rx variables to free memory
+    currentPosition.value = null;
+    currentHelpRequestId.value = '';
+    isSocketConnected.value = false;
+
+    Logger.log("✅ [LOCATION] Cleanup completed", type: "success");
     super.onClose();
   }
 
@@ -493,33 +509,58 @@ class SeakerLocationsController extends GetxController {
     Logger.log("[ROOM] Rejoined: $helpRequestId", type: "success");
   }
 
+  // Debounce for refreshAfterMapReturn
+  bool _isRefreshing = false;
+  DateTime? _lastRefreshTime;
+  static const _minRefreshInterval = Duration(seconds: 3);
+
   Future<void> refreshAfterMapReturn() async {
-    Logger.log("[MAP RETURN] Refreshing...", type: "info");
-
-    // Cache clear
-    _cachedSocketService = null;
-    _socketCacheTime = null;
-
-    // Wait for socket ready (max 5 seconds)
-    int waited = 0;
-    while (getActiveSocket() == null && waited < 5000) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      waited += 300;
-    }
-
-    final socketService = getActiveSocket();
-    if (socketService == null) {
-      Logger.log("[MAP RETURN] Socket not available", type: "error");
+    // Prevent concurrent refresh attempts
+    if (_isRefreshing) {
+      Logger.log("[MAP RETURN] Refresh already in progress, skipping", type: "info");
       return;
     }
 
-    // Room rejoin
-    if (currentHelpRequestId.value.isNotEmpty) {
-      await rejoinRoomIfNeeded();
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (currentPosition.value != null) {
-        _shareLocation(currentPosition.value!);
+    // Debounce rapid refresh calls
+    final now = DateTime.now();
+    if (_lastRefreshTime != null && now.difference(_lastRefreshTime!) < _minRefreshInterval) {
+      Logger.log("[MAP RETURN] Too soon since last refresh, skipping", type: "info");
+      return;
+    }
+
+    _isRefreshing = true;
+    _lastRefreshTime = now;
+
+    try {
+      Logger.log("[MAP RETURN] Refreshing...", type: "info");
+
+      // Cache clear
+      _cachedSocketService = null;
+      _socketCacheTime = null;
+
+      // Wait for socket ready (max 5 seconds)
+      int waited = 0;
+      while (getActiveSocket() == null && waited < 5000) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        waited += 300;
       }
+
+      final socketService = getActiveSocket();
+      if (socketService == null) {
+        Logger.log("[MAP RETURN] Socket not available", type: "error");
+        return;
+      }
+
+      // Room rejoin
+      if (currentHelpRequestId.value.isNotEmpty) {
+        await rejoinRoomIfNeeded();
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (currentPosition.value != null) {
+          _shareLocation(currentPosition.value!);
+        }
+      }
+    } finally {
+      _isRefreshing = false;
     }
   }
 

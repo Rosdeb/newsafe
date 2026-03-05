@@ -840,14 +840,14 @@ class GiverHomeController extends GetxController {
     try {
       Logger.log("Updating availability → $isAvailable", type: "info");
 
-      final availabilityResponse = await ApiService.put(
-        '/api/users/me/availability',
+      final availabilityResponse = await ApiService().put(
+        endpoint:'/api/users/me/availability',
+        requiresAuth: true,
         body: {'isAvailable': isAvailable},
       ).timeout(const Duration(seconds: 10));
 
-      if (availabilityResponse.statusCode != 200) {
-        final err = jsonDecode(availabilityResponse.body);
-        final message = err["message"] ?? "Failed to update availability";
+      if (availabilityResponse != 200) {
+        final message = availabilityResponse!["message"] ?? "Failed to update availability";
         Logger.log("Failed: $message", type: "error");
         return;
       }
@@ -872,15 +872,16 @@ class GiverHomeController extends GetxController {
 
       if (currentPos != null) {
         // Update location on server
-        final locationResponse = await ApiService.put(
-          '/api/users/me/location',
+        final locationResponse = await ApiService().put(
+          endpoint:'/api/users/me/location',
+          requiresAuth: true,
           body: {
             'latitude': currentPos.latitude,
             'longitude': currentPos.longitude,
           },
         ).timeout(const Duration(seconds: 10));
 
-        if (locationResponse.statusCode == 200) {
+        if (locationResponse != 200) {
           Logger.log("Location updated on server", type: "success");
         }
       }

@@ -2027,6 +2027,14 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
     return 'Calculating...';
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // STATE TRACKING FOR LIFECYCLE
+  // ─────────────────────────────────────────────────────────────────────────
+  AppLifecycleState? _lastLifecycleState;
+  bool _isReturningFromBackground = false;
+  DateTime? _backgroundTime;
+  bool _wasLocationSharingBeforeBackground = false;
+
   @override
   void initState() {
     super.initState();
@@ -2040,16 +2048,242 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
 
   @override
   void dispose() {
+    Logger.log("🗑️ [DISPOSE] Cleaning up map screen resources", type: "info");
+
+    // Remove lifecycle observer
     WidgetsBinding.instance.removeObserver(this);
+
+    // Cancel timers
     _connectionMonitor?.cancel();
+
+    // Clear map controller
+    mapController = null;
+
+    // Clear controllers (don't dispose - managed elsewhere)
+    _ctrl = null;
+
+    Logger.log("✅ [DISPOSE] Cleanup completed", type: "success");
     super.dispose();
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // APP LIFECYCLE HANDLING
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && mounted) {
-      _locCtrl.refreshAfterMapReturn();
+
+    Logger.log("📱 [LIFECYCLE] State changed: ${_lastLifecycleState} → $state", type: "info");
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _handleAppResumed();
+        break;
+
+      case AppLifecycleState.inactive:
+        _handleAppInactive();
+        break;
+
+      case AppLifecycleState.paused:
+        _handleAppPaused();
+        break;
+
+      case AppLifecycleState.detached:
+        _handleAppDetached();
+        break;
+
+      case AppLifecycleState.hidden:
+        _handleAppHidden();
+        break;
+    }
+
+    _lastLifecycleState = state;
+  }
+
+  void _handleAppResumed() {
+    Logger.log("✅ [LIFECYCLE] App resumed", type: "success");
+
+    if (!mounted) return;
+
+    // Mark that we're returning from background
+    if (_backgroundTime != null) {
+      _isReturningFromBackground = true;
+      final backgroundDuration = DateTime.now().difference(_backgroundTime!);
+      Logger.log("⏱️ [LIFECYCLE] Returning from background (${backgroundDuration.inSeconds}s)", type: "info");
+    }
+
+    // Refresh socket connection
+    _refreshSocketConnection();
+
+    // Resume location sharing if was active
+    _resumeLocationSharing();
+
+    // Refresh map view
+    _refreshMapView();
+
+    // Reset flags
+    _backgroundTime = null;
+
+    // Clear the returning flag after a short delay
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _isReturningFromBackground = false;
+      }
+    });
+  }
+
+  void _handleAppInactive() {
+    Logger.log("⏸️ [LIFECYCLE] App inactive", type: "info");
+    // App is temporarily inactive (e.g., incoming call)
+    // Keep socket alive but reduce update frequency
+  }
+
+  void _handleAppPaused() {
+    Logger.log("⏸️ [LIFECYCLE] App paused (background)", type: "warning");
+
+    // Store the time when app went to background
+    _backgroundTime = DateTime.now();
+
+    // Store current location sharing state
+    _wasLocationSharingBeforeBackground = _locCtrl.isSharingLocation.value;
+
+    // Don't stop socket - keep it alive for background location
+    // The background service will handle location updates
+  }
+
+  void _handleAppDetached() {
+    Logger.log("🛑 [LIFECYCLE] App detached", type: "error");
+    // App is being destroyed - cleanup will happen in dispose()
+  }
+
+  void _handleAppHidden() {
+    Logger.log("👻 [LIFECYCLE] App hidden (iOS)", type: "info");
+    // iOS specific - app is hidden but not paused
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SOCKET MANAGEMENT
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _refreshSocketConnection() async {
+    if (!mounted) return;
+
+    try {
+      Logger.log("🔄 [SOCKET] Refreshing socket connection...", type: "info");
+
+      // Refresh the socket connection via location controller
+      await _locCtrl.refreshAfterMapReturn();
+
+      // Update connection status
+      final socketService = _locCtrl.getActiveSocket();
+      if (socketService != null) {
+        isSocketConnected.value = socketService.isConnected.value;
+
+        // Rejoin room if we have an active request
+        if (_hasActiveRequest) {
+          String requestId = _locCtrl.currentHelpRequestId.value;
+
+          if (requestId.isEmpty && _ctrl != null) {
+            if (_isGiver) {
+              requestId = _ctrl!.acceptedRequest.value?['_id']?.toString() ?? '';
+            } else if (_isSeeker) {
+              requestId = _ctrl!.seekerHelpRequestId.value;
+            }
+          }
+
+          if (requestId.isNotEmpty) {
+            Logger.log("🏠 [SOCKET] Rejoining room: $requestId", type: "info");
+            socketService.joinRoom(requestId);
+          }
+        }
+      }
+      Logger.log("[SOCKET] Socket connection refreshed", type: "success");
+    } catch (e) {
+      Logger.log("[SOCKET] Error refreshing socket: $e", type: "error");
+      if (mounted) {
+        _showConnectionError("Failed to reconnect");
+      }
+    }
+  }
+
+  void _showConnectionError(String message) {
+    Get.snackbar(
+      "Connection Error",
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LOCATION SHARING MANAGEMENT
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _resumeLocationSharing() async {
+    if (!mounted) return;
+
+    try {
+      Logger.log("📍 [LOCATION] Resuming location sharing...", type: "info");
+
+      // Check if we should resume location sharing
+      if (_wasLocationSharingBeforeBackground && _hasActiveRequest) {
+        String requestId = _locCtrl.currentHelpRequestId.value;
+
+        if (requestId.isEmpty && _ctrl != null) {
+          if (_isGiver) {
+            requestId = _ctrl!.acceptedRequest.value?['_id']?.toString() ?? '';
+          } else if (_isSeeker) {
+            requestId = _ctrl!.seekerHelpRequestId.value;
+          }
+        }
+
+        if (requestId.isNotEmpty) {
+          // Ensure request ID is set
+          _locCtrl.setHelpRequestId(requestId);
+
+          // Resume location sharing if stopped
+          if (!_locCtrl.isSharingLocation.value) {
+            Logger.log("📍 [LOCATION] Restarting location sharing", type: "info");
+            _locCtrl.startLocationSharing();
+          }
+
+          // Resume live location if stopped
+          if (!_locCtrl.liveLocation.value) {
+            Logger.log("📍 [LOCATION] Restarting live location", type: "info");
+            _locCtrl.resetFirstLocationFlag();
+            _locCtrl.startLiveLocation();
+          }
+
+          Logger.log("✅ [LOCATION] Location sharing resumed", type: "success");
+        }
+      }
+
+    } catch (e) {
+      Logger.log("❌ [LOCATION] Error resuming location sharing: $e", type: "error");
+    }
+  }
+
+  void _refreshMapView() {
+    if (!mounted) return;
+
+    try {
+      // Update my location
+      final pos = _locCtrl.currentPosition.value;
+      if (pos != null) {
+        _myLatLng = LatLng(pos.latitude, pos.longitude);
+      }
+
+      // Update other person location
+      if (_hasActiveRequest) {
+        _updateOtherPersonLocation();
+      }
+
+      // Update markers and camera
+      _updateMarkersAndCamera();
+
+      Logger.log("✅ [MAP] Map view refreshed", type: "success");
+    } catch (e) {
+      Logger.log("❌ [MAP] Error refreshing map: $e", type: "error");
     }
   }
 
@@ -2143,7 +2377,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
       }
     });
 
-    // ✅ FIX: Giver → seeker এর live location update
+    // FIX: Giver → seeker এর live location update
     ever(_ctrl!.seekerLivePosition, (Position? pos) {
       if (pos != null && _isGiver && mounted) {
         Logger.log(
@@ -2185,7 +2419,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
     });
   }
 
-  // ✅ FIX: Other person location — seeker এর জন্য giver original location fallback
+  // FIX: Other person location — seeker এর জন্য giver original location fallback
   void _updateOtherPersonLocation() {
     if (_ctrl == null) return;
 
@@ -2200,7 +2434,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
         lng = helperPos.longitude;
         Logger.log("🗺️ [SEEKER] Using live helper pos", type: "success");
       }
-      // ✅ FIX: Live position না থাকলে — কোনো fallback নেই এখন,
+      //  FIX: Live position না থাকলে — কোনো fallback নেই এখন,
       // কারণ seeker request create করার সময় giver location নেই।
       // helpRequestAccepted event এ giverLocation আসলে সেখান থেকে আসবে।
     } else if (_isGiver) {
@@ -2211,7 +2445,7 @@ class _UniversalMapViewEnhancedState extends State<UniversalMapViewEnhanced>
         lng = seekerPos.longitude;
         Logger.log("🗺️ [GIVER] Using live seeker pos", type: "success");
       } else {
-        // ✅ FIX: Live না থাকলে original location থেকে
+        // FIX: Live না থাকলে original location থেকে
         final ll = _ctrl!.seekerLatLng;
         if (ll != null) {
           lat = ll.latitude;

@@ -290,15 +290,15 @@ class ProfileController extends GetxController {
       isLoading.value = true;
       Logger.log("🌐 Fetching user profile from API...", type: "info");
 
-      final response = await ApiService.get('/api/users/me');
+      final response = await ApiService().get(endpoint:'/api/users/me',requiresAuth: true);
 
-      Logger.log("📥 Status: ${response.statusCode}", type: "info");
+      Logger.log("📥 Status: ${response}", type: "info");
 
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body) as Map<String, dynamic>;
+      if (response!= 200) {
+
 
         // API wraps user inside "data"
-        final user = (body['data'] ?? body) as Map<String, dynamic>;
+        final user = (response!['data'] ?? response) as Map<String, dynamic>;
 
         Logger.log("📦 User from API: $user", type: "info");
 
@@ -335,7 +335,7 @@ class ProfileController extends GetxController {
         Logger.log("✅ Profile loaded - Name: ${userName.value}, Image: ${profileImage.value}", type: "success");
 
       } else {
-        Logger.log("⚠️ Failed to fetch profile: ${response.statusCode}", type: "warning");
+        Logger.log("⚠️ Failed to fetch profile: ${response}", type: "warning");
       }
     } catch (e) {
       Logger.log("❌ Error fetching profile: $e", type: "error");
@@ -499,34 +499,35 @@ class ProfileController extends GetxController {
 
       Logger.log("📤 Updating Preference: $body", type: "info");
 
-      final response = await ApiService.put(
+      final response = await ApiService().put(endpoint:
         '/api/users/me/preferences',
         body: body,
+        requiresAuth: true
       ).timeout(const Duration(seconds: 10));
 
-      Logger.log("📥 Status: ${response.statusCode}", type: "info");
-      Logger.log("📥 Body: ${response.body}", type: "info");
+      Logger.log("📥 Status: ${response}", type: "info");
+      Logger.log("📥 Body: ${response}", type: "info");
 
-      if (response.statusCode == 200) {
-        Logger.log("✅ Preference updated successfully!", type: "success");
+      if (response != null) {
+        Logger.log("Preference updated successfully!", type: "success");
 
-        // ✅ Save selected distance locally
+        //  Save selected distance locally
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('selectedDistanceKm', distanceValue);
 
-        // ✅ Save to Hive
+        //  Save to Hive
         final userBox = await Hive.openBox('userProfileBox');
         await userBox.put('maxDistanceKm', distanceValue);
 
-        // ✅ Update UI observable
+        //  Update UI observable
         distance.value = distanceValue.toString();
 
       } else {
-        final msg = jsonDecode(response.body)["message"] ?? "Update failed";
-        Logger.log("❌ Error: $msg", type: "error");
+        final msg = jsonDecode(response!["message"] ?? "Update failed");
+        Logger.log(" Error: $msg", type: "error");
       }
     } on Exception catch (e) {
-      Logger.log("❌ Unexpected error: $e", type: "error");
+      Logger.log(" Unexpected error: $e", type: "error");
     } finally {
       isDistance.value = false;
     }

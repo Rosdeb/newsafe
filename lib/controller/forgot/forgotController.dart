@@ -1,13 +1,9 @@
-import 'dart:convert';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/views/screen/auth/signinPage/signIn_screen.dart';
 
-import '../../utils/app_constant.dart';
+import '../../utils/api_service.dart';
 import '../../views/screen/auth/otp_verify_screen.dart';
 import '../../views/screen/auth/reset_pass_screen.dart';
 import '../../views/screen/auth/success_message_screen.dart';
@@ -20,7 +16,6 @@ class ForgotController extends GetxController {
 
   Future<void> forgotPassword(BuildContext context, String emails,) async {
     final networkController = Get.find<NetworkController>();
-    final url = '${AppConstants.BASE_URL}/api/auth/forgot-password';
 
     if (!networkController.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,25 +31,21 @@ class ForgotController extends GetxController {
     };
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+      final apiService = ApiService();
+      final response = await apiService.post(
+        endpoint: '/api/auth/forgot-password',
+        body: body,
+        requiresAuth: false,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        Logger.log("Forgot successful: $data", type: "info");
+      if (response != null) {
+        Logger.log("Forgot successful: $response", type: "info");
         if(context.mounted) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SimpleOtpScreen(email: emails,isSignUp: false,)),);
         }
 
       } else {
-        final data = jsonDecode(response.body);
-        final message = data["message"] ?? "Signup failed.";
-        Logger.log("Signup failed: $data", type: "error");
+        Logger.log("Signup failed", type: "error");
       }
     }on Exception catch (e, stackTrace) {
       Logger.log("Unexpected error: $e\nStack: $stackTrace", type: "error");
@@ -67,7 +58,6 @@ class ForgotController extends GetxController {
 
   Future<void> verifyEmail(BuildContext context,String email, String otp,) async {
     final networkController = Get.find<NetworkController>();
-    final url = '${AppConstants.BASE_URL}/api/auth/verify-otp';
 
     if (!networkController.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,18 +74,16 @@ class ForgotController extends GetxController {
     };
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+      final apiService = ApiService();
+      final response = await apiService.post(
+        endpoint: '/api/auth/verify-otp',
+        body: body,
+        requiresAuth: false,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final reset_token = data['reset_token'];
-        Logger.log("Forgot successful: $data", type: "info");
+      if (response != null) {
+        final reset_token = response['reset_token'];
+        Logger.log("Forgot successful: $response", type: "info");
         isVerify.value = false;
         if(context.mounted) {
           Navigator.push(
@@ -111,9 +99,7 @@ class ForgotController extends GetxController {
         }
 
       } else {
-        final data = jsonDecode(response.body);
-        final message = data["message"] ?? "Signup failed.";
-        Logger.log("Signup failed: $data", type: "error");
+        Logger.log("Signup failed", type: "error");
         isVerify.value = false;
 
       }
@@ -127,7 +113,6 @@ class ForgotController extends GetxController {
 
   Future<void> singupEmail(BuildContext context,String email, String otp,) async {
     final networkController = Get.find<NetworkController>();
-    final url = '${AppConstants.BASE_URL}/api/auth/verify-signup-otp';
 
     if (!networkController.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -144,17 +129,15 @@ class ForgotController extends GetxController {
     };
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+      final apiService = ApiService();
+      final response = await apiService.post(
+        endpoint: '/api/auth/verify-signup-otp',
+        body: body,
+        requiresAuth: false,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        Logger.log("Forgot successful: $data", type: "info");
+      if (response != null) {
+        Logger.log("Forgot successful: $response", type: "info");
         isVerify.value = false;
         if(context.mounted) {
           Navigator.push(
@@ -169,9 +152,7 @@ class ForgotController extends GetxController {
         }
 
       } else {
-        final data = jsonDecode(response.body);
-        final message = data["message"] ?? "Signup failed.";
-        Logger.log("Signup failed: $data", type: "error");
+        Logger.log("Signup failed", type: "error");
         isVerify.value = false;
 
       }
@@ -185,7 +166,6 @@ class ForgotController extends GetxController {
 
   Future<void> resendSignupOtp(BuildContext context, String email) async {
     final networkController = Get.find<NetworkController>();
-    final url = '${AppConstants.BASE_URL}/api/auth/resend-otp';
 
     if (!networkController.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,21 +175,21 @@ class ForgotController extends GetxController {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"email": email}),
+      final apiService = ApiService();
+      final response = await apiService.post(
+        endpoint: '/api/auth/resend-otp',
+        body: {"email": email},
+        requiresAuth: false,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response != null) {
         Logger.log("OTP resent successfully", type: "info");
       } else {
-        final data = jsonDecode(response.body);
-        final message = data["message"] ?? "Failed to resend OTP";
+        Logger.log("Failed to resend OTP", type: "error");
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
+            const SnackBar(
+              content: Text('Failed to resend OTP'),
               backgroundColor: Colors.red,
             ),
           );

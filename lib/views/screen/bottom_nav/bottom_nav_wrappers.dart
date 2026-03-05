@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:saferader/utils/logger.dart';
 import 'package:saferader/views/screen/help_seaker/history/seaker_history.dart';
 import 'package:saferader/views/screen/help_seaker/locations/seaker_location.dart';
 import 'package:saferader/views/screen/help_seaker/notifications/seaker_notifications.dart';
@@ -23,6 +24,13 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
   late final BottomNavController controller;
   late final UserController userController;
 
+  // ─────────────────────────────────────────────────────────────
+  // LIFECYCLE STATE TRACKING
+  // ─────────────────────────────────────────────────────────────
+  AppLifecycleState? _lastLifecycleState;
+  DateTime? _backgroundTime;
+  bool _isReturningFromBackground = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,40 +39,145 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
     WidgetsBinding.instance.addObserver(this);
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // APP LIFECYCLE HANDLING
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      _onAppResumed();
-    } else if (state == AppLifecycleState.paused) {
-      _onAppPaused();
+
+    Logger.log("📱 [LIFECYCLE] BottomMenuWrappers: ${_lastLifecycleState} → $state", type: "info");
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _handleAppResumed();
+        break;
+
+      case AppLifecycleState.inactive:
+        _handleAppInactive();
+        break;
+
+      case AppLifecycleState.paused:
+        _handleAppPaused();
+        break;
+
+      case AppLifecycleState.detached:
+        _handleAppDetached();
+        break;
+
+      case AppLifecycleState.hidden:
+        _handleAppHidden();
+        break;
+    }
+
+    _lastLifecycleState = state;
+  }
+
+  void _handleAppResumed() {
+    Logger.log("✅ [LIFECYCLE] Bottom wrapper resumed", type: "success");
+
+    if (!mounted) return;
+
+    // Mark returning from background
+    if (_backgroundTime != null) {
+      _isReturningFromBackground = true;
+      final backgroundDuration = DateTime.now().difference(_backgroundTime!);
+      Logger.log("⏱️ [LIFECYCLE] Returning from background (${backgroundDuration.inSeconds}s)", type: "info");
+    }
+
+    // Refresh socket via UnifiedHelpController
+    _refreshSocketConnection();
+
+    // Reset flags
+    _backgroundTime = null;
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _isReturningFromBackground = false;
+      }
+    });
+  }
+
+  void _handleAppInactive() {
+    Logger.log("⏸️ [LIFECYCLE] Bottom wrapper inactive", type: "info");
+    // App is temporarily inactive
+  }
+
+  void _handleAppPaused() {
+    Logger.log("⏸️ [LIFECYCLE] Bottom wrapper paused", type: "warning");
+
+    // Store background time
+    _backgroundTime = DateTime.now();
+
+    // Don't stop socket - keep alive for background
+  }
+
+  void _handleAppDetached() {
+    Logger.log("🛑 [LIFECYCLE] Bottom wrapper detached", type: "error");
+    // App is being destroyed
+  }
+
+  void _handleAppHidden() {
+    Logger.log("👻 [LIFECYCLE] Bottom wrapper hidden", type: "info");
+    // iOS specific
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SOCKET MANAGEMENT
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _refreshSocketConnection() async {
+    try {
+      if (Get.isRegistered<UnifiedHelpController>()) {
+        final unifiedCtrl = Get.find<UnifiedHelpController>();
+
+        // Check socket status
+        if (unifiedCtrl.socketService == null ||
+            !unifiedCtrl.socketService!.isConnected.value) {
+          Logger.log("🔄 [SOCKET] Reconnecting socket from bottom wrapper", type: "warning");
+          await unifiedCtrl.initSocket();
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+
+        // Rejoin rooms
+        _rejoinActiveRooms(unifiedCtrl);
+
+        Logger.log("✅ [SOCKET] Socket refreshed from bottom wrapper", type: "success");
+      }
+    } catch (e) {
+      Logger.log("❌ [SOCKET] Error in bottom wrapper refresh: $e", type: "error");
     }
   }
 
-  void _onAppResumed() {
+  void _rejoinActiveRooms(UnifiedHelpController unifiedCtrl) {
     try {
-      if (Get.isRegistered<UnifiedHelpController>()) {
-        Get.find<UnifiedHelpController>().onAppResumed();
+      // Rejoin seeker room
+      if (unifiedCtrl.seekerHelpRequestId.value.isNotEmpty) {
+        final id = unifiedCtrl.seekerHelpRequestId.value;
+        unifiedCtrl.socketService?.joinRoom(id);
+        Logger.log("🏠 [SOCKET] Rejoined seeker room: $id", type: "info");
+      }
+
+      // Rejoin giver room
+      if (unifiedCtrl.acceptedRequest.value != null) {
+        final id = unifiedCtrl.acceptedRequest.value!['_id']?.toString() ?? '';
+        if (id.isNotEmpty) {
+          unifiedCtrl.socketService?.joinRoom(id);
+          Logger.log("🏠 [SOCKET] Rejoined giver room: $id", type: "info");
+        }
       }
     } catch (e) {
-      debugPrint('[BottomWrapper] onAppResumed error: $e');
+      Logger.log("❌ [SOCKET] Error rejoining rooms: $e", type: "error");
     }
   }
 
-  void _onAppPaused() {
-    try {
-      if (Get.isRegistered<UnifiedHelpController>()) {
-        Get.find<UnifiedHelpController>().onAppPaused();
-      }
-    } catch (e) {
-      debugPrint('[BottomWrapper] onAppPaused error: $e');
-    }
+  @override
+  void dispose() {
+    Logger.log("🗑️ [DISPOSE] BottomMenuWrappers cleaning up", type: "info");
+
+    WidgetsBinding.instance.removeObserver(this);
+
+    Logger.log("✅ [DISPOSE] BottomMenuWrappers cleanup completed", type: "success");
+    super.dispose();
   }
 
   @override

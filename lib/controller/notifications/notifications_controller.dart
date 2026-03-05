@@ -82,18 +82,18 @@ class NotificationsController extends GetxController {
     isLoading.value = true;
 
     try {
-      final response = await ApiService.get('/api/notifications');
+      final response = await ApiService().get(endpoint: '/api/notifications',requiresAuth: true);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final list = data['data'] as List? ?? [];
+      if (response != 200) {
+
+        final list = response!['data'] as List? ?? [];
 
         notifications.value =
             list.map((e) => NotificationItemModel.fromJson(e)).toList();
 
         Logger.log("Fetched ${notifications.length} notifications", type: "info");
       } else {
-        Logger.log("Failed to fetch notifications: ${response.body}", type: "error");
+        Logger.log("Failed to fetch notifications: ${response}", type: "error");
       }
     }on Exception catch (e, st) {
       Logger.log("Unexpected error fetching notifications: $e\n$st", type: "error");
@@ -104,9 +104,9 @@ class NotificationsController extends GetxController {
 
   Future<void> markAsRead(String notificationId) async {
     try {
-      final response = await ApiService.put('/api/notifications/$notificationId/mark-read');
+      final response = await ApiService().put(endpoint:'/api/notifications/$notificationId/mark-read',requiresAuth: true);
 
-      if (response.statusCode == 200) {
+      if (response != 200) {
         final index = notifications.indexWhere((n) => n.id == notificationId);
         if (index != -1) {
           notifications[index].isRead = true;
@@ -115,7 +115,7 @@ class NotificationsController extends GetxController {
         Logger.log("mark as read done ");
 
       } else {
-        Logger.log('Failed to mark notification as read: ${response.body}', type: 'error');
+        Logger.log('Failed to mark notification as read: ${response}', type: 'error');
       }
     }on Exception catch (e) {
       Logger.log('Error marking notification as read: $e', type: 'error');
@@ -124,15 +124,15 @@ class NotificationsController extends GetxController {
 
   Future<void> markAllAsRead() async {
     try {
-      final response = await ApiService.put('/api/notifications/mark-all-read');
+      final response = await ApiService().put(endpoint:'/api/notifications/mark-all-read',requiresAuth: true);
 
-      if (response.statusCode == 200) {
+      if (response != 200) {
         for (var notification in notifications) {
           notification.isRead = true;
         }
         notifications.refresh();
       } else {
-        Logger.log('Failed to mark all notifications as read: ${response.body}', type: 'error');
+        Logger.log('Failed to mark all notifications as read: ${response}', type: 'error');
       }
     }on Exception catch (e) {
       Logger.log('Error marking all notifications as read: $e', type: 'error');

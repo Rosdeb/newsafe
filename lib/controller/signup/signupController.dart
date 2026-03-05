@@ -1,15 +1,8 @@
-import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:saferader/utils/logger.dart';
-import 'package:saferader/views/screen/auth/signinPage/signIn_screen.dart';
-import '../../utils/app_constant.dart';
-import '../../utils/token_service.dart';
+import '../../utils/api_service.dart';
 import '../../views/screen/auth/otp_verify_screen.dart';
-import '../../views/screen/bottom_nav/bottom_nav_wrappers.dart';
-import '../UserController/userController.dart';
 import '../networkService/networkService.dart';
 
 
@@ -61,7 +54,6 @@ class SignUpController extends GetxController{
     required String role,
  }) async {
     final networkController = Get.find<NetworkController>();
-    final url = '${AppConstants.BASE_URL}/api/auth/signup';
 
     if (!networkController.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,42 +73,32 @@ class SignUpController extends GetxController{
     };
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
+      final apiService = ApiService();
+      final response = await apiService.post(
+        endpoint: '/api/auth/signup',
+        body: body,
+        requiresAuth: false,
       );
 
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final message = data['message'];
-        // final token = data["accessToken"];
-        // final refresh = data["refreshToken"];
-        // final role = data["user"]["role"];
-        // await TokenService().saveToken(token);
-        // await TokenService().saveRefreshToken(refresh);
-        // final userController = Get.find<UserController>();
-        // await userController.saveUserRole(role);
+      if (response != null) {
+        final message = response['message'];
         Logger.log("Signup successful", type: "info");
         if(context.mounted){
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SimpleOtpScreen(email: email,isSignUp: true,)));
         }
 
       } else {
-        final data = jsonDecode(response.body);
-        final message = data["message"] ?? "Signup failed.";
+        Logger.log("Signup failed", type: "error");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message,style:const TextStyle(
+          const SnackBar(
+            content: Text('Signup failed. Please try again',style:TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w500,
             ),),
             backgroundColor: Colors.red,
-            duration:const Duration(seconds: 2),
+            duration:Duration(seconds: 2),
           ),
         );
-        Logger.log("Signup failed: $data", type: "error");
       }
     }on Exception catch (e, stackTrace) {
       Logger.log("Unexpected error: $e\nStack: $stackTrace", type: "error");

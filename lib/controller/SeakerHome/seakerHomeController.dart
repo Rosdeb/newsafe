@@ -75,12 +75,12 @@ class SeakerHomeController extends GetxController {
       isLoading1.value = true;
       Logger.log("🌐 Fetching profile image from API...", type: "info");
 
-      final response = await ApiService.get('/api/users/me');
+      final response = await ApiService().get(endpoint: '/api/users/me');
 
-      Logger.log("📥 Status: ${response.statusCode}", type: "info");
+      Logger.log("📥 Status: ${response}", type: "info");
 
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body) as Map<String, dynamic>;
+      if (response != null) {
+        final body = json.decode(response as String) as Map<String, dynamic>;
 
         // API wraps user inside "data"
         final user = (body['data'] ?? body) as Map<String, dynamic>;
@@ -95,7 +95,7 @@ class SeakerHomeController extends GetxController {
         }
       } else {
         Logger.log(
-          "⚠ Failed to fetch profile: ${response.statusCode}",
+          "⚠ Failed to fetch profile: ${response}",
           type: "warning",
         );
       }
@@ -110,13 +110,13 @@ class SeakerHomeController extends GetxController {
 
   Future<void> fetchProfileImage() async {
     try {
-      final response = await ApiService.get('/api/users/me');
-      Logger.log("📥 Status: ${response.statusCode}", type: "info");
-      Logger.log("📥 Body: ${response.body}", type: "info");
+      final response = await ApiService().get(endpoint:'/api/users/me',requiresAuth: true);
+      Logger.log("📥 Status: ${response}", type: "info");
+      Logger.log("📥 Body: ${response}", type: "info");
 
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body) as Map<String, dynamic>;
-        final user = (body['data'] ?? body) as Map<String, dynamic>;
+      if (response != 200) {
+
+        final user = (response!['data'] ?? response) as Map<String, dynamic>;
         Logger.log("👤 User keys: ${user.keys.toList()}", type: "info");
         Logger.log(
           " profileImage value: ${user['profileImage']}",
@@ -1064,8 +1064,9 @@ class SeakerHomeController extends GetxController {
       Logger.log("📤 Sending help request", type: "info");
 
       final response =
-          await ApiService.post(
-            '/api/help-requests',
+          await ApiService().post(
+            endpoint:'/api/help-requests',
+            requiresAuth: true,
             body: {'latitude': latitude, 'longitude': longitude},
           ).timeout(
             const Duration(seconds: 30),
@@ -1077,13 +1078,13 @@ class SeakerHomeController extends GetxController {
             },
           );
 
-      Logger.log("📥 Response: ${response.body}", type: "info");
+      Logger.log("📥 Response: ${response}", type: "info");
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final Map<String, dynamic> jsonData = data is String
-            ? jsonDecode(data)
-            : Map<String, dynamic>.from(data);
+      if (response !=null) {
+
+        final Map<String, dynamic> jsonData = response is String
+            ? jsonDecode(response as String)
+            : Map<String, dynamic>.from(response);
 
         final helpRequest = HelpRequestResponse.fromJson(jsonData);
         final helpRequestId = helpRequest.data.id;
@@ -1105,8 +1106,7 @@ class SeakerHomeController extends GetxController {
 
         Logger.log("⏳ [SEEKER] Waiting for helper...", type: "info");
       } else {
-        final errorData = jsonDecode(response.body);
-        final message = errorData["message"] ?? "Request failed";
+        final message = response!["message"] ?? "Request failed";
         Logger.log(" Failed: $message", type: "error");
         emergencyMode.value = 0;
         // Get.snackbar(
@@ -1228,8 +1228,9 @@ class SeakerHomeController extends GetxController {
       Logger.log("📤 Cancelling help request: ${currentHelpRequestId.value}", type: "info",);
 
       final response =
-          await ApiService.post(
-            '/api/help-requests/${currentHelpRequestId.value}/cancel',
+          await ApiService().post(
+            endpoint:'/api/help-requests/${currentHelpRequestId.value}/cancel',
+            requiresAuth: true,
           ).timeout(
             const Duration(seconds: 30),
             onTimeout: () {
@@ -1240,28 +1241,28 @@ class SeakerHomeController extends GetxController {
             },
           );
 
-      Logger.log("📥 Cancel response status: ${response.statusCode}", type: "info");
+      Logger.log("📥 Cancel response status: ${response}", type: "info");
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
+      if (response != null) {
         Logger.log("✅ Help request cancelled successfully", type: "success");
-        return {'success': true, 'statusCode': response.statusCode};
+        return {'success': true, 'statusCode': response};
       } else {
 
         String errorMessage = 'Unknown error';
         try {
-          final errorData = jsonDecode(response.body);
+
           errorMessage =
-              errorData['message'] ??
-              errorData['error'] ??
+              response!['message'] ??
+              response!['error'] ??
               'Failed to cancel request';
         } catch (e) {
-          errorMessage = 'Server returned status ${response.statusCode}';
+          errorMessage = 'Server returned status ${response}';
         }
 
-        Logger.log(" Cancel request failed: $errorMessage (Status: ${response.statusCode})", type: "error",);
+        Logger.log(" Cancel request failed: $errorMessage (Status: ${response})", type: "error",);
         return {
           'success': false,
-          'statusCode': response.statusCode,
+          'statusCode': response,
           'message': errorMessage,
         };
       }
@@ -1423,10 +1424,10 @@ class SeakerHomeController extends GetxController {
 
   Future<void> _fetchProfileImage() async {
     try {
-      final response = await ApiService.get('/api/users/me');
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body) as Map<String, dynamic>;
-        final user = (body['data'] ?? body) as Map<String, dynamic>;
+      final response = await ApiService().get(endpoint:'/api/users/me',requiresAuth: true);
+      if (response != null) {
+
+        final user = (response!['data'] ?? response) as Map<String, dynamic>;
         String imageUrl = user['profileImage']?.toString() ?? '';
         if (imageUrl.isNotEmpty) {
           profileImage.value = imageUrl;

@@ -111,11 +111,32 @@ class UnifiedHelpController extends GetxController {
   // ─────────────────────────────────────────────────────────────────────────
   // SOCKET INIT
   // ─────────────────────────────────────────────────────────────────────────
+  bool _isInitializingSocket = false;
+  DateTime? _lastInitTime;
+  static const _minInitInterval = Duration(seconds: 5);
+
   Future<void> initSocket() async {
+    // Prevent concurrent init attempts
+    if (_isInitializingSocket) {
+      Logger.log('⏳ [SOCKET] Init already in progress, skipping', type: 'info');
+      return;
+    }
+
+    // Debounce rapid init calls
+    final now = DateTime.now();
+    if (_lastInitTime != null && now.difference(_lastInitTime!) < _minInitInterval) {
+      Logger.log('⏱️ [SOCKET] Too soon since last init, skipping', type: 'info');
+      return;
+    }
+
+    _isInitializingSocket = true;
+    _lastInitTime = now;
+
     try {
       final token = await TokenService().getToken();
       if (token == null || token.isEmpty) {
         Logger.log('No token — cannot init socket', type: 'error');
+        _isInitializingSocket = false;
         return;
       }
 
@@ -124,13 +145,23 @@ class UnifiedHelpController extends GetxController {
         final existing = Get.find<SocketService>();
         _socketService = existing;
         existing.updateRole('both');
+
+        // Only setup listeners if not already setup
+        if (_socketService!.isConnected.value) {
+          Logger.log('✅ [UNIFIED] Socket already connected, reusing', type: 'success');
+          _isInitializingSocket = false;
+          return;
+        }
+
         _removeAllListeners();
         _setupSocketListeners();
         Logger.log('✅ [UNIFIED] Reusing existing SocketService', type: 'success');
+        _isInitializingSocket = false;
         return;
       }
 
       // Fresh init
+      Logger.log('🔄 [SOCKET] Initializing new socket connection...', type: 'info');
       _socketService = await Get.putAsync(
             () => SocketService().init(token, role: 'both'),
         permanent: true,
@@ -150,14 +181,12 @@ class UnifiedHelpController extends GetxController {
           }
         });
 
-        // REMOVED: Duplicate onDisconnect handler
-        // SocketService already handles reconnection internally (lines 180-192 of socket_service.dart)
-        // This was causing connection churn and race conditions
-
         Logger.log('[UNIFIED] Socket initialized', type: 'success');
       }
     } catch (e) {
       Logger.log('[UNIFIED] Socket init error: $e', type: 'error');
+    } finally {
+      _isInitializingSocket = false;
     }
   }
 
@@ -180,7 +209,7 @@ class UnifiedHelpController extends GetxController {
       });
     }
 
-    // Rejoin giver room
+    //<---->  Rejoin giver room <----->
     final req = acceptedRequest.value;
     if (req != null) {
       final id = req['_id']?.toString() ?? '';
@@ -193,9 +222,9 @@ class UnifiedHelpController extends GetxController {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // <─────────────────────────────────────────────────────────────────────────>
   // SOCKET LISTENERS
-  // ─────────────────────────────────────────────────────────────────────────
+  // <─────────────────────────────────────────────────────────────────────────>
   void _removeAllListeners() {
     final events = [
       'giver_newHelpRequest',
@@ -211,6 +240,8 @@ class UnifiedHelpController extends GetxController {
     for (final e in events) {
       _socketService?.socket.off(e);
     }
+
+    Logger.log('🎧 [UNIFIED] All socket listeners removed', type: 'info');
   }
 
   void _setupSocketListeners() {
@@ -424,15 +455,16 @@ class UnifiedHelpController extends GetxController {
     screenMode.value = HelpScreenMode.seekerSending;
 
     try {
-      final response = await ApiService.post(
-        '/api/help-requests',
+      final response = await ApiService().post(
+        endpoint:'/api/help-requests',
+        requiresAuth: true,
         body: {'latitude': latitude, 'longitude': longitude},
       ).timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
+      if (response != null) {
+
         final parsed = HelpRequestResponse.fromJson(
-          data is String ? jsonDecode(data) : Map<String, dynamic>.from(data as Map),
+          response is String ? jsonDecode(response as String) : Map<String, dynamic>.from(response as Map),
         );
         seekerHelpRequestId.value = parsed.data.id;
         nearbyStats.value = NearbyStats(
@@ -443,7 +475,7 @@ class UnifiedHelpController extends GetxController {
         Logger.log('[UNIFIED] Help request created: ${parsed.data.id} \n data: $nearbyStats', type: 'success');
       } else {
         screenMode.value = HelpScreenMode.idle;
-        Logger.log('[UNIFIED] Help request failed: ${response.statusCode}', type: 'error');
+        Logger.log('[UNIFIED] Help request failed: ${response}', type: 'error');
       }
     } catch (e) {
       screenMode.value = HelpScreenMode.idle;
@@ -457,18 +489,17 @@ class UnifiedHelpController extends GetxController {
     if (seekerHelpRequestId.value.isEmpty) return;
 
     try {
-      final response = await ApiService.post(
-        '/api/help-requests/${seekerHelpRequestId.value}/cancel',
+      final response = await ApiService().post(
+        endpoint: '/api/help-requests/${seekerHelpRequestId.value}/cancel',
+        requiresAuth: true,
       ).timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
+      if (response != 204) {
         Logger.log('[UNIFIED] Help request cancelled', type: 'success');
-      } else if (response.statusCode == 401) {
-        final refreshed = await AuthService.refreshToken();
-        if (refreshed) {
-          await ApiService.post('/api/help-requests/${seekerHelpRequestId.value}/cancel');
-        }
+      }else{
+
       }
+
     } catch (e) {
       Logger.log('[UNIFIED] cancelMyHelpRequest error: $e', type: 'error');
     } finally {
@@ -584,13 +615,14 @@ class UnifiedHelpController extends GetxController {
   }
 
   Future<void> _syncAvailabilityToServer(bool isAvailable) async {
-    final resp = await ApiService.put(
-      '/api/users/me/availability',
+    final resp = await ApiService().put(
+      endpoint: '/api/users/me/availability',
+      requiresAuth: true,
       body: {'isAvailable': isAvailable},
     ).timeout(const Duration(seconds: 10));
 
-    if (resp.statusCode != 200) {
-      throw Exception('Availability sync failed: ${resp.statusCode}');
+    if (resp == null) {
+      throw Exception('Availability sync failed: server returned null');
     }
 
     if (isAvailable) {
@@ -602,7 +634,9 @@ class UnifiedHelpController extends GetxController {
         }
         final pos = locCtrl.currentPosition.value;
         if (pos != null) {
-          await ApiService.put('/api/users/me/location', body: {
+          await ApiService().put(endpoint: '/api/users/me/location',
+              requiresAuth: true,
+              body: {
             'latitude': pos.latitude,
             'longitude': pos.longitude,
           }).timeout(const Duration(seconds: 10));
@@ -891,45 +925,76 @@ class UnifiedHelpController extends GetxController {
 
   Future<void> fetchUserProfile() async {
     try {
-      final resp = await ApiService.get('/api/users/me');
-      if (resp.statusCode == 200) {
-        final body = json.decode(resp.body) as Map<String, dynamic>;
-        final user = (body['data'] ?? body) as Map<String, dynamic>;
+      final resp = await ApiService().get(endpoint: '/api/users/me');
+      if (resp != null) {
+        final user = (resp!['data'] ?? resp) as Map<String, dynamic>;
         final img = user['profileImage']?.toString() ?? '';
         if (img.isNotEmpty) profileImage.value = img;
       }
     } catch (e) {
-      Logger.log('❌ [UNIFIED] fetchUserProfile: $e', type: 'error');
+      Logger.log('[UNIFIED] fetchUserProfile: $e', type: 'error');
     }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // APP LIFECYCLE HELPERS (call from UI's WidgetsBindingObserver)
   // ─────────────────────────────────────────────────────────────────────────
+  DateTime? _lastResumeTime;
+  static const _minResumeInterval = Duration(seconds: 3);
 
   void onAppResumed() {
+    // Debounce rapid resume calls
+    final now = DateTime.now();
+    if (_lastResumeTime != null && now.difference(_lastResumeTime!) < _minResumeInterval) {
+      Logger.log('⏱️ [UNIFIED] Too soon since last resume, skipping', type: 'info');
+      return;
+    }
+    _lastResumeTime = now;
+
     Logger.log('☀️ [UNIFIED] App resumed', type: 'info');
 
-    // Stop background service to save battery
-    BackgroundService.stop();
-
-    // Check socket health
+    // Don't stop background service immediately - let UI layer manage this
+    // Check socket health and reconnect if needed
     if (_socketService == null || !_socketService!.isConnected.value) {
       Logger.log('🔌 [UNIFIED] Socket disconnected — reconnecting', type: 'warning');
-      initSocket().then((_) => _rejoinRoomAfterReconnect());
+      initSocket().then((_) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _rejoinRoomAfterReconnect();
+        });
+      });
     } else {
+      Logger.log('🔌 [UNIFIED] Socket already connected', type: 'info');
       _rejoinRoomAfterReconnect();
     }
+
+    // Resume location sharing if needed
+    _resumeLocationSharingForAppResume();
   }
 
   void onAppPaused() {
     Logger.log('🌙 [UNIFIED] App paused — keeping socket alive', type: 'info');
 
-    // Start background service if actively sharing location
+    // Start background service ONLY if actively sharing location
     if (seekerHelpRequestId.value.isNotEmpty || acceptedRequest.value != null) {
+      Logger.log('📍 [UNIFIED] Starting background service', type: 'info');
       BackgroundService.start();
     }
   }
+
+  void _resumeLocationSharingForAppResume() {
+    try {
+      final locCtrl = _getLocationController();
+      if (locCtrl != null && !locCtrl.liveLocation.value) {
+        Logger.log('📍 [UNIFIED] Resuming location sharing', type: 'info');
+        locCtrl.resetFirstLocationFlag();
+        locCtrl.startLiveLocation();
+      }
+    } catch (e) {
+      Logger.log('❌ [UNIFIED] Error resuming location: $e', type: 'error');
+    }
+  }
+
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // HEALTH MONITORING
@@ -1016,10 +1081,39 @@ class UnifiedHelpController extends GetxController {
 
   @override
   void onClose() {
+    Logger.log("🗑️ [UNIFIED] Cleaning up UnifiedHelpController", type: "info");
+
+    // Remove all socket listeners
     _removeAllListeners();
+
+    // Stop vibration and sound
     stopVibration();
+
+    // Cancel all timers
     _reconnectTimer?.cancel();
-    _healthCheckTimer?.cancel();      // Cleanup health timer
+    _healthCheckTimer?.cancel();
+
+    // Clear socket reference
+    _socketService = null;
+
+    // Clear Rx variables to free memory
+    screenMode.value = HelpScreenMode.idle;
+    helperStatus.value = false;
+    seekerHelpRequestId.value = '';
+    nearbyStats.value = NearbyStats(km1: 0, km2: 0, km3: 0);
+    incomingHelperPosition.value = null;
+    incomingHelperName.value = '';
+    incomingHelperImage.value = '';
+    seekerToHelperDistance.value = 'Calculating...';
+    seekerToHelperEta.value = 'Calculating...';
+    pendingRequests.clear();
+    acceptedRequest.value = null;
+    seekerLivePosition.value = null;
+    profileImage.value = '';
+    firstName.value = '';
+    lastName.value = '';
+
+    Logger.log("✅ [UNIFIED] Cleanup completed", type: "success");
     super.onClose();
   }
-}
+  }

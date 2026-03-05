@@ -1,11 +1,8 @@
-import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:saferader/utils/logger.dart';
 
-import '../../utils/app_constant.dart';
+import '../../utils/api_service.dart';
 import '../../views/screen/auth/signinPage/signIn_screen.dart';
 import '../../views/screen/auth/success_message_screen.dart';
 import '../networkService/networkService.dart';
@@ -26,7 +23,6 @@ class PasswordReset extends GetxController{
   }
   Future<void> resetPassword(BuildContext context, String password,String token) async {
     final networkController = Get.find<NetworkController>();
-    final url = '${AppConstants.BASE_URL}/api/auth/reset-password';
 
     if (!networkController.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,17 +39,15 @@ class PasswordReset extends GetxController{
     };
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+      final apiService = ApiService();
+      final response = await apiService.post(
+        endpoint: '/api/auth/reset-password',
+        body: body,
+        requiresAuth: false,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        Logger.log("Reset successful: $data", type: "info");
+      if (response != null) {
+        Logger.log("Reset successful: $response", type: "info");
         if(context.mounted) {
           Navigator.push(
             context,
@@ -66,9 +60,7 @@ class PasswordReset extends GetxController{
         }
 
       } else {
-        final data = jsonDecode(response.body);
-        final message = data["message"] ?? "Reset failed.";
-        Logger.log("Reset failed: $data", type: "error");
+        Logger.log("Reset failed", type: "error");
       }
     }on Exception catch (e, stackTrace) {
       Logger.log("Unexpected error: $e\nStack: $stackTrace", type: "error");

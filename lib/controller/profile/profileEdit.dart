@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:hive/hive.dart';
-import 'package:http_parser/http_parser.dart'; // ✅ FIXED: Correct import for MediaType
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:saferader/controller/SeakerHome/seakerHomeController.dart';
 import 'package:saferader/utils/api_service.dart';
@@ -269,82 +267,80 @@ class ProfileEditController extends GetxController {
 
   Future<Map<String, dynamic>> _attemptProfileUpdate(File? profileImage) async {
     try {
-      final uri = Uri.parse("${AppConstants.BASE_URL}/api/users/me");
-      final request = http.MultipartRequest('PUT', uri);
+      // Prepare fields for the multipart request
+      final Map<String, String> fields = {};
 
       final fullName =
       '${nameController.text.trim()} ${lastnameController.text.trim()}'
           .trim();
-      if (fullName.isNotEmpty) request.fields['name'] = fullName;
-      request.fields['phone'] = phoneController.text.trim();
-      request.fields['gender'] = selectedGender.value;
+      if (fullName.isNotEmpty) fields['name'] = fullName;
+      fields['phone'] = phoneController.text.trim();
+      fields['gender'] = selectedGender.value;
 
       if (dateOfBirth.value.isNotEmpty && dateOfBirth.value != 'Not provided') {
         final parts = dateOfBirth.value.split('/');
         if (parts.length == 3) {
           final isoDate = "${parts[2]}-${parts[1]}-${parts[0]}";
-          request.fields['dateOfBirth'] = isoDate;
+          fields['dateOfBirth'] = isoDate;
         }
       }
 
-      // ✅ FIXED: Proper image upload with correct MediaType from http_parser
+      // Prepare files for the multipart request
+      List<http.MultipartFile> files = [];
+
       if (profileImage != null && await profileImage.exists()) {
         // Detect extension to set correct MIME type
         final ext = profileImage.path.split('.').last.toLowerCase();
         final mimeType = ext == 'png'
-            ? MediaType('image', 'png')
+            ? 'image/png'
             : ext == 'gif'
-            ? MediaType('image', 'gif')
+            ? 'image/gif'
             : ext == 'webp'
-            ? MediaType('image', 'webp')
-            : MediaType('image', 'jpeg'); // default to jpeg
+            ? 'image/webp'
+            : 'image/jpeg'; // default to jpeg
 
         final file = await http.MultipartFile.fromPath(
-          'profileImage', // ✅ Make sure this key matches your backend field name
+          'profileImage',
           profileImage.path,
-          contentType: mimeType,
+          contentType: http.MediaType.parse(mimeType),
         );
-        request.files.add(file);
+        files.add(file);
 
         Logger.log(
-          "📎 Attaching profile image: ${profileImage.path} as ${mimeType.mimeType}",
+          "📎 Attaching profile image: ${profileImage.path} as $mimeType",
           type: "info",
         );
       } else {
         Logger.log("⚠️ No profile image to upload or file does not exist", type: "warning");
       }
 
-      Logger.log("📤 Sending multipart request with fields: ${request.fields}", type: "info");
-      Logger.log("📤 Files count: ${request.files.length}", type: "info");
+      Logger.log("📤 Sending multipart request with fields: $fields", type: "info");
+      Logger.log("📤 Files count: ${files.length}", type: "info");
 
-      final streamedResp = await ApiService.multipart('/api/users/me', request);
-      final respString = await streamedResp.stream.bytesToString();
+      final apiService = ApiService();
+      final response = await apiService.putWithMultipart(
+        endpoint: '/api/users/me',
+        fields: fields,
+        files: files,
+      );
 
       Logger.log(
-        "Profile Update Response - Status: ${streamedResp.statusCode}",
+        "Profile Update Response - Status: ${response != null ? 'Success' : 'Failed'}",
         type: "info",
       );
       Logger.log(
-        "Profile Update Response - Body: $respString",
+        "Profile Update Response - Body: $response",
         type: "info",
       );
 
-      Map<String, dynamic> parsed;
-      try {
-        parsed = json.decode(respString) as Map<String, dynamic>;
-      } on Exception catch (e) {
-        Logger.log(
-          "Failed to parse response JSON: $e — raw: $respString",
-          type: "error",
-        );
-        return {'success': false, 'message': 'Invalid server response'};
+      if (response == null) {
+        return {'success': false, 'message': 'Failed to update profile'};
       }
 
       return {
-        'success': streamedResp.statusCode == 200,
-        'statusCode': streamedResp.statusCode,
-        'data': parsed['data'] ?? parsed,
-        'message': parsed['message'] ?? parsed['error'] ?? 'Unknown error',
+        'success': true,
+        'data': response['data'] ?? response,
+        'message': response['message'] ?? 'Profile updated successfully',
       };
     } on Exception catch (e) {
       Logger.log("Exception in _attemptProfileUpdate: $e", type: "error");

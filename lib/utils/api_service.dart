@@ -1,203 +1,784 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:saferader/utils/app_constant.dart';
-import 'package:saferader/utils/auth_service.dart';
-import 'package:saferader/utils/token_service.dart';
+import 'package:get/get.dart';
 import 'package:saferader/utils/logger.dart';
+import '../../utils/token_service.dart';
+import '../controller/networkService/networkService.dart';
+import 'app_constant.dart';
+import 'auth_service.dart';
 
 class ApiService {
-  /// ------------------------
-  /// HTTP GET
-  /// ------------------------
-  static Future<http.Response> get(String endpoint,
-      {Map<String, String>? headers}) async {
-    return _makeRequest(
-      method: 'GET',
-      endpoint: endpoint,
-      headers: headers,
-    );
-  }
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
 
-  /// ------------------------
-  /// HTTP POST
-  /// ------------------------
-  static Future<http.Response> post(String endpoint,
-      {dynamic body, Map<String, String>? headers}) async {
-    return _makeRequest(
-      method: 'POST',
-      endpoint: endpoint,
-      headers: headers,
-      body: body,
-    );
-  }
+  final TokenService _tokenService = TokenService();
 
-  /// ------------------------
-  /// HTTP PUT
-  /// ------------------------
-  static Future<http.Response> put(String endpoint,
-      {dynamic body, Map<String, String>? headers}) async {
-    return _makeRequest(
-      method: 'PUT',
-      endpoint: endpoint,
-      headers: headers,
-      body: body,
-    );
-  }
 
-  /// ------------------------
-  /// HTTP DELETE
-  /// ------------------------
-  static Future<http.Response> delete(String endpoint,
-      {Map<String, String>? headers}) async {
-    return _makeRequest(
-      method: 'DELETE',
-      endpoint: endpoint,
-      headers: headers,
-    );
-  }
-
-  /// ------------------------
-  /// Generic request with retry on 401
-  /// ------------------------
-  static Future<http.Response> _makeRequest({
-    required String method,
+  // lib/Service/auth/Api_Services.dart - ADD THIS METHOD
+  Future<String?> getRawBody({
     required String endpoint,
-    dynamic body,
     Map<String, String>? headers,
+    bool requiresAuth = true,
   }) async {
-    http.Response response = await _sendRequest(
-      method: method,
-      endpoint: endpoint,
-      body: body,
-      headers: headers,
-    );
+    final networkController = Get.find<NetworkController>();
+    if (!networkController.isOnline.value) throw Exception('No internet connection');
 
-    if (response.statusCode != 401) return response;
+    String url = '${AppConstants.BASE_URL}$endpoint';
+    Map<String, String> requestHeaders = {
+      'Content-Type': 'application/json',
+    };
 
-    Logger.log(
-      "🔄 $method request to $endpoint failed with 401 - refreshing token",
-      type: "info",
-    );
-
-    final refreshSuccess = await AuthService.refreshToken();
-
-    if (refreshSuccess) {
-      Logger.log("✅ Token refreshed, retrying $method request", type: "info");
-      response = await _sendRequest(
-        method: method,
-        endpoint: endpoint,
-        body: body,
-        headers: headers,
-      );
-    } else {
-      Logger.log(
-        "❌ Token refresh failed for $method request to $endpoint",
-        type: "error",
-      );
+    if (requiresAuth) {
+      String? token = await _tokenService.getToken();
+      if (token == null || token.isEmpty) throw Exception('No access token');
+      requestHeaders['Authorization'] = 'Bearer $token';
     }
 
-    return response;
-  }
+    if (headers != null) requestHeaders.addAll(headers);
 
-  /// ------------------------
-  /// Send actual HTTP request
-  /// ------------------------
-  static Future<http.Response> _sendRequest({
-    required String method,
-    required String endpoint,
-    dynamic body,
-    Map<String, String>? headers,
-  }) async {
-    final uri = Uri.parse('${AppConstants.BASE_URL}$endpoint');
-    final requestHeaders = await _buildHeaders(
-      additionalHeaders: headers,
-      includeContentType: body != null,
-    );
+    final response = await http.get(Uri.parse(url), headers: requestHeaders);
 
-    switch (method.toUpperCase()) {
-      case 'GET':
-        return http.get(uri, headers: requestHeaders);
-      case 'POST':
-        return http.post(
-          uri,
-          headers: requestHeaders,
-          body: body != null ? (body is String ? body : jsonEncode(body)) : null,
-        );
-      case 'PUT':
-        return http.put(
-          uri,
-          headers: requestHeaders,
-          body: body != null ? (body is String ? body : jsonEncode(body)) : null,
-        );
-      case 'DELETE':
-        return http.delete(uri, headers: requestHeaders);
-      default:
-        throw Exception('Unsupported HTTP method: $method');
-    }
-  }
-
-  /// ------------------------
-  /// Build headers (Named parameters)
-  /// ------------------------
-  static Future<Map<String, String>> _buildHeaders({
-    Map<String, String>? additionalHeaders,
-    bool includeContentType = true,
-  }) async {
-    final headers = <String, String>{};
-
-    if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    final token = await TokenService().getToken();
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-
-    if (additionalHeaders != null) {
-      headers.addAll(additionalHeaders);
-    }
-
-    return headers;
-  }
-
-  /// ------------------------
-  /// Multipart request with token refresh
-  /// ------------------------
-  static Future<http.StreamedResponse> multipart(
-      String endpoint,
-      http.MultipartRequest multipartRequest,
-      ) async {
-    final token = await TokenService().getToken();
-    if (token != null && token.isNotEmpty) {
-      multipartRequest.headers['Authorization'] = 'Bearer $token';
-    }
-
-    var response = await multipartRequest.send();
-
+    if (response.statusCode == 200) return response.body;
     if (response.statusCode == 401) {
-      Logger.log(
-        "🔄 Multipart request to $endpoint failed with 401 - refreshing token",
-        type: "info",
-      );
-
-      final refreshSuccess = await AuthService.refreshToken();
-
-      if (refreshSuccess) {
-        Logger.log("✅ Token refreshed, retrying multipart request", type: "info");
-        final newToken = await TokenService().getToken();
-        if (newToken != null && newToken.isNotEmpty) {
-          multipartRequest.headers['Authorization'] = 'Bearer $newToken';
-        }
-        response = await multipartRequest.send();
-      } else {
-        Logger.log(
-          "❌ Token refresh failed for multipart request to $endpoint",
-          type: "error",
-        );
+      bool refreshed = await _handleTokenRefresh();
+      if (refreshed) {
+        String? newToken = await _tokenService.getToken();
+        if (newToken != null) requestHeaders['Authorization'] = 'Bearer $newToken';
+        final retry = await http.get(Uri.parse(url), headers: requestHeaders);
+        return retry.statusCode == 200 ? retry.body : null;
       }
     }
-
-    return response;
+    return null;
   }
+
+  Future<Map<String, dynamic>?> get({
+    required String endpoint,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      Map<String, String> requestHeaders = {};
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        requestHeaders['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        requestHeaders.addAll(headers);
+      }
+
+      requestHeaders['Content-Type'] = 'application/json';
+
+      Logger.log('Making GET request to: $url', type: 'info');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: requestHeaders,
+      );
+
+      Logger.log('GET Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('GET Response Body: ${response.body}', type: 'info');
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          Map<String, String> retryHeaders = {};
+          if (requiresAuth) {
+            String? newToken = await _tokenService.getToken();
+            if (newToken != null && newToken.isNotEmpty) {
+              retryHeaders['Authorization'] = 'Bearer $newToken';
+            }
+          }
+
+          if (headers != null) {
+            retryHeaders.addAll(headers);
+          }
+          retryHeaders['Content-Type'] = 'application/json';
+
+          final retryResponse = await http.get(
+            Uri.parse(url),
+            headers: retryHeaders,
+          );
+
+          Logger.log('Retry GET Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200) {
+            return json.decode(retryResponse.body);
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, response.body);
+            return null;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, response.body);
+          return null;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, response.body);
+        return null;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making GET request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> post({
+    required String endpoint,
+    dynamic body,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      Map<String, String> requestHeaders = {};
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        requestHeaders['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        requestHeaders.addAll(headers);
+      }
+
+      requestHeaders['Content-Type'] = 'application/json';
+
+      String bodyString = body != null ? json.encode(body) : '';
+
+      Logger.log('Making POST request to: $url', type: 'info');
+      Logger.log('POST Request Body: $bodyString', type: 'info');
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: requestHeaders,
+        body: bodyString,
+      );
+
+      Logger.log('POST Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('POST Response Body: ${response.body}', type: 'info');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          Map<String, String> retryHeaders = {};
+          if (requiresAuth) {
+            String? newToken = await _tokenService.getToken();
+            if (newToken != null && newToken.isNotEmpty) {
+              retryHeaders['Authorization'] = 'Bearer $newToken';
+            }
+          }
+
+          if (headers != null) {
+            retryHeaders.addAll(headers);
+          }
+          retryHeaders['Content-Type'] = 'application/json';
+
+          final retryResponse = await http.post(
+            Uri.parse(url),
+            headers: retryHeaders,
+            body: bodyString,
+          );
+
+          Logger.log('Retry POST Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200) {
+            return json.decode(retryResponse.body);
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, response.body);
+            return null;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, response.body);
+          return null;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, response.body);
+        return null;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making POST request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> put({
+    required String endpoint,
+    dynamic body,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      Map<String, String> requestHeaders = {};
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        requestHeaders['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        requestHeaders.addAll(headers);
+      }
+
+      requestHeaders['Content-Type'] = 'application/json';
+
+      String bodyString = body != null ? json.encode(body) : '';
+
+      Logger.log('Making PUT request to: $url', type: 'info');
+      Logger.log('PUT Request Body: $bodyString', type: 'info');
+
+      final response = await http.put(
+        Uri.parse(url),
+        headers: requestHeaders,
+        body: bodyString,
+      );
+
+      Logger.log('PUT Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('PUT Response Body: ${response.body}', type: 'info');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          Map<String, String> retryHeaders = {};
+          if (requiresAuth) {
+            String? newToken = await _tokenService.getToken();
+            if (newToken != null && newToken.isNotEmpty) {
+              retryHeaders['Authorization'] = 'Bearer $newToken';
+            }
+          }
+
+          if (headers != null) {
+            retryHeaders.addAll(headers);
+          }
+          retryHeaders['Content-Type'] = 'application/json';
+
+          final retryResponse = await http.put(
+            Uri.parse(url),
+            headers: retryHeaders,
+            body: bodyString,
+          );
+
+          Logger.log('Retry PUT Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200) {
+            return json.decode(retryResponse.body);
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, response.body);
+            return null;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, response.body);
+          return null;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, response.body);
+        return null;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making PUT request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<bool> delete({
+    required String endpoint,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      Map<String, String> requestHeaders = {};
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        requestHeaders['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        requestHeaders.addAll(headers);
+      }
+
+      requestHeaders['Content-Type'] = 'application/json';
+
+      Logger.log('Making DELETE request to: $url', type: 'info');
+
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: requestHeaders,
+      );
+
+      Logger.log('DELETE Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('DELETE Response Body: ${response.body}', type: 'info');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          Map<String, String> retryHeaders = {};
+          if (requiresAuth) {
+            String? newToken = await _tokenService.getToken();
+            if (newToken != null && newToken.isNotEmpty) {
+              retryHeaders['Authorization'] = 'Bearer $newToken';
+            }
+          }
+
+          if (headers != null) {
+            retryHeaders.addAll(headers);
+          }
+          retryHeaders['Content-Type'] = 'application/json';
+
+          final retryResponse = await http.delete(
+            Uri.parse(url),
+            headers: retryHeaders,
+          );
+
+          Logger.log('Retry DELETE Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200 || response.statusCode ==201) {
+            return true;
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, response.body);
+            return false;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, response.body);
+          return false;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, response.body);
+        return false;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making DELETE request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<bool> _handleTokenRefresh() async {
+    Logger.log('Attempting to refresh token using AuthService...', type: 'info');
+
+    // Use the enhanced AuthService to handle token validation and refresh
+    bool result = await AuthService.validateAndRefreshToken();
+
+    if (result) {
+      Logger.log('Token validated and/or refreshed successfully via AuthService', type: 'success');
+      return true;
+    } else {
+      Logger.log('Failed to validate and refresh token via AuthService', type: 'error');
+      return false;
+    }
+  }
+
+  /// Handle 401 unauthorized error
+  /// This typically means we need to log out the user
+  Future<void> _handleUnauthorized() async {
+    Logger.log('401 Unauthorized - Logging out user', type: 'warning');
+
+    // Clear all stored tokens and user data
+    await AuthService.logout();
+
+    // For now, we'll just log it
+    Logger.log('User logged out due to unauthorized access', type: 'info');
+  }
+
+  /// Helper method to handle error responses
+  void _handleErrorResponse(int statusCode, String responseBody) {
+    Logger.log('Request failed with status: $statusCode', type: 'error');
+    Logger.log('Response body: $responseBody', type: 'error');
+
+    switch (statusCode) {
+      case 400:
+        Logger.log('Bad Request', type: 'error');
+        break;
+      case 401:
+        Logger.log('Unauthorized - Invalid or expired token', type: 'error');
+        break;
+      case 403:
+        Logger.log('Forbidden', type: 'error');
+        break;
+      case 404:
+        Logger.log('Not Found', type: 'error');
+        break;
+      case 500:
+        Logger.log('Internal Server Error', type: 'error');
+        break;
+      default:
+        Logger.log('Unknown error with status code: $statusCode', type: 'error');
+    }
+  }
+
+  Future<dynamic> getRaw({
+    required String endpoint,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      Map<String, String> requestHeaders = {};
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        requestHeaders['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        requestHeaders.addAll(headers);
+      }
+
+      requestHeaders['Content-Type'] = 'application/json';
+
+      Logger.log('Making GET request to: $url', type: 'info');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: requestHeaders,
+      );
+
+      Logger.log('GET Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('GET Response Body: ${response.body}', type: 'info');
+
+      if (response.statusCode == 200) {
+        // Return either Map or List depending on the response
+        var decoded = json.decode(response.body);
+        return decoded;
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          Map<String, String> retryHeaders = {};
+          if (requiresAuth) {
+            String? newToken = await _tokenService.getToken();
+            if (newToken != null && newToken.isNotEmpty) {
+              retryHeaders['Authorization'] = 'Bearer $newToken';
+            }
+          }
+
+          if (headers != null) {
+            retryHeaders.addAll(headers);
+          }
+          retryHeaders['Content-Type'] = 'application/json';
+
+          final retryResponse = await http.get(
+            Uri.parse(url),
+            headers: retryHeaders,
+          );
+
+          Logger.log('Retry GET Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200) {
+            var decoded = json.decode(retryResponse.body);
+            return decoded;
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, response.body);
+            return null;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, response.body);
+          return null;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, response.body);
+        return null;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making GET request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> patchWithMultipart({
+    required String endpoint,
+    Map<String, String>? fields,
+    List<http.MultipartFile>? files,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      var request = http.MultipartRequest('PATCH', Uri.parse(url));
+
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        request.headers.addAll(headers);
+      }
+
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+
+      if (files != null) {
+        request.files.addAll(files);
+      }
+
+      Logger.log('Making PATCH multipart request to: $url', type: 'info');
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      Logger.log('PATCH multipart Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('PATCH multipart Response Body: $responseBody', type: 'info');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(responseBody);
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          var retryRequest = http.MultipartRequest('PATCH', Uri.parse(url));
+
+          String? newToken = await _tokenService.getToken();
+          if (newToken != null && newToken.isNotEmpty) {
+            retryRequest.headers['Authorization'] = 'Bearer $newToken';
+          }
+
+          if (headers != null) {
+            retryRequest.headers.addAll(headers);
+          }
+
+          if (fields != null) {
+            retryRequest.fields.addAll(fields);
+          }
+
+          if (files != null) {
+            retryRequest.files.addAll(files);
+          }
+
+          final retryResponse = await retryRequest.send();
+          final retryResponseBody = await retryResponse.stream.bytesToString();
+
+          Logger.log('Retry PATCH multipart Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
+            return json.decode(retryResponseBody);
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, retryResponseBody);
+            return null;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, responseBody);
+          return null;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, responseBody);
+        return null;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making PATCH multipart request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> putWithMultipart({
+    required String endpoint,
+    Map<String, String>? fields,
+    List<http.MultipartFile>? files,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+  }) async {
+    final networkController = Get.find<NetworkController>();
+
+    if (!networkController.isOnline.value) {
+      throw Exception('No internet connection');
+    }
+
+    String url = '${AppConstants.BASE_URL}$endpoint';
+
+    try {
+      var request = http.MultipartRequest('PUT', Uri.parse(url));
+
+      if (requiresAuth) {
+        String? token = await _tokenService.getToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('No access token available');
+        }
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      if (headers != null) {
+        request.headers.addAll(headers);
+      }
+
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+
+      if (files != null) {
+        request.files.addAll(files);
+      }
+
+      Logger.log('Making PATCH multipart request to: $url', type: 'info');
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      Logger.log('PATCH multipart Response Status: ${response.statusCode}', type: 'info');
+      Logger.log('PATCH multipart Response Body: $responseBody', type: 'info');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(responseBody);
+      } else if (response.statusCode == 401) {
+        bool refreshed = await _handleTokenRefresh();
+        if (refreshed) {
+          var retryRequest = http.MultipartRequest('PATCH', Uri.parse(url));
+
+          String? newToken = await _tokenService.getToken();
+          if (newToken != null && newToken.isNotEmpty) {
+            retryRequest.headers['Authorization'] = 'Bearer $newToken';
+          }
+
+          if (headers != null) {
+            retryRequest.headers.addAll(headers);
+          }
+
+          if (fields != null) {
+            retryRequest.fields.addAll(fields);
+          }
+
+          if (files != null) {
+            retryRequest.files.addAll(files);
+          }
+
+          final retryResponse = await retryRequest.send();
+          final retryResponseBody = await retryResponse.stream.bytesToString();
+
+          Logger.log('Retry PATCH multipart Response Status: ${retryResponse.statusCode}', type: 'info');
+
+          if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
+            return json.decode(retryResponseBody);
+          } else {
+            _handleErrorResponse(retryResponse.statusCode, retryResponseBody);
+            return null;
+          }
+        } else {
+          await _handleUnauthorized();
+          _handleErrorResponse(response.statusCode, responseBody);
+          return null;
+        }
+      } else {
+        _handleErrorResponse(response.statusCode, responseBody);
+        return null;
+      }
+    } on SocketException {
+      Logger.log('Socket exception (no internet connection)', type: 'error');
+      throw Exception('No internet connection');
+    } on HttpException {
+      Logger.log('HTTP exception occurred', type: 'error');
+      throw Exception('HTTP error occurred');
+    } catch (e) {
+      Logger.log('Error making PATCH multipart request: $e', type: 'error');
+      throw Exception('Network error: $e');
+    }
+  }
+
+
 }

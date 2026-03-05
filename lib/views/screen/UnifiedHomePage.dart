@@ -48,6 +48,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
   late AnimationController _blinkCtrl;
   late Animation<double> _blinkAnim;
 
+  // ── LIFECYCLE STATE TRACKING ──────────────────────────────────────────────
+  AppLifecycleState? _lastLifecycleState;
+  bool _isReturningFromBackground = false;
+  DateTime? _backgroundTime;
+  bool _wasHelperStatusBeforeBackground = false;
+  HelpScreenMode? _screenModeBeforeBackground;
+
   @override
   void initState() {
     super.initState();
@@ -76,40 +83,197 @@ class _UnifiedHomePageState extends State<UnifiedHomePage>
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ctrl.initSocket();
-      ctrl.helperStatus.value = true;
-      ctrl.setHelperAvailability(true);
+      // Don't force helperStatus - let user toggle it
       locationController.startLiveLocation();
 
       if (Platform.isAndroid) {
         await BackgroundService.start();
       }
-
+      ctrl.helperStatus.value =true;
+      ctrl.setHelperAvailability(true);
       NotificationService.processPendingNotification();
     });
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // APP LIFECYCLE HANDLING
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+
+    Logger.log("📱 [LIFECYCLE] UnifiedHomePage: ${_lastLifecycleState} → $state", type: "info");
+
     switch (state) {
       case AppLifecycleState.resumed:
-        ctrl.onAppResumed();
+        _handleAppResumed();
         break;
+
+      case AppLifecycleState.inactive:
+        _handleAppInactive();
+        break;
+
       case AppLifecycleState.paused:
-        ctrl.onAppPaused();
+        _handleAppPaused();
         break;
-      default:
+
+      case AppLifecycleState.detached:
+        _handleAppDetached();
         break;
+
+      case AppLifecycleState.hidden:
+        _handleAppHidden();
+        break;
+    }
+
+    _lastLifecycleState = state;
+  }
+
+  void _handleAppResumed() {
+    Logger.log("✅ [LIFECYCLE] App resumed", type: "success");
+
+    if (!mounted) return;
+
+    // Mark that we're returning from background
+    if (_backgroundTime != null) {
+      _isReturningFromBackground = true;
+      final backgroundDuration = DateTime.now().difference(_backgroundTime!);
+      Logger.log("⏱️ [LIFECYCLE] Returning from background (${backgroundDuration.inSeconds}s)", type: "info");
+    }
+
+    // Restore helper status if it was active before background
+    if (_wasHelperStatusBeforeBackground) {
+      ctrl.helperStatus.value = true;
+      ctrl.setHelperAvailability(true);
+    }
+
+    // Refresh socket connection
+    _refreshSocketConnection();
+
+    // Resume location sharing
+    _resumeLocationSharing();
+
+    // Reset flags
+    _backgroundTime = null;
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _isReturningFromBackground = false;
+      }
+    });
+  }
+
+  void _handleAppInactive() {
+    Logger.log("⏸️ [LIFECYCLE] App inactive", type: "info");
+    // App is temporarily inactive (e.g., incoming call)
+    // Keep socket alive
+  }
+
+  void _handleAppPaused() {
+    Logger.log("⏸️ [LIFECYCLE] App paused (background)", type: "warning");
+
+    // Store current state before going to background
+    _backgroundTime = DateTime.now();
+    _wasHelperStatusBeforeBackground = ctrl.helperStatus.value;
+    _screenModeBeforeBackground = ctrl.screenMode.value;
+
+    // Don't stop socket - keep it alive for background location
+    // Background service will handle location updates if needed
+  }
+
+  void _handleAppDetached() {
+    Logger.log("🛑 [LIFECYCLE] App detached", type: "error");
+    // App is being destroyed - cleanup will happen in dispose()
+  }
+
+  void _handleAppHidden() {
+    Logger.log("👻 [LIFECYCLE] App hidden (iOS)", type: "info");
+    // iOS specific - app is hidden but not paused
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SOCKET MANAGEMENT
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _refreshSocketConnection() async {
+    if (!mounted) return;
+
+    try {
+      Logger.log("🔄 [SOCKET] Refreshing socket connection...", type: "info");
+
+      // Check if socket is connected
+      if (ctrl.socketService == null || !ctrl.socketService!.isConnected.value) {
+        Logger.log("⚠️ [SOCKET] Socket disconnected, reconnecting...", type: "warning");
+        await ctrl.initSocket();
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
+      // Rejoin rooms if needed
+      _rejoinActiveRooms();
+
+      Logger.log("✅ [SOCKET] Socket connection refreshed", type: "success");
+    } catch (e) {
+      Logger.log("❌ [SOCKET] Error refreshing socket: $e", type: "error");
+    }
+  }
+
+  void _rejoinActiveRooms() {
+    if (!mounted) return;
+
+    try {
+      // Rejoin seeker room
+      if (ctrl.seekerHelpRequestId.value.isNotEmpty) {
+        final id = ctrl.seekerHelpRequestId.value;
+        Logger.log("🏠 [SOCKET] Rejoining seeker room: $id", type: "info");
+        ctrl.socketService?.joinRoom(id);
+      }
+
+      // Rejoin giver room
+      if (ctrl.acceptedRequest.value != null) {
+        final id = ctrl.acceptedRequest.value!['_id']?.toString() ?? '';
+        if (id.isNotEmpty) {
+          Logger.log("🏠 [SOCKET] Rejoining giver room: $id", type: "info");
+          ctrl.socketService?.joinRoom(id);
+        }
+      }
+    } catch (e) {
+      Logger.log("❌ [SOCKET] Error rejoining rooms: $e", type: "error");
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LOCATION SHARING MANAGEMENT
+  // ─────────────────────────────────────────────────────────────────────────
+  void _resumeLocationSharing() {
+    if (!mounted) return;
+
+    try {
+      // Resume live location if was active
+      if (!locationController.liveLocation.value) {
+        Logger.log("📍 [LOCATION] Resuming live location", type: "info");
+        locationController.resetFirstLocationFlag();
+        locationController.startLiveLocation();
+      }
+    } catch (e) {
+      Logger.log("❌ [LOCATION] Error resuming location: $e", type: "error");
     }
   }
 
   @override
   void dispose() {
+    Logger.log("🗑️ [DISPOSE] UnifiedHomePage cleaning up", type: "info");
+
+    // Remove lifecycle observer
     WidgetsBinding.instance.removeObserver(this);
+
+    // Stop background service for Android
     if (Platform.isAndroid) {
       BackgroundService.stop();
     }
+
+    // Dispose animation controller
     _blinkCtrl.dispose();
+
+    Logger.log("✅ [DISPOSE] UnifiedHomePage cleanup completed", type: "success");
     super.dispose();
   }
 
