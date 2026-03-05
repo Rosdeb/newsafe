@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -33,12 +34,9 @@ class SigInController extends GetxController {
 
     isLoading.value = true;
 
-    // Wait for FCM token to be available (from native iOS or Firebase)
-    String? fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
-
-    // If no token found, wait up to 5 seconds for it to arrive
-    if (fcmToken == null) {
-      fcmToken = await NotificationService.waitForFcmToken();
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken != null) {
+      await PrefsHelper.setString(AppConstants.fcmToken, fcmToken);
     }
 
     final body = {
@@ -120,46 +118,6 @@ class SigInController extends GetxController {
       isLoading.value = false;
     }
   }
-
-  // Future<void> registerFcmToken() async {
-  //   final fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
-  //   final accessToken = await TokenService().getToken();
-  //   final networkController = Get.find<NetworkController>();
-  //
-  //   if (fcmToken == null) {
-  //     Logger.log(" No FCM token found to register", type: "error");
-  //     return;
-  //   }
-  //
-  //   if (!networkController.isOnline.value) {
-  //     print("Please connect to the internet! in fcmToken");
-  //     return;
-  //   }
-  //
-  //   final String url = "${AppConstants.BASE_URL}/api/users/me/fcm-token";
-  //
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse(url),
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         "Authorization": "Bearer $accessToken",
-  //       },
-  //       body: jsonEncode({"token": fcmToken}),
-  //     );
-  //
-  //     if (response.statusCode == 200 || response.statusCode == 201) {
-  //       Logger.log("✅ FCM token registered successfully", type: "info");
-  //     } else {
-  //       Logger.log(
-  //         "❌ Failed to register FCM token: ${response.body}",
-  //         type: "error",
-  //       );
-  //     }
-  //   }on Exception catch (e) {
-  //     Logger.log("❌ Error sending FCM token: $e", type: "error");
-  //   }
-  // }
 
   Future<void> loadRememberedCredentials() async {
     try {

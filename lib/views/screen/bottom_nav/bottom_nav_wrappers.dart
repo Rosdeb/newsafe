@@ -195,11 +195,10 @@ class _BottomMenuWrappersState extends State<BottomMenuWrappers>
         backgroundColor: Colors.transparent,
         body: SafeArea(
           top: false,
-          child: Obx(() => IndexedStack(
+          child:  IndexedStack(
             index: controller.selectedIndex.value,
             children: pages,
           )),
-        ),
         extendBody: true,
         bottomNavigationBar: Container(
           decoration: const BoxDecoration(

@@ -213,7 +213,7 @@ class ProfileEditController extends GetxController {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 80, // ✅ Slightly higher quality for better upload
+        imageQuality: 80,
       );
 
       if (image != null) {
@@ -297,7 +297,7 @@ class ProfileEditController extends GetxController {
             ? 'image/gif'
             : ext == 'webp'
             ? 'image/webp'
-            : 'image/jpeg'; // default to jpeg
+            : 'image/jpeg';
 
         final file = await http.MultipartFile.fromPath(
           'profileImage',
@@ -306,10 +306,7 @@ class ProfileEditController extends GetxController {
         );
         files.add(file);
 
-        Logger.log(
-          "📎 Attaching profile image: ${profileImage.path} as $mimeType",
-          type: "info",
-        );
+        Logger.log("📎 Attaching profile image: ${profileImage.path} as $mimeType", type: "info",);
       } else {
         Logger.log("⚠️ No profile image to upload or file does not exist", type: "warning");
       }
@@ -324,14 +321,8 @@ class ProfileEditController extends GetxController {
         files: files,
       );
 
-      Logger.log(
-        "Profile Update Response - Status: ${response != null ? 'Success' : 'Failed'}",
-        type: "info",
-      );
-      Logger.log(
-        "Profile Update Response - Body: $response",
-        type: "info",
-      );
+      Logger.log("Profile Update Response - Status: ${response != null ? 'Success' : 'Failed'}", type: "info",);
+      Logger.log("Profile Update Response - Body: $response", type: "info",);
 
       if (response == null) {
         return {'success': false, 'message': 'Failed to update profile'};

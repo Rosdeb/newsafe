@@ -721,7 +721,7 @@ class NotificationService {
         await PrefsHelper.setString(AppConstants.fcmToken, token);
       });
     } catch (e) {
-      debugPrint('❌ Firebase init error: $e');
+      debugPrint(' Firebase init error: $e');
     }
   }
 

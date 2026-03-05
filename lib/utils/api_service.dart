@@ -95,6 +95,16 @@ class ApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else if (response.statusCode == 401) {
+        // Check if user no longer exists
+        final responseBody = json.decode(response.body);
+        final message = responseBody['message'] as String?;
+
+        if (message != null && message.contains('does no longer exist')) {
+          Logger.log('User account no longer exists, forcing logout', type: 'warning');
+          await _handleUnauthorized();
+          return null;
+        }
+
         bool refreshed = await _handleTokenRefresh();
         if (refreshed) {
           Map<String, String> retryHeaders = {};
@@ -191,6 +201,16 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else if (response.statusCode == 401) {
+        // Check if user no longer exists
+        final responseBody = json.decode(response.body);
+        final message = responseBody['message'] as String?;
+
+        if (message != null && message.contains('does no longer exist')) {
+          Logger.log('User account no longer exists, forcing logout', type: 'warning');
+          await _handleUnauthorized();
+          return null;
+        }
+
         bool refreshed = await _handleTokenRefresh();
         if (refreshed) {
           Map<String, String> retryHeaders = {};

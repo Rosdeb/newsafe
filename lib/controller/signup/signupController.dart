@@ -69,7 +69,6 @@ class SignUpController extends GetxController{
       "email": email,
       "phoneNumber": phone,
       "password": password,
-      "role": role,
     };
 
     try {

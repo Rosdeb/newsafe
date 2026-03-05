@@ -609,7 +609,7 @@ class UnifiedHelpController extends GetxController {
     try {
       await _syncAvailabilityToServer(isAvailable);
     } catch (e) {
-      helperStatus.value = !isAvailable; // revert on error
+      helperStatus.value = !isAvailable;
       Logger.log('[UNIFIED] setHelperAvailability error: $e', type: 'error');
     }
   }
@@ -619,7 +619,7 @@ class UnifiedHelpController extends GetxController {
       endpoint: '/api/users/me/availability',
       requiresAuth: true,
       body: {'isAvailable': isAvailable},
-    ).timeout(const Duration(seconds: 10));
+    );
 
     if (resp == null) {
       throw Exception('Availability sync failed: server returned null');
@@ -639,7 +639,7 @@ class UnifiedHelpController extends GetxController {
               body: {
             'latitude': pos.latitude,
             'longitude': pos.longitude,
-          }).timeout(const Duration(seconds: 10));
+          });
         }
         locCtrl.startLocationSharing();
       }
@@ -953,14 +953,21 @@ class UnifiedHelpController extends GetxController {
 
     Logger.log('☀️ [UNIFIED] App resumed', type: 'info');
 
-    // Don't stop background service immediately - let UI layer manage this
     // Check socket health and reconnect if needed
     if (_socketService == null || !_socketService!.isConnected.value) {
       Logger.log('🔌 [UNIFIED] Socket disconnected — reconnecting', type: 'warning');
-      initSocket().then((_) {
-        Future.delayed(const Duration(milliseconds: 500), () {
+      // Try reconnect first
+      _socketService?.reconnect();
+      // If reconnect fails, reinitialize
+      Future.delayed(const Duration(seconds: 3), () {
+        if (_socketService == null || !_socketService!.isConnected.value) {
+          Logger.log('🔌 [UNIFIED] Reconnect failed — reinitializing socket', type: 'warning');
+          initSocket().then((_) {
+            _rejoinRoomAfterReconnect();
+          });
+        } else {
           _rejoinRoomAfterReconnect();
-        });
+        }
       });
     } else {
       Logger.log('🔌 [UNIFIED] Socket already connected', type: 'info');
@@ -1003,7 +1010,8 @@ class UnifiedHelpController extends GetxController {
     _healthCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
       if (_socketService == null || !_socketService!.isConnected.value) {
         Logger.log('🏥 [HEALTH] Socket disconnected — triggering reconnect', type: 'warning');
-        initSocket();
+        // Use reconnect instead of full init
+        _socketService?.reconnect();
       } else {
         Logger.log('🏥 [HEALTH] Socket connection healthy', type: 'info');
       }

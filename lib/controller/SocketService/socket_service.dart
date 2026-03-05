@@ -200,9 +200,23 @@ class SocketService extends GetxService {
           });
         }
 
+      } else if (r.contains('transport close')) {
+        // Transport close - try to reconnect immediately
+        Logger.log('[SOCKET] Transport closed — attempting immediate reconnect', type: 'warning');
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!isConnected.value) {
+            reconnect();
+          }
+        });
       } else {
         _pingTimeoutCount = 0;
         Logger.log('[SOCKET] Disconnected — reason: $r', type: 'warning');
+        // For other disconnect reasons, try reconnect after a short delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!isConnected.value && _socket != null) {
+            reconnect();
+          }
+        });
       }
     });
 
@@ -323,15 +337,65 @@ class SocketService extends GetxService {
   // ─────────────────────────────────────────────────────────────────────────
   // RECONNECT
   // ─────────────────────────────────────────────────────────────────────────
-  void reconnect() {
-    if (_socket == null || _socket!.connected) return;
+  Future<void> reconnect() async {
+    if (_socket == null) {
+      Logger.log('[SOCKET] Cannot reconnect - socket is null', type: 'warning');
+      return;
+    }
+
+    if (_socket!.connected) {
+      Logger.log('[SOCKET] Already connected - skipping reconnect', type: 'info');
+      return;
+    }
 
     _isSocketReady.value = false;
     _readyCompleter = Completer<void>();
     _pingTimeoutCount = 0;
 
-    Logger.log('[SOCKET] Reconnecting...', type: 'info');
-    socket.connect();
+    try {
+      // Dispose old socket cleanly
+      if (_socket != null) {
+        _socket!.dispose();
+        _socket = null;
+      }
+
+      // Get fresh token
+      String? freshToken = await TokenService().getToken();
+      if (freshToken == null) {
+        Logger.log('[SOCKET] No token available for reconnection', type: 'error');
+        return;
+      }
+
+      // Create new socket connection
+      _socket = IO.io(
+        AppConstants.BASE_URL,
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .setAuth({'token': freshToken})
+            .enableReconnection()
+            .setReconnectionAttempts(3)
+            .setReconnectionDelay(2000)
+            .setTimeout(15000)
+            .disableAutoConnect()
+            .build(),
+      );
+
+      _registerBaseListeners();
+
+      Logger.log('[SOCKET] Reconnecting with fresh token...', type: 'info');
+      _socket!.connect();
+
+      // Wait for connection
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (_socket!.connected) {
+        Logger.log('[SOCKET] Reconnection successful', type: 'success');
+      } else {
+        Logger.log('[SOCKET] Reconnection pending...', type: 'warning');
+      }
+    } catch (e) {
+      Logger.log('[SOCKET] Reconnection failed: $e', type: 'error');
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────

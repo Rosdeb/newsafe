@@ -1,18 +1,43 @@
 import 'package:saferader/utils/token_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'api_service.dart';
+import 'package:get/get.dart';
+import '../../views/screen/welcome/welcome_sreen.dart';
 
 class AuthService {
+  // Prevent infinite refresh loops
+  static int _refreshAttempts = 0;
+  static DateTime? _lastRefreshAttempt;
+  static const int _maxRefreshAttempts = 3;
+  static const Duration _refreshCooldown = Duration(seconds: 5);
+
   static Future<bool> refreshToken() async {
     try {
+      // Check for infinite loop protection
+      final now = DateTime.now();
+      if (_refreshAttempts >= _maxRefreshAttempts) {
+        if (_lastRefreshAttempt == null ||
+            now.difference(_lastRefreshAttempt!) < _refreshCooldown) {
+          Logger.log("🛑 Too many refresh attempts, forcing logout", type: "error");
+          await _forceLogout();
+          return false;
+        }
+        // Reset counter after cooldown
+        _refreshAttempts = 0;
+      }
+
+      _refreshAttempts++;
+      _lastRefreshAttempt = now;
+
       final refreshToken = await TokenService().getRefreshToken();
 
       if (refreshToken == null || refreshToken.isEmpty) {
         Logger.log(" No refresh token available", type: "error");
+        await _forceLogout();
         return false;
       }
 
-      Logger.log("🔄 Attempting to refresh token...", type: "info");
+      Logger.log("🔄 Attempting to refresh token... (attempt $_refreshAttempts/$_maxRefreshAttempts)", type: "info");
 
       final apiService = ApiService();
       final response = await apiService.post(
@@ -30,19 +55,34 @@ class AuthService {
           await TokenService().saveRefreshToken(newRefreshToken);
           await TokenService().reloadTokens();
 
-          Logger.log("Token refreshed and reloaded successfully!", type: "info");
+          Logger.log("Token refreshed and reloaded successfully!", type: "success");
+          _refreshAttempts = 0; // Reset on success
           return true;
         } else {
           Logger.log("New tokens not found in response", type: "warning");
+          await _forceLogout();
           return false;
         }
       } else {
-        Logger.log("❌ Token refresh failed", type: "error");
+        Logger.log("Token refresh failed", type: "error");
+        await _forceLogout();
         return false;
       }
     } catch (e, stackTrace) {
       Logger.log("Stack trace: $stackTrace", type: "error");
+      await _forceLogout();
       return false;
+    }
+  }
+
+  /// Force logout and navigate to welcome screen
+  static Future<void> _forceLogout() async {
+    Logger.log("🚪 Forcing logout due to unrecoverable auth error", type: "warning");
+    await TokenService().clearAll();
+
+    // Navigate to welcome screen if we have a navigator context
+    if (Get.context != null) {
+      Get.offAll(() => WelcomeSreen());
     }
   }
 
