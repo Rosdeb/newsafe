@@ -549,17 +549,32 @@ import '../../views/screen/help_seaker/notifications/seaker_notifications.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
-  debugPrint('🔔 Background message: ${message.messageId}');
+  debugPrint('🔔 [BACKGROUND] Message received: ${message.messageId}');
+  debugPrint('🔔 [BACKGROUND] Message data: ${message.data}');
+
   final prefs = await SharedPreferences.getInstance();
   final isEnabled = prefs.getBool(NotificationService.prefNotificationsEnabled) ?? true;
-  if (!isEnabled) return;
+  if (!isEnabled) {
+    debugPrint('🔕 [BACKGROUND] Notifications disabled');
+    return;
+  }
+
+  // Check for new_help_request type
+  final type = message.data['type']?.toString();
+  if (type == 'new_help_request') {
+    debugPrint('🆘 [BACKGROUND] New help request detected in background!');
+    // Store for later processing when app opens
+    final pendingKey = 'pending_help_request';
+    await prefs.setString(pendingKey, jsonEncode(message.data));
+  }
 
   final notification = message.notification;
   if (notification != null) {
+    debugPrint('📬 [BACKGROUND] Showing local notification: ${notification.title}');
     await NotificationService.showLocalNotification(
       title: notification.title ?? 'Notification',
       body: notification.body ?? '',
-      payload: message.data.toString(),
+      payload: jsonEncode(message.data),
     );
   }
 }
@@ -745,16 +760,20 @@ class NotificationService {
       onDidReceiveNotificationResponse: _handleLocalTap,
     );
 
+    // Create high-priority channel for help requests
     await _localNotifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(const AndroidNotificationChannel(
-      _channelId, _channelName,
+      _channelId,
+      _channelName,
       description: _channelDescription,
-      importance: Importance.high,
+      importance: Importance.max,
       playSound: true,
       enableVibration: true,
       showBadge: true,
     ));
+
+    debugPrint('✅ Android notification channel created with max importance');
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -763,30 +782,45 @@ class NotificationService {
   static Future<void> _setupFirebaseListeners() async {
     FirebaseMessaging.onMessage.listen((msg) {
       debugPrint('📬 Foreground message: ${msg.messageId}');
-      if (!_isNotificationsEnabled) return;
-      final type = msg.data['type']?.toString();
+      debugPrint('📬 Message data: ${msg.data}');
 
+      if (!_isNotificationsEnabled) return;
+
+      final type = msg.data['type']?.toString();
+      debugPrint('📬 Notification type: $type');
+
+      // Handle new_help_request immediately
       if (type == 'new_help_request') {
+        debugPrint('🆘 New help request detected!');
         _injectHelpRequest(msg.data);
       }
 
       final n = msg.notification;
       if (n != null) {
+        // Store full message data as JSON payload
+        final payload = jsonEncode(msg.data);
+        debugPrint('📝 Showing notification with payload: $payload');
         showLocalNotification(
           title: n.title ?? 'Notification',
           body: n.body ?? '',
-          payload: jsonEncode(msg.data), // store as JSON for reliable parsing
+          payload: payload,
         );
+      } else {
+        // Data-only message (no notification payload)
+        debugPrint('📝 Data-only message received');
       }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       debugPrint('📬 App opened from background notification');
+      debugPrint('📬 Message data: ${msg.data}');
       _navigateFromNotification(msg.data);
     });
 
     final initial = await _firebaseMessaging.getInitialMessage();
     if (initial != null) {
+      debugPrint('📬 App launched from terminated state');
+      debugPrint('📬 Initial message data: ${initial.data}');
       Future.delayed(const Duration(milliseconds: 500), () {
         _navigateFromNotification(initial.data);
       });
@@ -799,18 +833,50 @@ class NotificationService {
   // NAVIGATION ROUTING
   // ─────────────────────────────────────────────────────────────────────────
   static void _navigateFromNotification(Map<String, dynamic>? data) {
-    final context = navigatorKey.currentContext;
-    if (context == null) {
-      debugPrint('⚠️ navigatorKey context is null');
-      return;
-    }
+    debugPrint('🧭 [NAVIGATE] Called with data: $data');
 
     final type = data?['type']?.toString();
+    debugPrint('🧭 [NAVIGATE] Notification type: $type');
+
     if (type == 'new_help_request') {
-      _injectHelpRequest(data!);
-      Get.offAll(() => BottomMenuWrappers());
+      debugPrint('🧭 [NAVIGATE] Help request notification detected');
+
+      // Store data for processing
+      _pendingHelpRequestData = data;
+
+      // Check if controller is ready
+      if (Get.isRegistered<UnifiedHelpController>()) {
+        debugPrint('🧭 [NAVIGATE] Controller registered, injecting request');
+        _injectHelpRequest(data!);
+
+        // Navigate to home
+        final context = navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          debugPrint('🧭 [NAVIGATE] Navigating with context');
+          Get.offAll(() => BottomMenuWrappers());
+        } else {
+          debugPrint('🧭 [NAVIGATE] No context, using Get directly');
+          Get.offAll(() => BottomMenuWrappers());
+        }
+      } else {
+        debugPrint('⚠️ [NAVIGATE] Controller not registered, will process later');
+        // Controller not ready, will be processed when app fully loads
+        // Check if we should navigate anyway
+        final context = navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          debugPrint('🧭 [NAVIGATE] Navigating to home, will process when ready');
+          Get.offAll(() => BottomMenuWrappers());
+        }
+      }
     } else {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => SeakerNotifications()));
+      // Regular notification - navigate to notifications page
+      final context = navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        debugPrint('🧭 [NAVIGATE] Navigating to notifications page');
+        Navigator.push(context, MaterialPageRoute(builder: (_) => SeakerNotifications()));
+      } else {
+        debugPrint('⚠️ [NAVIGATE] No context available for navigation');
+      }
     }
   }
 
@@ -837,9 +903,36 @@ class NotificationService {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SHOW LOCAL NOTIFICATION
-  // ─────────────────────────────────────────────────────────────────────────
+  /// Check for pending help request from background handler (Android)
+  static Future<void> checkPendingHelpRequest() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingData = prefs.getString('pending_help_request');
+
+      if (pendingData != null) {
+        Logger.log("🔄 Found pending help request from background", type: "info");
+        debugPrint("📝 Pending data: $pendingData");
+
+        final data = jsonDecode(pendingData) as Map<String, dynamic>;
+
+        // Clear stored data
+        await prefs.remove('pending_help_request');
+
+        // Process if controller is ready
+        if (Get.isRegistered<UnifiedHelpController>()) {
+          Get.find<UnifiedHelpController>().injectHelpRequestFromNotification(data);
+          Logger.log("✅ Pending help request processed", type: "success");
+        } else {
+          // Store in memory for later
+          _pendingHelpRequestData = data;
+          Logger.log("⚠️ Controller not ready, stored in memory", type: "warning");
+        }
+      }
+    } catch (e) {
+      Logger.log("❌ Error checking pending help request: $e", type: "error");
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // SHOW LOCAL NOTIFICATION
   // ─────────────────────────────────────────────────────────────────────────
@@ -850,17 +943,33 @@ class NotificationService {
   }) async {
     if (!_isNotificationsEnabled) return;
 
+    // Parse payload to check for help request
+    Map<String, dynamic>? data;
+    bool isHelpRequest = false;
+    if (payload != null) {
+      try {
+        data = jsonDecode(payload) as Map<String, dynamic>;
+        isHelpRequest = data['type'] == 'new_help_request';
+      } catch (e) {
+        debugPrint('⚠️ Failed to parse payload: $e');
+      }
+    }
+
     final androidDetails = AndroidNotificationDetails(
-      _channelId, _channelName,
+      _channelId,
+      _channelName,
       channelDescription: _channelDescription,
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: isHelpRequest ? Importance.max : Importance.high,
+      priority: isHelpRequest ? Priority.max : Priority.high,
       playSound: _isSoundEnabled,
       enableVibration: _isVibrationEnabled,
       showWhen: true,
       vibrationPattern: _isVibrationEnabled
           ? Int64List.fromList([0, 500, 200, 500])
           : null,
+      category: isHelpRequest ? AndroidNotificationCategory.alarm : AndroidNotificationCategory.message,
+      visibility: NotificationVisibility.public,
+      fullScreenIntent: isHelpRequest, // Show as full-screen for help requests
     );
 
     final iosDetails = DarwinNotificationDetails(
@@ -868,27 +977,25 @@ class NotificationService {
       presentBadge: true,
       presentSound: _isSoundEnabled,
       sound: _isSoundEnabled ? 'default' : null,
-      interruptionLevel: InterruptionLevel.active,
+      interruptionLevel: isHelpRequest ? InterruptionLevel.critical : InterruptionLevel.active,
     );
 
-    // ✅ Assign platformDetails before using it
     final platformDetails = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
 
     try {
-      // ✅ .show() uses positional args (id, title, body, details), payload is named
       await _localNotifications.show(
-        id:DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         title: title,
         body: body,
-        notificationDetails:platformDetails,
+        notificationDetails: platformDetails,
         payload: payload,
       );
-      debugPrint(' Notification shown: "$title"');
+      debugPrint('✅ Notification shown: "$title" (help request: $isHelpRequest)');
     } catch (e) {
-      debugPrint(' showLocalNotification error: $e');
+      debugPrint('❌ showLocalNotification error: $e');
     }
   }
 

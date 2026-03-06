@@ -14,6 +14,7 @@ import 'package:saferader/utils/token_service.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 import 'package:vibration/vibration.dart';
 import '../../Models/HelpRequestResponse.dart';
+import '../../Service/Firebase/notifications.dart';
 import '../../controller/SeakerLocation/seakerLocationsController.dart';
 import '../../controller/SocketService/socket_service.dart';
 import '../../controller/UserController/userController.dart';
@@ -106,6 +107,11 @@ class UnifiedHelpController extends GetxController {
     loadUserData();
     fetchUserProfile();
     _startHealthMonitoring();        // Start health monitoring
+
+    // Process any pending help requests from notifications
+    Future.delayed(const Duration(milliseconds: 500), () {
+      NotificationService.processPendingNotification();
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────

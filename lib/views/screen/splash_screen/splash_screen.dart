@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -35,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeAndNavigate() async {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    // Firebase already initialized in main.dart
     await TokenService().init();
     final appDir = await getApplicationDocumentsDirectory();
     Hive.init(appDir.path);
@@ -67,8 +66,20 @@ class _SplashScreenState extends State<SplashScreen> {
       await dotenv.load(fileName: ".env");
       MobileAds.instance.initialize();
       await NotificationService.initialize();
+
+      // Check for pending help requests from background (Android)
+      await NotificationService.checkPendingHelpRequest();
+
       final token = await TokenService().getToken();
-      if (token != null) await checkAndRefreshToken();
+      if (token != null) {
+        await checkAndRefreshToken();
+
+        // Small delay to ensure controllers are ready
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        // Process any pending help requests after full initialization
+        NotificationService.processPendingNotification();
+      }
     }on Exception catch (e) {
       debugPrint("Non-critical init failed: $e");
     }

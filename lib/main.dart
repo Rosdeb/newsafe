@@ -14,12 +14,28 @@ import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/auth_service.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/utils/token_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'helpers/di.dart' as di;
 import 'utils/app_lifecycle_socket_handler.dart';
+import 'firebase_options.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize Firebase Analytics
+  FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  FirebaseAnalyticsObserver observer = FirebaseAnalyticsObserver(analytics: analytics);
+
+  // Log app start
+  await analytics.logAppOpen();
+
   MobileAds.instance.initialize();
 
   await dotenv.load(fileName: ".env");
@@ -34,6 +50,7 @@ void main() async {
   runApp(MyApp(
     lifecycleHandler: lifecycleHandler,
     languages: languages,
+    observer: observer,
   ));
 }
 
@@ -79,11 +96,13 @@ bool isTokenValid(String? token) {
 class MyApp extends StatelessWidget {
   final AppLifecycleSocketHandler? lifecycleHandler;
   final Map<String, Map<String, String>> languages;
+  final FirebaseAnalyticsObserver? observer;
 
   const MyApp({
     Key? key,
     this.lifecycleHandler,
     required this.languages,
+    this.observer,
   }) : super(key: key);
 
   @override
@@ -107,6 +126,9 @@ class MyApp extends StatelessWidget {
           ),
           getPages: AppRoutes.page,
           initialRoute: AppRoutes.splashScreen,
+          navigatorObservers: [
+            if (observer != null) observer!,
+          ],
         );
       },
     );
