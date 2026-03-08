@@ -1,12 +1,12 @@
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
+import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/logger.dart';
-import '../../Service/Firebase/notifications.dart';
-import '../../utils/api_service.dart';
-import '../../utils/app_constant.dart';
+import 'package:saferader/Service/Firebase/notifications.dart';
 import '../../utils/token_service.dart';
 import '../../views/screen/bottom_nav/bottom_nav_wrappers.dart';
 import '../UserController/userController.dart';
@@ -20,7 +20,6 @@ class SigInController extends GetxController {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-
   Future<void> loginUser(
       BuildContext context,
       String emails,
@@ -29,6 +28,9 @@ class SigInController extends GetxController {
     final networkController = Get.find<NetworkController>();
 
     if (!networkController.isOnline.value) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No internet connection')),
+      );
       return;
     }
 
@@ -46,21 +48,23 @@ class SigInController extends GetxController {
     };
 
     try {
-      final apiService = ApiService();
-      final response = await apiService.post(
-        endpoint: '/api/auth/login',
-        body: body,
-        requiresAuth: false,
+      final response = await http.post(
+        Uri.parse('${AppConstants.BASE_URL}/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
       );
 
-      if (response != null) {
-        final token        = response['accessToken']  as String?;
-        final refreshToken = response['refreshToken'] as String?;
-        final user         = response['user']         as Map<String, dynamic>?;
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final token        = data['accessToken']  as String?;
+        final refreshToken = data['refreshToken'] as String?;
+        final user         = data['user']         as Map<String, dynamic>?;
+
         Logger.log("Fcm Token: ${user?['fcmToken']}", type: "error");
 
         if (token == null || user == null) {
-          Logger.log(" Missing token or user in response", type: "error");
+          Logger.log("Missing token or user in response", type: "error");
           return;
         }
 
@@ -72,16 +76,16 @@ class SigInController extends GetxController {
         await TokenService().saveRefreshToken(refreshToken ?? '');
 
         final userBox = await Hive.openBox('userProfileBox');
-        await userBox.put('name',        user['name']         ?? '');
-        await userBox.put('email',       user['email']        ?? '');
-        await userBox.put('_id',         user['_id']          ?? '');
-        await userBox.put('role',        role);
-        await userBox.put('phone',       user['phone']        ?? '');
-        await userBox.put('dateOfBirth', user['dateOfBirth']  ?? '');
-        await userBox.put('gender',      user['gender']       ?? '');
-        await userBox.put('profileImage',user['profileImage'] ?? '');
+        await userBox.put('name',         user['name']         ?? '');
+        await userBox.put('email',        user['email']        ?? '');
+        await userBox.put('_id',          user['_id']          ?? '');
+        await userBox.put('role',         role);
+        await userBox.put('phone',        user['phone']        ?? '');
+        await userBox.put('dateOfBirth',  user['dateOfBirth']  ?? '');
+        await userBox.put('gender',       user['gender']       ?? '');
+        await userBox.put('profileImage', user['profileImage'] ?? '');
 
-        Logger.log(" Login successful - user saved to Hive", type: "info");
+        Logger.log("Login successful - user saved to Hive", type: "info");
 
         final userController = Get.find<UserController>();
         await userController.saveUserRole(role);
@@ -98,22 +102,28 @@ class SigInController extends GetxController {
             MaterialPageRoute(builder: (_) => BottomMenuWrappers()),
           );
         }
-
-        //registerFcmToken();
-
-      } else if (response == null) {
-        Logger.log("Server error", type: "error");
       } else {
-        Logger.log("Login failed", type: "error");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text('Invalid credentials'),
-          ),
-        );
+        final message = data["message"] ?? "Invalid credentials";
+        Logger.log("Login failed: $message", type: "error");
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } on Exception catch (e) {
       Logger.log("Unexpected error: $e", type: "error");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An unexpected error occurred'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       isLoading.value = false;
     }
@@ -122,16 +132,18 @@ class SigInController extends GetxController {
   Future<void> loadRememberedCredentials() async {
     try {
       final box = await Hive.openBox('rememberMeBox');
-      final savedEmail = box.get('email');
-      final savedPassword = box.get('password');
+      final savedEmail     = box.get('email');
+      final savedPassword  = box.get('password');
       final savedRememberMe = box.get('rememberMe', defaultValue: false);
 
-      if (savedRememberMe == true && savedEmail != null && savedPassword != null) {
+      if (savedRememberMe == true &&
+          savedEmail != null &&
+          savedPassword != null) {
         emailController.text = savedEmail;
         passwordController.text = savedPassword;
         rememberMe.value = true;
       }
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       Logger.log("Error loading remembered credentials: $e", type: "error");
     }
   }
@@ -139,10 +151,10 @@ class SigInController extends GetxController {
   Future<void> saveCredentials(String email, String password) async {
     try {
       final box = await Hive.openBox('rememberMeBox');
-      await box.put('email', email);
-      await box.put('password', password);
+      await box.put('email',      email);
+      await box.put('password',   password);
       await box.put('rememberMe', true);
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       Logger.log("Error saving credentials: $e", type: "error");
     }
   }
@@ -153,18 +165,14 @@ class SigInController extends GetxController {
       await box.delete('email');
       await box.delete('password');
       await box.put('rememberMe', false);
-    }on Exception catch (e) {
+    } on Exception catch (e) {
       Logger.log("Error clearing credentials: $e", type: "error");
     }
   }
 
-  void rememberToggle() {
-    rememberMe.value = !rememberMe.value;
-  }
+  void rememberToggle() => rememberMe.value = !rememberMe.value;
 
-  void toggle() {
-    passShowHide.value = !passShowHide.value;
-  }
+  void toggle() => passShowHide.value = !passShowHide.value;
 
   @override
   void onClose() {

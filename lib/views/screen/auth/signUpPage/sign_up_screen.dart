@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:saferader/controller/signup/signupController.dart';
 import 'package:saferader/views/screen/auth/signUpPage/widget/simpleContainerLIst.dart';
 import 'package:saferader/views/screen/auth/signinPage/signIn_screen.dart';
@@ -155,14 +156,20 @@ class SignUpScreen extends StatelessWidget {
                       TextSpan(
                         text: ' Privacy Policy'.tr,
                         style: const TextStyle(
-                          fontWeight: FontWeight.normal,
+                          fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: AppColors.colorYellow,
                         ),
                         recognizer: TapGestureRecognizer()
-                          ..onTap = (){
-                          //Get.to(Term)
-                          }
+                          ..onTap = ()async {
+                            final uri = Uri.parse(
+                                'https://safe-radar-policy-82jy.vercel.app/');
+                            if (await canLaunchUrl (uri)
+                            ) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+                            }
+                          },
                       ),
                     ],
                   ),

@@ -173,7 +173,7 @@ class LocationSharingController extends GetxController {
       currentPosition.value = pos;
       _autoShareLocation(pos);
     } catch (e) {
-      Logger.log("❌ [$role] Error getting location: $e", type: "error");
+      Logger.log("[$role] Error getting location: $e", type: "error");
     }
   }
 

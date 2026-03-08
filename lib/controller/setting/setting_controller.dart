@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
 import 'package:saferader/controller/SocketService/socket_service.dart';
+import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/logger.dart';
 
 import '../../utils/token_service.dart';
@@ -10,9 +14,14 @@ import '../SeakerHome/seakerHomeController.dart';
 import '../SeakerLocation/seakerLocationsController.dart';
 import '../networkService/networkService.dart';
 import '../profile/profile.dart';
+import '../../views/screen/auth/signinPage/signIn_screen.dart';
 
 class SettingController extends GetxController{
+  TextEditingController password = TextEditingController();
   final RxInt selectedIndex = 0.obs;
+  final RxBool isLoading = false.obs;
+  final RxBool passShowHide = false.obs;
+
   void tapSelected(int index){
     selectedIndex.value = index;
   }
@@ -60,6 +69,49 @@ class SettingController extends GetxController{
 
     }on Exception catch (e) {
       Logger.log(" Error during logout: $e", type: "error");
+    }
+  }
+
+  Future<void> deleteAccount(BuildContext context) async {
+    try {
+
+      final token = await TokenService().getToken();
+      isLoading.value = true;
+      final response = await http.delete(
+
+        Uri.parse("${AppConstants.BASE_URL}/api/users/me"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "confirm": true
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        isLoading.value = false;
+        Logger.log("Account deleted successfully", type: "info");
+
+        await TokenService().clearAll();
+
+        if (context.mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => SigninScreen()),
+                (route) => false,
+          );
+        }
+
+      } else {
+        Logger.log("Delete failed ${response.body}", type: "error");
+      }
+
+    } catch (e) {
+      isLoading.value = false;
+      Logger.log("Delete error: $e", type: "error");
+    }finally{
+      isLoading.value = false;
     }
   }
 

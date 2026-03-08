@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import '../../../base/AppTextField/apptextfield.dart';
 import 'package:saferader/controller/setting/setting_controller.dart';
 import 'package:saferader/utils/app_color.dart';
 import 'package:saferader/views/base/AppText/appText.dart';
@@ -13,7 +14,7 @@ import 'package:saferader/views/screen/help_seaker/setting/legal_terms/legal_ter
 import 'package:saferader/views/screen/help_seaker/setting/profile/profile.dart';
 import 'package:saferader/views/screen/help_seaker/setting/share/share_app.dart';
 import 'package:saferader/views/screen/help_seaker/setting/user_preferrence/user_preferrence.dart';
-
+import 'package:flutter/cupertino.dart';
 
 import '../../../base/gradientbutton/gradientButton.dart';
 
@@ -32,8 +33,6 @@ class SeakerSetting extends StatelessWidget {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         body: Container(
-          width: double.infinity,
-          height: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.centerRight,
@@ -58,9 +57,7 @@ class SeakerSetting extends StatelessWidget {
 
 
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: ListView.builder(
+                  child: ListView.builder(
                       physics: const BouncingScrollPhysics(),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
@@ -121,6 +118,9 @@ class SeakerSetting extends StatelessWidget {
                                   break;
                                 case 7:
                                   LogoutDialog.show(context);
+                                  break;
+                                case 8:
+                                  DeleteAccountSheet.show(context);
                                   break;
                                 default:
                                   break;
@@ -186,7 +186,6 @@ class SeakerSetting extends StatelessWidget {
                           );
                       },
                     ),
-                  ),
                 ),
               ],
             ),
@@ -195,6 +194,7 @@ class SeakerSetting extends StatelessWidget {
       ),
     );
   }
+
 
   final List<Map<String, dynamic>> items = [
     {
@@ -237,8 +237,158 @@ class SeakerSetting extends StatelessWidget {
       "title": "Log Out".tr,
       "subtitle": "Log out your profile",
     },
+    {
+      "icon": "assets/icon/delete.png",
+      "title": "Account Delete".tr,
+      "subtitle": "Delete Your Account".tr,
+    },
+
   ];
 
+}
+
+class DeleteAccountSheet {
+  static void show(BuildContext context) {
+    final SettingController controller = Get.find<SettingController>();
+
+    showModalBottomSheet(
+      enableDrag: false,
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return Obx(() => Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(35),topRight: Radius.circular(35)),
+            gradient: LinearGradient(
+              begin: Alignment.centerRight,
+              end: Alignment.centerLeft,
+              colors: [Color(0xFFFFF1A9), Color(0xFFFFFFFF), Color(0xFFFFF1A9)],
+              stops: [0.0046, 0.5005, 0.9964],
+            ),
+          ),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Warning icon
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    CupertinoIcons.exclamationmark_triangle_fill,
+                    color: Colors.red.shade400,
+                    size: 26,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const Text(
+                  "Delete Account",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  "Are you sure you want to delete your account?\nThis action cannot be undone.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Password field
+                AppTextField(
+                  keyboardType: TextInputType.visiblePassword,
+                  controller: controller.password,
+                  hint: "Enter your password".tr,
+                  textColor: Colors.black,
+                  fillColor: Colors.white54,
+                  obscure: controller.passShowHide.value,
+                  suffix: GestureDetector(
+                    onTap: () => controller.passShowHide.value =
+                    !controller.passShowHide.value,
+                    child: Icon(
+                      controller.passShowHide.value
+                          ? CupertinoIcons.eye
+                          : CupertinoIcons.eye_slash,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancel"),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : () async {
+                          await controller.deleteAccount(context);
+                        },
+                        child:controller.isLoading.value ?  CupertinoActivityIndicator(color: Colors.white,)
+                         : const AppText("Delete",color: Colors.white,fontSize: 14,),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class LogoutDialog {
