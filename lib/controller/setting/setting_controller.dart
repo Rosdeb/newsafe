@@ -84,9 +84,6 @@ class SettingController extends GetxController{
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({
-          "confirm": true
-        }),
       );
 
       if (response.statusCode == 200) {

@@ -330,28 +330,6 @@ class DeleteAccountSheet {
 
                 const SizedBox(height: 20),
 
-                // Password field
-                AppTextField(
-                  keyboardType: TextInputType.visiblePassword,
-                  controller: controller.password,
-                  hint: "Enter your password".tr,
-                  textColor: Colors.black,
-                  fillColor: Colors.white54,
-                  obscure: controller.passShowHide.value,
-                  suffix: GestureDetector(
-                    onTap: () => controller.passShowHide.value =
-                    !controller.passShowHide.value,
-                    child: Icon(
-                      controller.passShowHide.value
-                          ? CupertinoIcons.eye
-                          : CupertinoIcons.eye_slash,
-                      color: Colors.grey,
-                      size: 20,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
 
                 Row(
                   children: [

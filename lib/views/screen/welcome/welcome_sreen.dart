@@ -206,7 +206,7 @@ class SimpleAnimatedContainersList extends StatelessWidget {
                           height: 74,
                           padding: EdgeInsets.symmetric(
                             horizontal: size.width * 0.035,
-                            vertical: size.width * 0.020,
+                            vertical: size.width * 0.015,
                           ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
@@ -252,22 +252,28 @@ class SimpleAnimatedContainersList extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(width: size.width * 0.016),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  AppText(
-                                    (item["title"] as String).tr,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                    color: AppColors.colorWhite,
-                                  ),
-                                  AppText(
-                                    (item["subtitle"] as String).tr,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 10,
-                                  ),
-                                ],
+                              Flexible(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AppText(
+                                      (item["title"] as String).tr,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: AppColors.colorWhite,
+                                      height: 1.2,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    AppText(
+                                      (item["subtitle"] as String).tr,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                      height: 1.2,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
