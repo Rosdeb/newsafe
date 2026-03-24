@@ -1,32 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:pinput/pinput.dart';
 import 'package:saferader/controller/forgot/forgotController.dart';
 import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
-import 'package:saferader/views/screen/auth/reset_pass_screen.dart';
-import 'package:saferader/views/screen/auth/success_message_screen.dart';
-
 import '../../../utils/app_color.dart';
 import '../../base/AppText/appText.dart';
 import '../../base/AppTextField/apptextfield.dart';
 import '../../base/animationsWrapper/animations_wrapper.dart';
 import '../welcome/welcome_sreen.dart';
 import 'base/back_to_login.dart';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import 'package:pinput/pinput.dart';
-import 'package:saferader/controller/forgot/forgotController.dart';
-import 'package:saferader/views/base/Ios_effect/iosTapEffect.dart';
-import '../../../utils/app_color.dart';
-import '../../base/AppText/appText.dart';
-import '../../base/AppTextField/apptextfield.dart';
-import '../../base/animationsWrapper/animations_wrapper.dart';
-import 'base/back_to_login.dart';
-import 'dart:async';
 
 class SimpleOtpScreen extends StatefulWidget {
   final bool isSignUp;
@@ -35,7 +19,7 @@ class SimpleOtpScreen extends StatefulWidget {
   const SimpleOtpScreen({
     Key? key,
     required this.email,
-    this.isSignUp = true
+    this.isSignUp = true,
   }) : super(key: key);
 
   @override
@@ -47,7 +31,6 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
   final TextEditingController pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
   final int _length = 5;
-
 
   Timer? _timer;
   int _remainingSeconds = 60;
@@ -72,7 +55,6 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
       _remainingSeconds = 120;
       _canResend = false;
     });
-
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
@@ -90,18 +72,12 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
 
   void _resendOtp() {
     if (!_canResend) return;
-
-    // Call resend OTP API
     if (widget.isSignUp) {
       forgotController.resendSignupOtp(context, widget.email);
     } else {
       forgotController.resendForgotOtp(context, widget.email);
     }
-
-    // Restart timer
     _startTimer();
-
-    // Show feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('OTP resent successfully'.tr),
@@ -119,6 +95,10 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenHeight = size.height;
+    final isTablet = size.width > 600;
+
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Color(0xff202020),
@@ -128,10 +108,10 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
     );
 
     final defaultPinTheme = PinTheme(
-      width: 56,
-      height: 56,
-      textStyle: const TextStyle(
-        fontSize: 20,
+      width: isTablet ? 68 : 56,
+      height: isTablet ? 68 : 56,
+      textStyle: TextStyle(
+        fontSize: isTablet ? 24 : 20,
         color: Colors.black,
         fontWeight: FontWeight.w600,
       ),
@@ -162,10 +142,12 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
       backgroundColor: const Color(0xff202020),
       body: Center(
         child: Container(
-          height: 420,
+          height: isTablet ? screenHeight * 0.50 : 420,
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: EdgeInsets.symmetric(
+            horizontal: isTablet ? size.width * 0.15 : 16,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: AppColors.fill_Color2,
@@ -174,24 +156,24 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+              SizedBox(height: screenHeight * 0.02),
               AnimatedAppText(
                 "OTP Verification".tr,
-                fontSize: 30,
+                fontSize: isTablet ? 38 : 30,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFFEDC602),
               ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.008),
+              SizedBox(height: screenHeight * 0.008),
               AppText(
                 widget.isSignUp
                     ? "Enter the OTP sent to your email to verify your account".tr
                     : "Enter the OTP sent to your email to reset your password".tr,
-                fontSize: 12,
+                fontSize: isTablet ? 14 : 12,
                 fontWeight: FontWeight.w400,
                 color: AppColors.colorSubheading,
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              SizedBox(height: screenHeight * 0.03),
 
               Pinput(
                 length: _length,
@@ -218,7 +200,7 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 autofillHints: const [AutofillHints.oneTimeCode],
               ),
 
-              SizedBox(height: MediaQuery.of(context).size.height * 0.025),
+              SizedBox(height: screenHeight * 0.025),
 
               EnhancedAnimatedWrapper(
                 duration: const Duration(milliseconds: 500),
@@ -245,16 +227,15 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 ),
               ),
 
-              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+              SizedBox(height: screenHeight * 0.02),
 
-              // Resend OTP Section
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (!_canResend)
                     AppText(
                       "Resend OTP in".tr + " ${_formatTime(_remainingSeconds)}",
-                      fontSize: 13,
+                      fontSize: isTablet ? 14 : 13,
                       fontWeight: FontWeight.w500,
                       color: AppColors.colorSubheading,
                     )
@@ -265,13 +246,13 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                         children: [
                           AnimatedAppText(
                             "Didn't receive code?".tr,
-                            fontSize: 13,
+                            fontSize: isTablet ? 14 : 13,
                             fontWeight: FontWeight.w500,
                             color: AppColors.colorSubheading,
                           ),
                           AnimatedAppText(
                             "Resend OTP".tr,
-                            fontSize: 14,
+                            fontSize: isTablet ? 15 : 14,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFFEDC602),
                           ),
@@ -281,7 +262,7 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
                 ],
               ),
 
-              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+              SizedBox(height: screenHeight * 0.02),
 
               AnimatedWidgetWrapper(
                 child: BackToLogin(
@@ -299,17 +280,9 @@ class _SimpleOtpScreenState extends State<SimpleOtpScreen> {
 
   void _verifyOtp(String pin) {
     if (widget.isSignUp) {
-      forgotController.singupEmail(
-        context,
-        widget.email,
-        pin,
-      );
+      forgotController.singupEmail(context, widget.email, pin);
     } else {
-      forgotController.verifyEmail(
-        context,
-        widget.email,
-        pin,
-      );
+      forgotController.verifyEmail(context, widget.email, pin);
     }
   }
 }

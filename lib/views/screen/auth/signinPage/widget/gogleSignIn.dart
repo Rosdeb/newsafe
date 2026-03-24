@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -9,8 +10,9 @@ class GoogleOrAppcle extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
   final String icon;
+  final bool isLoading;
 
-  const GoogleOrAppcle({super.key, required this.text, required this.onTap,required this.icon});
+  const GoogleOrAppcle({super.key, required this.text, required this.onTap,required this.icon, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -18,14 +20,16 @@ class GoogleOrAppcle extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 51,
+        width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           color: Colors.transparent,
           border: Border.all(width: 1.3, color: AppColors.colorYellow.withOpacity(0.50)),
         ),
-        child: Center(
+        child: isLoading ? CupertinoActivityIndicator()
+        : Center(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(icon),
               const SizedBox(width: 8),

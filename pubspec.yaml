@@ -66,6 +66,10 @@ dependencies:
   device_info_plus: ^12.3.0
   audioplayers: ^6.5.1
   flutter_foreground_task: ^9.2.0
+  sign_in_with_apple: ^7.0.1
+  firebase_auth: ^6.3.0
+  google_sign_in: ^7.2.0
+  cloud_firestore: ^6.2.0
 
 dev_dependencies:
   flutter_test:

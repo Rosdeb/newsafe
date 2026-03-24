@@ -25,76 +25,92 @@ class WelcomeSreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenHeight = size.height;
+    final screenWidth = size.width;
+    final isTablet = size.width > 600;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: Color(0xff202020),
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 45),
-              SvgPicture.asset(AppIcons.miniSafeRadar),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-              AnimatedAppText(
-                "Welcome to SafeRadar".tr,
-                fontSize: 30,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFEDC602),
+        backgroundColor: const Color(0xff202020),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isTablet ? 560.0 : double.infinity,
               ),
-              const SizedBox(height: 18),
-              AnimatedAppText(
-                "Join a community that cares. When you need help, we're here. When others need help, you can be their hero.".tr,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.colorSubheading,
-                duration: const Duration(milliseconds: 800),
-                delay: const Duration(milliseconds: 300),
-              ),
-              const SizedBox(height: 10),
-              SimpleAnimatedContainersList(),
-              const SizedBox(height: 24),
-              EnhancedAnimatedWrapper(
-                duration: Duration(milliseconds: 800),
-                delay: const Duration(milliseconds: 500),
-                direction: AnimationDirection.top,
-                curve: Curves.elasticOut,
-                // Better curve for bounce effect
-                child: Gradientbutton1(
-                  text: 'Get Started'.tr.toUpperCase(),
-                  ontap: () {
-                    apputils.logInfo("Get started");
-                    // Navigation is handled internally with better transitions
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (builder) => SigninScreen()),
-                    );
-                  },
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? screenWidth * 0.01 : 20,
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(height: isTablet ? 60 : 45),
+                    SvgPicture.asset(
+                      AppIcons.miniSafeRadar,
+                      width: isTablet ? screenWidth * 0.18 : null,
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    AnimatedAppText(
+                      "Welcome to SafeRadar".tr,
+                      fontSize: isTablet ? 38 : 30,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFEDC602),
+                    ),
+                    const SizedBox(height: 18),
+                    AnimatedAppText(
+                      "Join a community that cares. When you need help, we're here. When others need help, you can be their hero.".tr,
+                      fontSize: isTablet ? 14 : 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.colorSubheading,
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 300),
+                    ),
+                    const SizedBox(height: 10),
+                    SimpleAnimatedContainersList(),
+                    const SizedBox(height: 24),
+                    EnhancedAnimatedWrapper(
+                      duration: Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 500),
+                      direction: AnimationDirection.top,
+                      curve: Curves.elasticOut,
+                      child: Gradientbutton1(
+                        text: 'Get Started'.tr.toUpperCase(),
+                        ontap: () {
+                          apputils.logInfo("Get started");
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (builder) => SigninScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    EnhancedAnimatedWrapper(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 500),
+                      direction: AnimationDirection.bottom,
+                      curve: Curves.elasticOut,
+                      child: Borderbuton(
+                        text: 'Create an account'.tr,
+                        onTap: () {
+                          apputils.logInfo("Get started");
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => SignUpScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: isTablet ? 32 : 16),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              EnhancedAnimatedWrapper(
-                duration: const Duration(milliseconds: 800),
-                delay: const Duration(milliseconds: 500),
-                direction: AnimationDirection.bottom,
-                curve: Curves.elasticOut,
-                child: Borderbuton(
-                  text: 'Create an account'.tr,
-                  onTap: () {
-                    apputils.logInfo("Get started");
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => SignUpScreen()),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -183,12 +199,13 @@ class SimpleAnimatedContainersList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final screenHeight = size.height;
+    final isTablet = size.width > 600;
 
     return Column(
       children: List.generate(items.length, (index) {
         return TweenAnimationBuilder<double>(
           duration: Duration(milliseconds: 600 + (index * 200)),
-          // Staggered timing
           tween: Tween<double>(begin: 0.0, end: 1.0),
           builder: (context, value, child) {
             final item = items[index];
@@ -197,29 +214,29 @@ class SimpleAnimatedContainersList extends StatelessWidget {
               return IosTapEffect(
                 onTap: () => controller.tapSelected(index),
                 child: Transform.translate(
-                  offset: Offset(0, (1 - value) * -100), // Slide from top
+                  offset: Offset(0, (1 - value) * -100),
                   child: Opacity(
                     opacity: value,
                     child: Column(
                       children: [
                         Container(
-                          height: 74,
+                          height: isTablet ? 88 : 74,
                           padding: EdgeInsets.symmetric(
                             horizontal: size.width * 0.035,
-                            vertical: size.width * 0.015,
+                            vertical: isTablet ? 14 : size.width * 0.015,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(isTablet ? 14 : 10),
                             color: const Color(0xFF505050).withOpacity(0.50),
                           ),
                           child: Row(
                             children: [
                               Container(
-                                width: 50,
-                                height: 50,
+                                width: isTablet ? 60 : 50,
+                                height: isTablet ? 60 : 50,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(50),
-                                  gradient: LinearGradient(
+                                  borderRadius: BorderRadius.circular(isTablet ? 60 : 50),
+                                  gradient: const LinearGradient(
                                     begin: Alignment.topRight,
                                     end: Alignment.bottomLeft,
                                     colors: [
@@ -231,19 +248,18 @@ class SimpleAnimatedContainersList extends StatelessWidget {
                                 child: Center(
                                   child: Builder(
                                     builder: (_) {
-                                      String path =
-                                          item['icon']; // your dynamic path
+                                      String path = item['icon'];
                                       if (path.endsWith(".svg")) {
                                         return SvgPicture.asset(
                                           path,
-                                          width: 24,
-                                          height: 24,
+                                          width: isTablet ? 30 : 24,
+                                          height: isTablet ? 30 : 24,
                                         );
                                       } else {
                                         return Image.asset(
                                           path,
-                                          width: 24,
-                                          height: 24,
+                                          width: isTablet ? 30 : 24,
+                                          height: isTablet ? 30 : 24,
                                           fit: BoxFit.contain,
                                         );
                                       }
@@ -261,7 +277,7 @@ class SimpleAnimatedContainersList extends StatelessWidget {
                                     AppText(
                                       (item["title"] as String).tr,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                                      fontSize: isTablet ? 16 : 14,
                                       color: AppColors.colorWhite,
                                       height: 1.2,
                                     ),
@@ -269,7 +285,7 @@ class SimpleAnimatedContainersList extends StatelessWidget {
                                     AppText(
                                       (item["subtitle"] as String).tr,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 10,
+                                      fontSize: isTablet ? 12 : 10,
                                       height: 1.2,
                                     ),
                                   ],
@@ -304,16 +320,16 @@ class AnimatedAppText extends StatelessWidget {
   final double? height;
 
   const AnimatedAppText(
-    this.text, {
-    Key? key,
-    required this.fontSize,
-    required this.fontWeight,
-    required this.color,
-    this.style,
-    this.duration = const Duration(milliseconds: 800),
-    this.delay = Duration.zero,
-    this.height,
-  }) : super(key: key);
+      this.text, {
+        Key? key,
+        required this.fontSize,
+        required this.fontWeight,
+        required this.color,
+        this.style,
+        this.duration = const Duration(milliseconds: 800),
+        this.delay = Duration.zero,
+        this.height,
+      }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -323,10 +339,10 @@ class AnimatedAppText extends StatelessWidget {
       curve: Curves.easeOut,
       builder: (context, value, child) {
         final delayedValue =
-            (value - (delay.inMilliseconds / duration.inMilliseconds)).clamp(
-              0.0,
-              1.0,
-            );
+        (value - (delay.inMilliseconds / duration.inMilliseconds)).clamp(
+          0.0,
+          1.0,
+        );
         return Transform.translate(
           offset: Offset(0, (1 - delayedValue) * -50),
           child: Opacity(
@@ -509,7 +525,7 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            widget.destinationScreen,
+        widget.destinationScreen,
         transitionDuration: widget.animationDuration,
         reverseTransitionDuration: const Duration(milliseconds: 400),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -533,7 +549,7 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
           );
         },
       ),
-      (route) => false,
+          (route) => false,
     );
   }
 
@@ -543,62 +559,60 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
       tag: widget.heroTag,
       flightShuttleBuilder:
           (
-            BuildContext flightContext,
-            Animation<double> animation,
-            HeroFlightDirection flightDirection,
-            BuildContext fromHeroContext,
-            BuildContext toHeroContext,
+          BuildContext flightContext,
+          Animation<double> animation,
+          HeroFlightDirection flightDirection,
+          BuildContext fromHeroContext,
+          BuildContext toHeroContext,
           ) {
-            // Custom hero flight animation
-            return AnimatedBuilder(
-              animation: animation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: 1.0 + (animation.value * 0.1),
-                  // Slight scale during flight
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [
-                          Color.lerp(
-                            Colors.blue,
-                            Colors.purple,
-                            animation.value,
-                          )!,
-                          Color.lerp(
-                            Colors.purple,
-                            Colors.blue,
-                            animation.value,
-                          )!,
-                        ],
+        // Custom hero flight animation
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: 1.0 + (animation.value * 0.1),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Color.lerp(
+                        Colors.blue,
+                        Colors.purple,
+                        animation.value,
+                      )!,
+                      Color.lerp(
+                        Colors.purple,
+                        Colors.blue,
+                        animation.value,
+                      )!,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(
+                        0.2 * animation.value,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(
-                            0.2 * animation.value,
-                          ),
-                          blurRadius: 20 * animation.value,
-                          spreadRadius: 5 * animation.value,
-                        ),
-                      ],
+                      blurRadius: 20 * animation.value,
+                      spreadRadius: 5 * animation.value,
                     ),
-                    child: Center(
-                      child: Text(
-                        widget.text,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16 + (animation.value * 4),
-                          // Grow text during flight
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    widget.text,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16 + (animation.value * 4),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              },
+                ),
+              ),
             );
           },
+        );
+      },
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {
@@ -606,12 +620,10 @@ class _HeroGradientButtonState extends State<HeroGradientButton>
             scale: _scaleAnimation.value,
             child: IosTapEffect(
               onTap: () {
-                // Use onTap instead of onTapDown/onTapUp
                 print("Button tapped!"); // Debug line
                 _navigateWithCustomTransition();
               },
               child: Container(
-                // Replace GradientButton with a simple container
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
@@ -660,9 +672,9 @@ class GradientButton extends StatelessWidget {
         gradient: LinearGradient(
           colors: isLoading
               ? [
-                  Color(0xfff7d481).withOpacity(0.6),
-                  Color(0xffffc91d).withOpacity(0.6),
-                ]
+            const Color(0xfff7d481).withOpacity(0.6),
+            const Color(0xffffc91d).withOpacity(0.6),
+          ]
               : const [Color(0xfff7d481), Color(0xffffc91d)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -683,18 +695,18 @@ class GradientButton extends StatelessWidget {
           child: Center(
             child: isLoading
                 ? const CupertinoActivityIndicator(
-                    color: Color(0xFF202020),
-                    radius: 12,
-                  )
+              color: Color(0xFF202020),
+              radius: 12,
+            )
                 : Text(
-                    text,
-                    style: const TextStyle(
-                      color: AppColors.color2Box,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
+              text,
+              style: const TextStyle(
+                color: AppColors.color2Box,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
           ),
         ),
       ),

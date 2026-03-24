@@ -22,7 +22,11 @@ class ForgotScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     final size = MediaQuery.of(context).size;
+    final screenHeight = size.height;
+    final isTablet = size.width > 600;
+
     SystemChrome.setSystemUIOverlayStyle(
      const SystemUiOverlayStyle(
         statusBarColor: Color(0xff202020),
@@ -34,10 +38,10 @@ class ForgotScreen extends StatelessWidget {
       backgroundColor:const Color(0xff202020),
       body: Center(
         child: Container(
-          height: 371,
+          height: isTablet ? size.height * 0.3:371,
           width: double.infinity,
           padding:const EdgeInsets.symmetric(horizontal: 24),
-          margin:const EdgeInsets.symmetric(horizontal: 16),
+          margin: EdgeInsets.symmetric(horizontal: isTablet ? size.width * 0.15 :16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: AppColors.fill_Color2,

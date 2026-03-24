@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:saferader/Service/AppleSign/appleSignInServices.dart';
 import 'package:saferader/utils/app_constant.dart';
 import 'package:saferader/utils/logger.dart';
 import 'package:saferader/Service/Firebase/notifications.dart';
@@ -16,6 +17,7 @@ class SigInController extends GetxController {
   RxBool passShowHide = false.obs;
   RxBool rememberMe = false.obs;
   RxBool isLoading = false.obs;
+  RxBool appleLoading = false.obs;
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -167,6 +169,103 @@ class SigInController extends GetxController {
       await box.put('rememberMe', false);
     } on Exception catch (e) {
       Logger.log("Error clearing credentials: $e", type: "error");
+    }
+  }
+
+  Future<void> signInWithApple() async {
+    try {
+      appleLoading.value = true;
+      final result = await AppleSignInService.signInWithApple();
+
+      if (result == null) {
+        appleLoading.value = false;
+        print('User cancelled Apple Sign-In');
+        return;
+      }
+
+      await sendAppleTokenToBackend(
+        email: result['email'],
+        displayName: result['displayName'],
+        photoURL: result['photoURL'],
+        identityToken : result['identityToken']
+      );
+
+      appleLoading.value = false;
+      print('Apple Sign-In successful for ${result['email']}');
+    } catch (e) {
+      appleLoading.value = false;
+      print("Apple Sign-In error: $e");
+    }
+  }
+
+
+  Future<bool> sendAppleTokenToBackend({
+    required String? email,
+    required String? displayName,
+    required String? photoURL,
+    required String? identityToken,
+  }) async {
+    final url = "${AppConstants.BASE_URL}/api/v1/auth/login-with-apple";
+    var fcmToken = await PrefsHelper.getString(AppConstants.fcmToken);
+
+    final body = {
+      'email': email,
+      'name': displayName,
+      'photoURL': photoURL,
+      'identityToken':identityToken,
+      'fcmToken': fcmToken,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        Logger.log("Apple login response: $data");
+
+        final accessToken = data['data']?['attributes']?['tokens']?['access']?['token'];
+        final refreshToken = data['data']?['attributes']?['tokens']?['refresh']?['token'];
+        final userId = data['data']?['attributes']?['user']?['id'];
+        final isSubscribed = data['data']?['attributes']?['user']?['isSubscribed'] ?? false;
+
+        Logger.log("AccessToken: $accessToken");
+        Logger.log("RefreshToken: $refreshToken");
+        Logger.log("UserId: $userId");
+        Logger.log("IsSubscribed: $isSubscribed");
+
+        // Save tokens and user info (including refresh token)
+        if (accessToken != null && userId != null && refreshToken != null) {
+          await TokenService().saveToken(accessToken);
+          await TokenService().saveRefreshToken(refreshToken);
+          await TokenService().saveUserId(userId);
+          // if (email != null) {
+          //   await TokenService().saveEmail(email);
+          // }
+        }
+        if (isSubscribed == true) {
+          Get.offAll(BottomMenuWrappers());
+        } else {
+          //Get.to(() => const Subscriptions(navigateAfterSuccess: true));
+        }
+        return true;
+      } else {
+        String message = "Something went wrong";
+        try {
+          final body = jsonDecode(response.body);
+          message = body['message'] ?? message;
+        } catch (_) {}
+        Get.snackbar("Failed", message);
+        Logger.log("Apple login failed: ${response.body}", type: "error");
+        return false;
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Something went wrong: $e");
+      Logger.log("Apple login error: $e", type: "error");
+      return false;
     }
   }
 
