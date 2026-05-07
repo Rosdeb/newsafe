@@ -241,40 +241,6 @@ class SignUpScreen extends StatelessWidget {
                     ),
                     SizedBox(height: screenHeight * 0.025),
 
-                    AnimatedAppText(
-                      "or continue with".tr,
-                      fontSize: isTablet ? 16 : 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.colorSubheading,
-                    ),
-                    SizedBox(height: screenHeight * 0.02),
-
-                    EnhancedAnimatedWrapper(
-                      duration: const Duration(milliseconds: 800),
-                      delay: const Duration(milliseconds: 500),
-                      direction: AnimationDirection.top,
-                      curve: Curves.elasticOut,
-                      child: GoogleOrAppcle(
-                        text: "Continue with Google".tr,
-                        onTap: () {},
-                        icon: AppIcons.google,
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.025),
-
-                    EnhancedAnimatedWrapper(
-                      duration: const Duration(milliseconds: 800),
-                      delay: const Duration(milliseconds: 500),
-                      direction: AnimationDirection.top,
-                      curve: Curves.elasticOut,
-                      child: GoogleOrAppcle(
-                        text: "Continue with Apple".tr,
-                        onTap: () {},
-                        icon: AppIcons.apple,
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.012),
-
                     const EnhancedAnimatedWrapper(
                       duration: Duration(milliseconds: 800),
                       delay: Duration(milliseconds: 500),
