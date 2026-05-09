@@ -208,7 +208,7 @@ class ProfileController extends GetxController {
   RxString firstName = ''.obs;
   RxString lastName = ''.obs;
   RxString selectedLanguage = "English".obs;
-  RxString distance = '1'.obs;
+  RxString distance = '3'.obs;
 
   void toggle() => passShowHide.value = !passShowHide.value;
 

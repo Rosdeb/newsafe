@@ -23,16 +23,15 @@ import '../../utils/auth_service.dart';
 import '../Service/Backgound/background_services.dart';
 import 'notifications/notifications_controller.dart';
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // HelpMode enum: clarifies what the screen should show
 // ─────────────────────────────────────────────────────────────────────────────
 enum HelpScreenMode {
-  idle,           // 0 – default home (toggle available to help here)
-  seekerSending,  // 1 – user sent help request, waiting for a helper
-  seekerWaiting,  // 2 – helper accepted, help is on the way (seeker view)
+  idle, // 0 – default home (toggle available to help here)
+  seekerSending, // 1 – user sent help request, waiting for a helper
+  seekerWaiting, // 2 – helper accepted, help is on the way (seeker view)
   giverSearching, // 3 – user is available and has incoming request cards
-  giverHelping,   // 4 – user accepted a request, going to help someone
+  giverHelping, // 4 – user accepted a request, going to help someone
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,7 +41,20 @@ class NearbyStats {
   final int km1;
   final int km2;
   final int km3;
-  NearbyStats({required this.km1, required this.km2, required this.km3});
+
+  NearbyStats({
+    required this.km1,
+    required this.km2,
+    required this.km3});
+
+  factory NearbyStats.fromJson(Map<String, dynamic> json) {
+    return NearbyStats(
+      km1: (json['1km'] as num?)?.toInt() ?? 0,
+      km2: (json['2km'] as num?)?.toInt() ?? 0,
+      km3: (json['3km'] as num?)?.toInt() ?? 0,
+    );
+  }
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,7 +77,7 @@ class UnifiedHelpController extends GetxController {
 
   // ── Seeker State (when this user asked for help) ─────────────────────────
   RxString seekerHelpRequestId = ''.obs;
-  Rx<NearbyStats> nearbyStats = NearbyStats(km1: 0, km2: 0,km3:0).obs;
+  Rx<NearbyStats> nearbyStats = NearbyStats(km1: 0, km2: 0, km3: 0).obs;
 
   /// Position of the helper coming to ME (I am the seeker)
   Rxn<Position> incomingHelperPosition = Rxn<Position>();
@@ -106,7 +118,7 @@ class UnifiedHelpController extends GetxController {
     _setupLocationDistanceListener();
     loadUserData();
     fetchUserProfile();
-    _startHealthMonitoring();        // Start health monitoring
+    _startHealthMonitoring(); // Start health monitoring
 
     // Process any pending help requests from notifications
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -130,8 +142,12 @@ class UnifiedHelpController extends GetxController {
 
     // Debounce rapid init calls
     final now = DateTime.now();
-    if (_lastInitTime != null && now.difference(_lastInitTime!) < _minInitInterval) {
-      Logger.log('⏱️ [SOCKET] Too soon since last init, skipping', type: 'info');
+    if (_lastInitTime != null &&
+        now.difference(_lastInitTime!) < _minInitInterval) {
+      Logger.log(
+        '⏱️ [SOCKET] Too soon since last init, skipping',
+        type: 'info',
+      );
       return;
     }
 
@@ -154,22 +170,31 @@ class UnifiedHelpController extends GetxController {
 
         // Only setup listeners if not already setup
         if (_socketService!.isConnected.value) {
-          Logger.log('✅ [UNIFIED] Socket already connected, reusing', type: 'success');
+          Logger.log(
+            ' [UNIFIED] Socket already connected, reusing',
+            type: 'success',
+          );
           _isInitializingSocket = false;
           return;
         }
 
         _removeAllListeners();
         _setupSocketListeners();
-        Logger.log('✅ [UNIFIED] Reusing existing SocketService', type: 'success');
+        Logger.log(
+          ' [UNIFIED] Reusing existing SocketService',
+          type: 'success',
+        );
         _isInitializingSocket = false;
         return;
       }
 
       // Fresh init
-      Logger.log('🔄 [SOCKET] Initializing new socket connection...', type: 'info');
+      Logger.log(
+        '🔄 [SOCKET] Initializing new socket connection...',
+        type: 'info',
+      );
       _socketService = await Get.putAsync(
-            () => SocketService().init(token, role: 'both'),
+        () => SocketService().init(token, role: 'both'),
         permanent: true,
       );
 
@@ -200,7 +225,10 @@ class UnifiedHelpController extends GetxController {
     if (_reconnectAttempts >= _maxReconnect) return;
     _reconnectAttempts++;
     _socketService?.reconnect();
-    Logger.log('🔄 [UNIFIED] Reconnect attempt $_reconnectAttempts', type: 'info');
+    Logger.log(
+      '🔄 [UNIFIED] Reconnect attempt $_reconnectAttempts',
+      type: 'info',
+    );
   }
 
   void _rejoinRoomAfterReconnect() {
@@ -329,7 +357,10 @@ class UnifiedHelpController extends GetxController {
       }
 
       emergencyVibration();
-      Logger.log('[UNIFIED] Pending requests: ${pendingRequests.length}', type: 'success');
+      Logger.log(
+        '[UNIFIED] Pending requests: ${pendingRequests.length}',
+        type: 'success',
+      );
     } catch (e) {
       Logger.log('[UNIFIED] _onNewHelpRequest error: $e', type: 'error');
     }
@@ -340,14 +371,16 @@ class UnifiedHelpController extends GetxController {
       stopVibration();
       final requestData = data as Map<String, dynamic>;
       final helpRequest = requestData['helpRequest'] as Map<String, dynamic>?;
-      final giverLocationData = requestData['giverLocation'] as Map<String, dynamic>?;
+      final giverLocationData =
+          requestData['giverLocation'] as Map<String, dynamic>?;
 
       if (helpRequest == null) return;
       final helpRequestId = helpRequest['_id']?.toString() ?? '';
       if (helpRequestId.isEmpty) return;
 
       // Extract helper info
-      final helper = requestData['helper'] as Map<String, dynamic>? ??
+      final helper =
+          requestData['helper'] as Map<String, dynamic>? ??
           helpRequest['helper'] as Map<String, dynamic>?;
       incomingHelperName.value = helper?['name']?.toString() ?? 'Helper';
       incomingHelperImage.value = helper?['profileImage']?.toString() ?? '';
@@ -373,7 +406,10 @@ class UnifiedHelpController extends GetxController {
       // Start sharing my location so the helper can track me
       await _startLocationSharing(helpRequestId);
 
-      Logger.log('[UNIFIED] Seeker: help accepted, sharing location', type: 'success');
+      Logger.log(
+        '[UNIFIED] Seeker: help accepted, sharing location',
+        type: 'success',
+      );
     } catch (e) {
       Logger.log('[UNIFIED] _onHelpRequestAccepted: $e', type: 'error');
     }
@@ -445,7 +481,6 @@ class UnifiedHelpController extends GetxController {
   Future<void> sendHelpRequest(double latitude, double longitude) async {
     if (_socketService == null) await initSocket();
 
-    // Wait for socket if needed
     int attempts = 0;
     while (_socketService?.isConnected.value != true && attempts < 20) {
       await Future.delayed(const Duration(milliseconds: 500));
@@ -461,51 +496,94 @@ class UnifiedHelpController extends GetxController {
     screenMode.value = HelpScreenMode.seekerSending;
 
     try {
-      final response = await ApiService().post(
-        endpoint:'/api/help-requests',
+      final response = await ApiService()
+          .post(
+        endpoint: '/api/help-requests',
         requiresAuth: true,
         body: {'latitude': latitude, 'longitude': longitude},
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       if (response != null) {
+        final rawMap = response is String
+            ? jsonDecode(response as String) as Map<String, dynamic>
+            : Map<String, dynamic>.from(response as Map);
 
-        final parsed = HelpRequestResponse.fromJson(
-          response is String ? jsonDecode(response as String) : Map<String, dynamic>.from(response as Map),
-        );
-        seekerHelpRequestId.value = parsed.data.id;
-        nearbyStats.value = NearbyStats(
-          km1: parsed.nearbyStats.km1,
-          km2: parsed.nearbyStats.km2,
-          km3: parsed.nearbyStats.km3,
-        );
-        Logger.log('[UNIFIED] Help request created: ${parsed.data.id} \n data: $nearbyStats', type: 'success');
+        String? requestId;
+        NearbyStats? stats;
+
+        try {
+          final parsed = HelpRequestResponse.fromJson(rawMap);
+          requestId = parsed.data.id;
+          stats = NearbyStats(
+            km1: parsed.nearbyStats.km1,
+            km2: parsed.nearbyStats.km2,
+            km3: parsed.nearbyStats.km3,
+          );
+        } catch (parseError) {
+          //  Stop ringtone/vibration before taking the fallback path
+          stopVibration();
+          Logger.log(
+            '[UNIFIED] Parse failed, falling back to raw extraction: $parseError',
+            type: 'warning',
+          );
+
+          final data = rawMap['data'] as Map<String, dynamic>?;
+          requestId = data?['_id']?.toString() ??
+              data?['id']?.toString() ??
+              rawMap['_id']?.toString();
+
+          final rawStats = rawMap['nearbyStats'] as Map<String, dynamic>? ?? {};
+          stats = NearbyStats(
+            km1: (rawStats['1km'] as num?)?.toInt() ?? 0,
+            km2: (rawStats['2km'] as num?)?.toInt() ?? 0,
+            km3: (rawStats['3km'] as num?)?.toInt() ?? 0,
+          );
+        }
+
+        if (requestId != null && requestId.isNotEmpty) {
+          seekerHelpRequestId.value = requestId;
+          if (stats != null) nearbyStats.value = stats;
+          Logger.log(
+            '[UNIFIED] Help request created: $requestId',
+            type: 'success',
+          );
+        } else {
+          //  Stop ringtone/vibration here too — no valid request was created
+          stopVibration();
+          screenMode.value = HelpScreenMode.idle;
+          Logger.log(
+            '[UNIFIED] No request ID found. Raw: $rawMap',
+            type: 'error',
+          );
+        }
       } else {
+        stopVibration(); //  Null response — stop everything
         screenMode.value = HelpScreenMode.idle;
-        Logger.log('[UNIFIED] Help request failed: ${response}', type: 'error');
+        Logger.log('[UNIFIED] Help request failed: null response', type: 'error');
       }
     } catch (e) {
+      stopVibration(); //  Exception path — stop everything
       screenMode.value = HelpScreenMode.idle;
       Logger.log('[UNIFIED] sendHelpRequest error: $e', type: 'error');
     }
   }
-
   /// Cancel my own help request
   Future<void> cancelMyHelpRequest() async {
     stopVibration();
     if (seekerHelpRequestId.value.isEmpty) return;
 
     try {
-      final response = await ApiService().post(
-        endpoint: '/api/help-requests/${seekerHelpRequestId.value}/cancel',
-        requiresAuth: true,
-      ).timeout(const Duration(seconds: 30));
+      final response = await ApiService()
+          .post(
+            endpoint: '/api/help-requests/${seekerHelpRequestId.value}/cancel',
+            requiresAuth: true,
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response != 204) {
         Logger.log('[UNIFIED] Help request cancelled', type: 'success');
-      }else{
-
-      }
-
+      } else {}
     } catch (e) {
       Logger.log('[UNIFIED] cancelMyHelpRequest error: $e', type: 'error');
     } finally {
@@ -640,12 +718,11 @@ class UnifiedHelpController extends GetxController {
         }
         final pos = locCtrl.currentPosition.value;
         if (pos != null) {
-          await ApiService().put(endpoint: '/api/users/me/location',
-              requiresAuth: true,
-              body: {
-            'latitude': pos.latitude,
-            'longitude': pos.longitude,
-          });
+          await ApiService().put(
+            endpoint: '/api/users/me/location',
+            requiresAuth: true,
+            body: {'latitude': pos.latitude, 'longitude': pos.longitude},
+          );
         }
         locCtrl.startLocationSharing();
       }
@@ -693,9 +770,15 @@ class UnifiedHelpController extends GetxController {
       }
 
       emergencyVibration();
-      Logger.log('[UNIFIED] Help request injected from notification: $requestId', type: 'success');
+      Logger.log(
+        '[UNIFIED] Help request injected from notification: $requestId',
+        type: 'success',
+      );
     } catch (e) {
-      Logger.log('[UNIFIED] injectHelpRequestFromNotification: $e', type: 'error');
+      Logger.log(
+        '[UNIFIED] injectHelpRequestFromNotification: $e',
+        type: 'error',
+      );
     }
   }
 
@@ -728,11 +811,14 @@ class UnifiedHelpController extends GetxController {
       if (myPos == null || helperPos == null) return;
 
       final dist = Geolocator.distanceBetween(
-        myPos.latitude, myPos.longitude,
-        helperPos.latitude, helperPos.longitude,
+        myPos.latitude,
+        myPos.longitude,
+        helperPos.latitude,
+        helperPos.longitude,
       );
       seekerToHelperDistance.value = '${(dist / 1000).toStringAsFixed(2)} km';
-      seekerToHelperEta.value = '${((dist / 1000) / 30 * 60).toStringAsFixed(0)} min';
+      seekerToHelperEta.value =
+          '${((dist / 1000) / 30 * 60).toStringAsFixed(0)} min';
     } catch (e) {
       Logger.log('[UNIFIED] _recalcSeekerDistanceEta: $e', type: 'error');
     }
@@ -742,11 +828,14 @@ class UnifiedHelpController extends GetxController {
     try {
       final myPos = _getLocationController()?.currentPosition.value;
       final seekerPos = seekerLivePosition.value;
-      if (myPos == null || seekerPos == null || acceptedRequest.value == null) return;
+      if (myPos == null || seekerPos == null || acceptedRequest.value == null)
+        return;
 
       final dist = Geolocator.distanceBetween(
-        myPos.latitude, myPos.longitude,
-        seekerPos.latitude, seekerPos.longitude,
+        myPos.latitude,
+        myPos.longitude,
+        seekerPos.latitude,
+        seekerPos.longitude,
       );
 
       final updated = Map<String, dynamic>.from(acceptedRequest.value!);
@@ -767,7 +856,8 @@ class UnifiedHelpController extends GetxController {
     if (locCtrl == null) return;
 
     if (locCtrl.isSharingLocation.value &&
-        locCtrl.currentHelpRequestId.value == helpRequestId) return;
+        locCtrl.currentHelpRequestId.value == helpRequestId)
+      return;
 
     locCtrl.setHelpRequestId(helpRequestId);
     if (!locCtrl.liveLocation.value) {
@@ -775,7 +865,10 @@ class UnifiedHelpController extends GetxController {
       await Future.delayed(const Duration(milliseconds: 800));
     }
     locCtrl.startLocationSharing();
-    Logger.log('📍 [UNIFIED] Location sharing started for $helpRequestId', type: 'success');
+    Logger.log(
+      '📍 [UNIFIED] Location sharing started for $helpRequestId',
+      type: 'success',
+    );
   }
 
   void _resumeLocationSharing(String helpRequestId) {
@@ -837,21 +930,31 @@ class UnifiedHelpController extends GetxController {
     return s?['profileImage']?.toString() ?? '';
   }
 
-  String get acceptedRequestId => acceptedRequest.value?['_id']?.toString() ?? '';
+  String get acceptedRequestId =>
+      acceptedRequest.value?['_id']?.toString() ?? '';
 
-  String get acceptedDistance => acceptedRequest.value?['distance']?.toString() ?? 'Calculating...';
-  String get acceptedEta => acceptedRequest.value?['eta']?.toString() ?? 'Calculating...';
+  String get acceptedDistance =>
+      acceptedRequest.value?['distance']?.toString() ?? 'Calculating...';
+
+  String get acceptedEta =>
+      acceptedRequest.value?['eta']?.toString() ?? 'Calculating...';
 
   /// LatLng of seeker I'm going to help (from live update or original location)
   LatLng? get seekerLatLng {
     if (seekerLivePosition.value != null) {
-      return LatLng(seekerLivePosition.value!.latitude, seekerLivePosition.value!.longitude);
+      return LatLng(
+        seekerLivePosition.value!.latitude,
+        seekerLivePosition.value!.longitude,
+      );
     }
     final req = acceptedRequest.value;
     if (req == null) return null;
     final coords = req['location']?['coordinates'] as List<dynamic>?;
     if (coords != null && coords.length == 2) {
-      return LatLng((coords[1] as num).toDouble(), (coords[0] as num).toDouble());
+      return LatLng(
+        (coords[1] as num).toDouble(),
+        (coords[0] as num).toDouble(),
+      );
     }
     return null;
   }
@@ -951,8 +1054,12 @@ class UnifiedHelpController extends GetxController {
   void onAppResumed() {
     // Debounce rapid resume calls
     final now = DateTime.now();
-    if (_lastResumeTime != null && now.difference(_lastResumeTime!) < _minResumeInterval) {
-      Logger.log('⏱️ [UNIFIED] Too soon since last resume, skipping', type: 'info');
+    if (_lastResumeTime != null &&
+        now.difference(_lastResumeTime!) < _minResumeInterval) {
+      Logger.log(
+        '⏱️ [UNIFIED] Too soon since last resume, skipping',
+        type: 'info',
+      );
       return;
     }
     _lastResumeTime = now;
@@ -961,13 +1068,19 @@ class UnifiedHelpController extends GetxController {
 
     // Check socket health and reconnect if needed
     if (_socketService == null || !_socketService!.isConnected.value) {
-      Logger.log('🔌 [UNIFIED] Socket disconnected — reconnecting', type: 'warning');
+      Logger.log(
+        '🔌 [UNIFIED] Socket disconnected — reconnecting',
+        type: 'warning',
+      );
       // Try reconnect first
       _socketService?.reconnect();
       // If reconnect fails, reinitialize
       Future.delayed(const Duration(seconds: 3), () {
         if (_socketService == null || !_socketService!.isConnected.value) {
-          Logger.log('🔌 [UNIFIED] Reconnect failed — reinitializing socket', type: 'warning');
+          Logger.log(
+            '🔌 [UNIFIED] Reconnect failed — reinitializing socket',
+            type: 'warning',
+          );
           initSocket().then((_) {
             _rejoinRoomAfterReconnect();
           });
@@ -1007,15 +1120,16 @@ class UnifiedHelpController extends GetxController {
     }
   }
 
-
-
   // ─────────────────────────────────────────────────────────────────────────
   // HEALTH MONITORING
   // ─────────────────────────────────────────────────────────────────────────
   void _startHealthMonitoring() {
     _healthCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
       if (_socketService == null || !_socketService!.isConnected.value) {
-        Logger.log('🏥 [HEALTH] Socket disconnected — triggering reconnect', type: 'warning');
+        Logger.log(
+          '🏥 [HEALTH] Socket disconnected — triggering reconnect',
+          type: 'warning',
+        );
         // Use reconnect instead of full init
         _socketService?.reconnect();
       } else {
@@ -1060,8 +1174,12 @@ class UnifiedHelpController extends GetxController {
         return null;
       }
 
-      final lat = _safeDouble(d['latitude'] ?? d['lat'] ?? d['Latitude'] ?? d['Lat']);
-      final lng = _safeDouble(d['longitude'] ?? d['lng'] ?? d['Longitude'] ?? d['Lng']);
+      final lat = _safeDouble(
+        d['latitude'] ?? d['lat'] ?? d['Latitude'] ?? d['Lat'],
+      );
+      final lng = _safeDouble(
+        d['longitude'] ?? d['lng'] ?? d['Longitude'] ?? d['Lng'],
+      );
 
       if (lat == null || lng == null) return null;
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
@@ -1083,7 +1201,9 @@ class UnifiedHelpController extends GetxController {
   String _extractId(dynamic data) {
     try {
       if (data is Map) {
-        return data['_id']?.toString() ?? data['helpRequestId']?.toString() ?? '';
+        return data['_id']?.toString() ??
+            data['helpRequestId']?.toString() ??
+            '';
       }
     } catch (_) {}
     return '';
@@ -1127,7 +1247,7 @@ class UnifiedHelpController extends GetxController {
     firstName.value = '';
     lastName.value = '';
 
-    Logger.log("✅ [UNIFIED] Cleanup completed", type: "success");
+    Logger.log(" [UNIFIED] Cleanup completed", type: "success");
     super.onClose();
   }
-  }
+}

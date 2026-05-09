@@ -17,7 +17,7 @@ import '../base/headers.dart';
 class Distancesetting extends StatelessWidget {
   Distancesetting({super.key});
 
-  final List<String> distance  = ["1", "1.5", "2", "2.5"];
+  final List<String> distance  = ["1", "1.5", "2", "2.5" "3"];
 
 
   ProfileController controller = Get.put(ProfileController());
