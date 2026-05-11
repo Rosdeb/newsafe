@@ -17,7 +17,7 @@ import '../base/headers.dart';
 class Distancesetting extends StatelessWidget {
   Distancesetting({super.key});
 
-  final List<String> distance  = ["1", "1.5", "2", "2.5" "3"];
+  final List<String> distance  = ["1", "1.5", "2",  "3"];
 
 
   ProfileController controller = Get.put(ProfileController());
@@ -163,7 +163,7 @@ class Distancesetting extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: (value) {
         controller.setDistance(value);
-        final distanceValue = double.tryParse(value)?.toInt() ?? 1;
+        final distanceValue = double.tryParse(value)?.toInt() ?? 3;
         controller.preferableSetting(distanceValue);
         debugPrint("Selected Distance: $value");
 
